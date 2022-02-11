@@ -20,7 +20,7 @@ mod user;
 use error::{Error, RegistrationError};
 pub use state::{SharedState, State};
 use token::{create_access_token, RefreshToken};
-use user::{AuthMethod, Role, User};
+use user::{Role, User};
 
 /// Creates an account.
 pub async fn create_account(
@@ -57,9 +57,13 @@ pub async fn create_account(
                 .map_err(|_| Error::Internal)?;
 
             let ulid = Ulid::generate();
-            shared_state
-                .create_user(ulid, email, AuthMethod::PasswordHash(hash), role)
-                .await?;
+            let user = User {
+                email,
+                password_hash: Some(hash),
+                google: false,
+                outlook: false,
+            };
+            shared_state.create_user(ulid, user, role).await?;
 
             let refresh_token = shared_state.open_session(ulid, role).await?;
             return Ok(refresh_token);
@@ -92,7 +96,7 @@ pub async fn login(
     let mut shared_state = shared_state.lock().await;
     if let Some(ulid) = shared_state.user_id(email, role).await? {
         if let Some(User {
-            auth_method: AuthMethod::PasswordHash(hash),
+            password_hash: Some(hash),
             ..
         }) = shared_state.user(ulid, role).await?
         {

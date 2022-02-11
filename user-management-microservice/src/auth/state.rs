@@ -18,7 +18,7 @@ use super::{
         create_refresh_token,
         one_time::{create_one_time_token, OneTimeTokenAudience},
     },
-    user::{AuthMethod, Role, User},
+    user::{Role, User},
     HASH_CONFIG,
 };
 
@@ -45,13 +45,12 @@ impl State {
     }
 
     /// Creates and stores a new user.
-    pub async fn create_user(
-        &mut self,
-        ulid: Ulid,
-        email: EmailAddress,
-        auth_method: AuthMethod,
-        role: Role,
-    ) -> Result<(), Error> {
+    pub async fn create_user(&mut self, ulid: Ulid, user: User, role: Role) -> Result<(), Error> {
+        if !user.has_authentication() {
+            return Err(Error::Unauthorized);
+        }
+        let email = user.email.clone();
+
         // Ensure that we do not overwrite an existing user.
         if self.user_id(email.clone(), role).await?.is_some()
             || self.user(ulid, role).await?.is_some()
@@ -59,10 +58,6 @@ impl State {
             return Err(Error::Unauthorized);
         }
 
-        let user = User {
-            email: email.clone(),
-            auth_method,
-        };
         self.serialize(Self::store_name(role), &ulid.to_string(), user)
             .await?;
         // NOTE: It is possible for the stores to desync if the following call fails.

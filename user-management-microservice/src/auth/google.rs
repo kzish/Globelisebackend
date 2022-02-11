@@ -14,7 +14,7 @@ use time::Duration;
 use super::{
     error::Error,
     token::one_time::{OneTimeToken, OneTimeTokenAudience},
-    user::{AuthMethod, Role, User},
+    user::{Role, User},
     SharedState,
 };
 
@@ -39,11 +39,15 @@ pub async fn create_account(
     let claims = id_token.decode(&keys)?;
     let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
     let ulid = Ulid::generate();
+    let user = User {
+        email,
+        password_hash: None,
+        google: true,
+        outlook: false,
+    };
 
     let mut shared_state = shared_state.lock().await;
-    shared_state
-        .create_user(ulid, email, AuthMethod::Google, role)
-        .await?;
+    shared_state.create_user(ulid, user, role).await?;
     let one_time_token = shared_state
         .open_one_time_session::<Google>(ulid, role)
         .await?;
@@ -73,11 +77,7 @@ pub async fn login(
 
     let mut shared_state = shared_state.lock().await;
     if let Some(ulid) = shared_state.user_id(email, role).await? {
-        if let Some(User {
-            auth_method: AuthMethod::Google,
-            ..
-        }) = shared_state.user(ulid, role).await?
-        {
+        if let Some(User { google: true, .. }) = shared_state.user(ulid, role).await? {
             let one_time_token = shared_state
                 .open_one_time_session::<Google>(ulid, role)
                 .await?;

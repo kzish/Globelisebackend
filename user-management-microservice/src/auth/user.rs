@@ -11,14 +11,15 @@ use super::error::Error;
 #[derive(Deserialize, Serialize)]
 pub struct User {
     pub email: EmailAddress,
-    pub auth_method: AuthMethod,
+    pub password_hash: Option<String>,
+    pub google: bool,
+    pub outlook: bool,
 }
 
-/// Type representing which authentication method a user uses.
-#[derive(Deserialize, Serialize)]
-pub enum AuthMethod {
-    PasswordHash(String),
-    Google,
+impl User {
+    pub fn has_authentication(&self) -> bool {
+        self.password_hash.is_some() || self.google || self.outlook
+    }
 }
 
 /// Type representing which role a user has.
