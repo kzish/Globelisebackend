@@ -1,8 +1,12 @@
 //! Endpoint for handling Google authentication.
 
+use std::collections::HashMap;
+
 use axum::{
-    extract::{Extension, Form, Path, TypedHeader},
+    extract::{Extension, Form, Path, Query, TypedHeader},
     headers::Cookie,
+    http::{uri, Uri},
+    response::Redirect,
 };
 use email_address::EmailAddress;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
@@ -23,12 +27,18 @@ pub async fn create_account(
     TypedHeader(cookie): TypedHeader<Cookie>,
     Form(id_token): Form<IdToken>,
     Path(role): Path<Role>,
+    Query(params): Query<HashMap<String, String>>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<String, Error> {
+) -> Result<Redirect, Error> {
     // NOTE: Admin sign up disabled until we figure out how to restrict access.
     if matches!(role, Role::Admin) {
         return Err(Error::BadRequest);
     }
+
+    let redirect_uri: Uri = match params.get("redirect_uri") {
+        Some(uri) => uri.parse().map_err(|_| Error::BadRequest)?,
+        None => return Err(Error::BadRequest),
+    };
 
     id_token.check_crsf_token(cookie)?;
 
@@ -51,7 +61,9 @@ pub async fn create_account(
     let one_time_token = shared_state
         .open_one_time_session::<Google>(ulid, role)
         .await?;
-    Ok(one_time_token)
+
+    let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
+    Ok(Redirect::to(redirect_uri))
 }
 
 /// Log in as a Google user.
@@ -59,12 +71,18 @@ pub async fn login(
     TypedHeader(cookie): TypedHeader<Cookie>,
     Form(id_token): Form<IdToken>,
     Path(role): Path<Role>,
+    Query(params): Query<HashMap<String, String>>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<String, Error> {
+) -> Result<Redirect, Error> {
     // NOTE: Admin sign up disabled until we figure out how to restrict access.
     if matches!(role, Role::Admin) {
         return Err(Error::BadRequest);
     }
+
+    let redirect_uri: Uri = match params.get("redirect_uri") {
+        Some(uri) => uri.parse().map_err(|_| Error::BadRequest)?,
+        None => return Err(Error::BadRequest),
+    };
 
     id_token.check_crsf_token(cookie)?;
 
@@ -81,7 +99,9 @@ pub async fn login(
             let one_time_token = shared_state
                 .open_one_time_session::<Google>(ulid, role)
                 .await?;
-            return Ok(one_time_token);
+
+            let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
+            return Ok(Redirect::to(redirect_uri));
         }
         // TODO: Implement linking with an existing account.
     }
@@ -105,6 +125,22 @@ pub async fn get_refresh_token(
     let mut shared_state = shared_state.lock().await;
     let refresh_token = shared_state.open_session(ulid, role).await?;
     Ok(refresh_token)
+}
+
+fn append_token_to_uri(uri: Uri, token: &str) -> Result<Uri, Error> {
+    let query = uri.path_and_query().ok_or(Error::BadRequest)?;
+    let query = match query.query() {
+        Some(_) => query.to_string() + "?token=" + token,
+        None => query.to_string() + "token=" + token,
+    };
+
+    let uri = uri::Builder::new()
+        .scheme(uri.scheme().ok_or(Error::BadRequest)?.clone())
+        .authority(uri.authority().ok_or(Error::BadRequest)?.clone())
+        .path_and_query(query)
+        .build()
+        .map_err(|_| Error::BadRequest)?;
+    Ok(uri)
 }
 
 /// Representation of Google's ID token.
