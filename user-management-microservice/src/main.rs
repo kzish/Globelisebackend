@@ -29,6 +29,7 @@ async fn main() {
         .route("/login/:role", post(auth::login))
         .route("/google/signup/:role", post(auth::google::create_account))
         .route("/google/login/:role", post(auth::google::login))
+        .route("/google/authorize", post(auth::google::get_refresh_token))
         .route("/auth/refresh", post(auth::renew_access_token))
         .route("/auth/keys", get(auth::public_key))
         .layer(

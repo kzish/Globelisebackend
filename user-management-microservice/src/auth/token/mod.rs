@@ -19,6 +19,8 @@ use time::{Duration, OffsetDateTime};
 
 use super::{error::Error, user::Role, SharedState};
 
+pub mod one_time;
+
 /// Creates an access token.
 pub fn create_access_token(ulid: Ulid, email: EmailAddress, role: Role) -> Result<String, Error> {
     let expiration = match OffsetDateTime::now_utc().checked_add(ACCESS_LIFETIME) {
@@ -105,7 +107,7 @@ where
         let ulid: Ulid = claims.sub.parse().map_err(|_| Error::Unauthorized)?;
         let role: Role = claims.role.parse().map_err(|_| Error::Unauthorized)?;
 
-        // Do not trust the role claim without validating it.
+        // Make sure the user actually exists.
         let mut shared_state = shared_state.lock().await;
         if shared_state.user(ulid, role).await?.is_none() {
             return Err(Error::Unauthorized);
@@ -114,6 +116,7 @@ where
         // Do not authorize if the server has revoked the session,
         // even if the token is otherwise valid.
         let mut is_session_valid = false;
+        let _ = shared_state.clear_expired_sessions(ulid).await;
         if let Some(sessions) = shared_state.sessions(ulid).await? {
             for (hash, _) in sessions.iter() {
                 if let Ok(true) = verify_encoded(hash, bearer.token().as_bytes()) {
@@ -122,8 +125,6 @@ where
                 }
             }
         }
-        // TODO: Switch to periodically clearing all expired sessions from all users.
-        let _ = shared_state.clear_expired_sessions(ulid).await;
 
         if is_session_valid {
             Ok(claims)
@@ -173,10 +174,10 @@ static KEYS: Lazy<Keys> = Lazy::new(|| {
 });
 
 /// The issuer of tokens, used in the `iss` field of JWTs.
-const ISSSUER: &str = "https://globelise.com";
+pub const ISSSUER: &str = "https://globelise.com";
 
-/// The lifetime of access tokens.
+/// Lifetime of access tokens.
 const ACCESS_LIFETIME: Duration = Duration::hours(1);
 
-/// The lifetime of refresh tokens.
+/// Lifetime of refresh tokens.
 const REFRESH_LIFETIME: Duration = Duration::hours(2);

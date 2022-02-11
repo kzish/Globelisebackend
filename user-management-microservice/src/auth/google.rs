@@ -1,36 +1,35 @@
 //! Endpoint for handling Google authentication.
 
 use axum::{
-    extract::{Extension, Path, TypedHeader},
+    extract::{Extension, Form, Path, TypedHeader},
     headers::Cookie,
-    Json,
 };
 use email_address::EmailAddress;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use once_cell::sync::Lazy;
 use rusty_ulid::Ulid;
 use serde::Deserialize;
+use time::Duration;
 
 use super::{
     error::Error,
+    token::one_time::{OneTimeToken, OneTimeTokenAudience},
     user::{AuthMethod, Role, User},
-    LoginResponse, SharedState,
+    SharedState,
 };
 
 /// Sign up as a Google user.
 pub async fn create_account(
-    id_token: String,
     TypedHeader(cookie): TypedHeader<Cookie>,
+    Form(id_token): Form<IdToken>,
     Path(role): Path<Role>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<Json<LoginResponse>, Error> {
+) -> Result<String, Error> {
     // NOTE: Admin sign up disabled until we figure out how to restrict access.
     if matches!(role, Role::Admin) {
         return Err(Error::BadRequest);
     }
 
-    let id_token: IdToken =
-        serde_urlencoded::from_str(&*id_token).map_err(|_| Error::Unauthorized)?;
     id_token.check_crsf_token(cookie)?;
 
     let OauthKeyList { keys } = OauthKeyList::new()
@@ -45,24 +44,24 @@ pub async fn create_account(
     shared_state
         .create_user(ulid, email, AuthMethod::Google, role)
         .await?;
-    let refresh_token = shared_state.open_session(ulid, role).await?;
-    Ok(Json(LoginResponse { refresh_token }))
+    let one_time_token = shared_state
+        .open_one_time_session::<Google>(ulid, role)
+        .await?;
+    Ok(one_time_token)
 }
 
 /// Log in as a Google user.
 pub async fn login(
-    id_token: String,
     TypedHeader(cookie): TypedHeader<Cookie>,
+    Form(id_token): Form<IdToken>,
     Path(role): Path<Role>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<Json<LoginResponse>, Error> {
+) -> Result<String, Error> {
     // NOTE: Admin sign up disabled until we figure out how to restrict access.
     if matches!(role, Role::Admin) {
         return Err(Error::BadRequest);
     }
 
-    let id_token: IdToken =
-        serde_urlencoded::from_str(&*id_token).map_err(|_| Error::Unauthorized)?;
     id_token.check_crsf_token(cookie)?;
 
     let OauthKeyList { keys } = OauthKeyList::new()
@@ -79,8 +78,10 @@ pub async fn login(
             ..
         }) = shared_state.user(ulid, role).await?
         {
-            let refresh_token = shared_state.open_session(ulid, role).await?;
-            return Ok(Json(LoginResponse { refresh_token }));
+            let one_time_token = shared_state
+                .open_one_time_session::<Google>(ulid, role)
+                .await?;
+            return Ok(one_time_token);
         }
         // TODO: Implement linking with an existing account.
     }
@@ -88,14 +89,33 @@ pub async fn login(
     Err(Error::Unauthorized)
 }
 
+pub async fn get_refresh_token(
+    claims: OneTimeToken<Google>,
+    Extension(shared_state): Extension<SharedState>,
+) -> Result<String, Error> {
+    let ulid: Ulid = claims
+        .sub
+        .parse()
+        .map_err(|_| Error::Conversion("uuid parse error".into()))?;
+    let role: Role = claims
+        .role
+        .parse()
+        .map_err(|_| Error::Conversion("role parse error".into()))?;
+
+    let mut shared_state = shared_state.lock().await;
+    let refresh_token = shared_state.open_session(ulid, role).await?;
+    Ok(refresh_token)
+}
+
 /// Representation of Google's ID token.
 #[derive(Deserialize)]
-struct IdToken {
+pub struct IdToken {
     credential: String,
     g_csrf_token: String,
 }
 
 impl IdToken {
+    /// Validate the CRSF token.
     fn check_crsf_token(&self, cookie: Cookie) -> Result<(), Error> {
         if let Some(crsf_token) = cookie.get("g_csrf_token") {
             if crsf_token == self.g_csrf_token {
@@ -153,6 +173,25 @@ impl OauthKeyList {
             .await?
             .json::<Self>()
             .await?)
+    }
+}
+
+pub struct Google;
+
+impl OneTimeTokenAudience for Google {
+    fn name() -> &'static str {
+        "google"
+    }
+
+    fn from_str(s: &str) -> Result<(), Error> {
+        match s {
+            "google" => Ok(()),
+            _ => Err(Error::Unauthorized),
+        }
+    }
+
+    fn lifetime() -> Duration {
+        Duration::seconds(60)
     }
 }
 

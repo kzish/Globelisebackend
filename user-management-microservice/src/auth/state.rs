@@ -2,7 +2,7 @@
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use argon2::hash_encoded;
+use argon2::{hash_encoded, verify_encoded};
 use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
 use email_address::EmailAddress;
 use rand::Rng;
@@ -14,7 +14,10 @@ use tonic::transport::Channel;
 
 use super::{
     error::Error,
-    token::create_refresh_token,
+    token::{
+        create_refresh_token,
+        one_time::{create_one_time_token, OneTimeTokenAudience},
+    },
     user::{AuthMethod, Role, User},
     HASH_CONFIG,
 };
@@ -132,6 +135,68 @@ impl State {
             .await
     }
 
+    /// Opens a new one-time session for a user.
+    pub async fn open_one_time_session<T>(
+        &mut self,
+        ulid: Ulid,
+        role: Role,
+    ) -> Result<String, Error>
+    where
+        T: OneTimeTokenAudience,
+    {
+        // Validate that the user and role are correct.
+        if self.user(ulid, role).await?.is_none() {
+            return Err(Error::Unauthorized);
+        }
+
+        let mut sessions = OneTimeSessions::default();
+        let store_name = Self::one_time_store_name::<T>();
+        if let Some(existing_sessions) = self
+            .deserialize::<OneTimeSessions>(&*store_name, &ulid.to_string())
+            .await?
+        {
+            sessions = existing_sessions;
+        }
+        let one_time_token = sessions.open::<T>(ulid, role)?;
+        self.serialize(&*store_name, &ulid.to_string(), sessions)
+            .await?;
+        Ok(one_time_token)
+    }
+
+    /// Check if a one-time token is valid.
+    pub async fn is_one_time_token_valid<T>(
+        &mut self,
+        ulid: Ulid,
+        token: &[u8],
+    ) -> Result<bool, Error>
+    where
+        T: OneTimeTokenAudience,
+    {
+        let store_name = Self::one_time_store_name::<T>();
+        if let Some(mut sessions) = self
+            .deserialize::<OneTimeSessions>(&*store_name, &ulid.to_string())
+            .await?
+        {
+            let mut matching_hash: Option<String> = None;
+            sessions.clear_expired();
+            for (hash, _) in sessions.iter() {
+                if let Ok(true) = verify_encoded(hash, token) {
+                    matching_hash = Some(hash.clone());
+                    break;
+                }
+            }
+
+            if let Some(hash) = matching_hash {
+                sessions.sessions.remove(&hash);
+            }
+
+            self.serialize(&*store_name, &ulid.to_string(), sessions)
+                .await?;
+        }
+
+        Ok(false)
+    }
+
     /// Serialize and store data in the state store.
     async fn serialize<T>(&mut self, store_name: &str, key: &str, value: T) -> Result<(), Error>
     where
@@ -188,6 +253,14 @@ impl State {
             Role::Admin => "admin_ids",
         }
     }
+
+    /// Gets the store name for one-time sessions.
+    fn one_time_store_name<T>() -> String
+    where
+        T: OneTimeTokenAudience,
+    {
+        "one_time_".to_string() + T::name()
+    }
 }
 
 /// Stores hashes of session tokens, mapped to their expiration time.
@@ -212,6 +285,40 @@ impl Sessions {
     /// Revokes all sessions.
     fn revoke_all(&mut self) {
         self.sessions.clear();
+    }
+
+    /// Clears all expired sessions.
+    fn clear_expired(&mut self) {
+        self.sessions
+            .retain(|_, expiration| *expiration < OffsetDateTime::now_utc().unix_timestamp());
+    }
+
+    /// Produces an iterator over the sessions.
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &i64)> {
+        self.sessions.iter()
+    }
+}
+
+/// Stores hashes of session tokens, mapped to their expiration time.
+#[derive(Default, Deserialize, Serialize)]
+pub struct OneTimeSessions {
+    sessions: HashMap<String, i64>,
+}
+
+impl OneTimeSessions {
+    /// Opens a new session.
+    ///
+    /// Returns the refresh token for the session.
+    fn open<T>(&mut self, ulid: Ulid, role: Role) -> Result<String, Error>
+    where
+        T: OneTimeTokenAudience,
+    {
+        let (one_time_token, expiration) = create_one_time_token::<T>(ulid, role)?;
+        let salt: [u8; 16] = rand::thread_rng().gen();
+        let hash = hash_encoded(one_time_token.as_bytes(), &salt, &HASH_CONFIG)
+            .map_err(|_| Error::Internal)?;
+        self.sessions.insert(hash, expiration);
+        Ok(one_time_token)
     }
 
     /// Clears all expired sessions.

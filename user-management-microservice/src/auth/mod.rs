@@ -3,12 +3,12 @@
 use std::str::FromStr;
 
 use argon2::{self, hash_encoded, verify_encoded, Config};
-use axum::extract::{Extension, Form, Json, Path};
+use axum::extract::{Extension, Form, Path};
 use email_address::EmailAddress;
 use once_cell::sync::Lazy;
 use rand::Rng;
 use rusty_ulid::Ulid;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 
 mod error;
@@ -27,7 +27,7 @@ pub async fn create_account(
     Form(request): Form<CreateAccountRequest>,
     Path(role): Path<Role>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<Json<LoginResponse>, Error> {
+) -> Result<String, Error> {
     // Credentials should be normalized for maximum compatibility.
     let email: String = request.email.trim().nfc().collect();
     let password: String = request.password.nfc().collect();
@@ -38,7 +38,7 @@ pub async fn create_account(
     let email = EmailAddress::from_str(&email);
     // NOTE: Admin sign up disabled until we figure out how to restrict access.
     if matches!(role, Role::Admin) {
-        return Err(Error::BadRequest);
+        return Err(Error::Unauthorized);
     }
 
     let is_valid_email = email.is_ok();
@@ -62,7 +62,7 @@ pub async fn create_account(
                 .await?;
 
             let refresh_token = shared_state.open_session(ulid, role).await?;
-            return Ok(Json(LoginResponse { refresh_token }));
+            return Ok(refresh_token);
         }
     }
 
@@ -79,11 +79,11 @@ pub async fn login(
     Form(request): Form<LoginRequest>,
     Path(role): Path<Role>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<Json<LoginResponse>, Error> {
+) -> Result<String, Error> {
     let email: EmailAddress = request.email.parse().map_err(|_| Error::BadRequest)?;
     // NOTE: Admin sign up disabled until we figure out how to restrict access.
     if matches!(role, Role::Admin) {
-        return Err(Error::BadRequest);
+        return Err(Error::Unauthorized);
     }
 
     // NOTE: A timing attack can detect registered emails.
@@ -98,7 +98,7 @@ pub async fn login(
         {
             if let Ok(true) = verify_encoded(&hash, request.password.as_bytes()) {
                 let refresh_token = shared_state.open_session(ulid, role).await?;
-                return Ok(Json(LoginResponse { refresh_token }));
+                return Ok(refresh_token);
             }
         }
     }
@@ -110,7 +110,7 @@ pub async fn login(
 pub async fn renew_access_token(
     claims: RefreshToken,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<Json<RefreshResponse>, Error> {
+) -> Result<String, Error> {
     let ulid: Ulid = claims
         .sub
         .parse()
@@ -123,17 +123,15 @@ pub async fn renew_access_token(
     let mut shared_state = shared_state.lock().await;
     if let Some(User { email, .. }) = shared_state.user(ulid, role).await? {
         let access_token = create_access_token(ulid, email, role)?;
-        Ok(Json(RefreshResponse { access_token }))
+        Ok(access_token)
     } else {
         Err(Error::Unauthorized)
     }
 }
 
 /// Gets the public key for decoding tokens.
-pub async fn public_key() -> Json<KeyResponse> {
-    Json(KeyResponse {
-        key: (*token::PUBLIC_KEY).clone(),
-    })
+pub async fn public_key() -> String {
+    (*token::PUBLIC_KEY).clone()
 }
 
 /// Request for creating a user.
@@ -149,24 +147,6 @@ pub struct CreateAccountRequest {
 pub struct LoginRequest {
     email: String,
     password: String,
-}
-
-/// Response from login.
-#[derive(Serialize)]
-pub struct LoginResponse {
-    refresh_token: String,
-}
-
-/// Response from refreshing access token.
-#[derive(Serialize)]
-pub struct RefreshResponse {
-    access_token: String,
-}
-
-/// Response for getting public key.
-#[derive(Serialize)]
-pub struct KeyResponse {
-    key: String,
 }
 
 /// The parameters used for hashing.
