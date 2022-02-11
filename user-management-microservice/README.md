@@ -1,14 +1,12 @@
 # User Management Microservice
-
 This microservice handles user authentication and authorization.
 
 ## API
-
-Work in progress...
+See [API](API.md).
 
 ## Requirements
-
-- Dapr (see their [Getting started](https://docs.dapr.io/getting-started/) guide)
+- [Rust compiler](https://www.rust-lang.org/tools/install)
+- [Dapr](https://docs.dapr.io/getting-started/)
     - Note: For this project, session data should be on redis, and other data should be
     backed by PostgreSQL. Currently, this project is not configured correctly to use multiple
     stores, so as a workaround, data just gets multiplexed on a single redis store. **This must
@@ -22,13 +20,11 @@ Work in progress...
 - Google client ID, stored in the `GOOGLE_CLIENT_ID` environment variable
 
 ## Build
-
 ```
 cargo build
 ```
 
 ## Run
-
 Inside the project's root directory, run the following command:
 
 ```
