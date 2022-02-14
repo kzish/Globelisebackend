@@ -22,50 +22,6 @@ use super::{
     SharedState,
 };
 
-/// Sign up as a Google user.
-pub async fn create_account(
-    TypedHeader(cookie): TypedHeader<Cookie>,
-    Form(id_token): Form<IdToken>,
-    Path(role): Path<Role>,
-    Query(params): Query<HashMap<String, String>>,
-    Extension(shared_state): Extension<SharedState>,
-) -> Result<Redirect, Error> {
-    // NOTE: Admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::Admin) {
-        return Err(Error::BadRequest);
-    }
-
-    let redirect_uri: Uri = match params.get("redirect_uri") {
-        Some(uri) => uri.parse().map_err(|_| Error::BadRequest)?,
-        None => return Err(Error::BadRequest),
-    };
-
-    id_token.check_crsf_token(cookie)?;
-
-    let OauthKeyList { keys } = OauthKeyList::new()
-        .await
-        .map_err(|_| Error::GooglePublicKeys)?;
-
-    let claims = id_token.decode(&keys)?;
-    let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
-    let ulid = Ulid::generate();
-    let user = User {
-        email,
-        password_hash: None,
-        google: true,
-        outlook: false,
-    };
-
-    let mut shared_state = shared_state.lock().await;
-    shared_state.create_user(ulid, user, role).await?;
-    let one_time_token = shared_state
-        .open_one_time_session::<Google>(ulid, role)
-        .await?;
-
-    let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
-    Ok(Redirect::to(redirect_uri))
-}
-
 /// Log in as a Google user.
 pub async fn login(
     TypedHeader(cookie): TypedHeader<Cookie>,
@@ -94,7 +50,7 @@ pub async fn login(
     let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
 
     let mut shared_state = shared_state.lock().await;
-    if let Some(ulid) = shared_state.user_id(email, role).await? {
+    if let Some(ulid) = shared_state.user_id(&email, role).await? {
         if let Some(User { google: true, .. }) = shared_state.user(ulid, role).await? {
             let one_time_token = shared_state
                 .open_one_time_session::<Google>(ulid, role)
@@ -102,11 +58,27 @@ pub async fn login(
 
             let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
             return Ok(Redirect::to(redirect_uri));
+        } else {
+            // TODO: Implement linking with an existing account.
+            return Err(Error::NotImplemented(
+                "Linking existing account with google account is not implemented".to_string(),
+            ));
         }
-        // TODO: Implement linking with an existing account.
+    } else {
+        let ulid = Ulid::generate();
+        let user = User {
+            email,
+            password_hash: None,
+            google: true,
+            outlook: false,
+        };
+        shared_state.create_user(ulid, user, role).await?;
+        let one_time_token: String = shared_state
+            .open_one_time_session::<Google>(ulid, role)
+            .await?;
+        let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
+        return Ok(Redirect::to(redirect_uri));
     }
-
-    Err(Error::Unauthorized)
 }
 
 pub async fn get_refresh_token(
@@ -130,8 +102,8 @@ pub async fn get_refresh_token(
 fn append_token_to_uri(uri: Uri, token: &str) -> Result<Uri, Error> {
     let query = uri.path_and_query().ok_or(Error::BadRequest)?;
     let query = match query.query() {
-        Some(_) => query.to_string() + "?token=" + token,
-        None => query.to_string() + "token=" + token,
+        Some(_) => query.to_string() + "&token=" + token,
+        None => query.to_string() + "?token=" + token,
     };
 
     let uri = uri::Builder::new()
@@ -144,7 +116,7 @@ fn append_token_to_uri(uri: Uri, token: &str) -> Result<Uri, Error> {
 }
 
 /// Representation of Google's ID token.
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct IdToken {
     credential: String,
     g_csrf_token: String,
@@ -183,7 +155,7 @@ impl IdToken {
 }
 
 /// Claims for Google ID tokens.
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct Claims {
     email: String,
 }
@@ -232,5 +204,34 @@ impl OneTimeTokenAudience for Google {
 }
 
 /// The Google app's client ID.
-static CLIENT_ID: Lazy<String> =
+pub static CLIENT_ID: Lazy<String> =
     Lazy::new(|| std::env::var("GOOGLE_CLIENT_ID").expect("GOOGLE_CLIENT_ID must be set"));
+
+//
+pub async fn login_page() -> axum::response::Html<String> {
+    axum::response::Html(format!(
+        r##"
+    <html>
+        <body>
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
+        <div
+            id="g_id_onload"
+            data-client_id="{}"
+            data-login_uri="http://localhost:3000/google/login/client_individual?redirect_uri=http://localhost:3000/auth/keys"
+            data-auto_prompt="false"
+        ></div>
+        <div
+            class="g_id_signin"
+            data-type="standard"
+            data-size="large"
+            data-theme="outline"
+            data-text="sign_in_with"
+            data-shape="rectangular"
+            data-logo_alignment="left"
+        ></div>
+        </body>
+    </html>      
+        "##,
+        (*CLIENT_ID)
+    ))
+}

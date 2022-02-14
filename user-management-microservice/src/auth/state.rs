@@ -52,10 +52,8 @@ impl State {
         let email = user.email.clone();
 
         // Ensure that we do not overwrite an existing user.
-        if self.user_id(email.clone(), role).await?.is_some()
-            || self.user(ulid, role).await?.is_some()
-        {
-            return Err(Error::Unauthorized);
+        if self.user_id(&email, role).await?.is_some() || self.user(ulid, role).await?.is_some() {
+            return Ok(());
         }
 
         self.serialize(Self::store_name(role), &ulid.to_string(), user)
@@ -63,7 +61,7 @@ impl State {
         // NOTE: It is possible for the stores to desync if the following call fails.
         // This will leave an orphan entry in the user store and force the user
         // to sign up again.
-        self.serialize(Self::id_store_name(role), &email.to_string(), ulid)
+        self.serialize(Self::id_store_name(role), &email.as_ref(), ulid)
             .await
     }
 
@@ -76,10 +74,10 @@ impl State {
     /// Gets a user's id.
     pub async fn user_id(
         &mut self,
-        email: EmailAddress,
+        email: &EmailAddress,
         role: Role,
     ) -> Result<Option<Ulid>, Error> {
-        self.deserialize(Self::id_store_name(role), &email.to_string())
+        self.deserialize(Self::id_store_name(role), &email.as_ref())
             .await
     }
 
@@ -146,9 +144,9 @@ impl State {
 
         let mut sessions = OneTimeSessions::default();
         let store_name = Self::one_time_store_name::<T>();
-        if let Some(existing_sessions) = self
+        if let Ok(Some(existing_sessions)) = self
             .deserialize::<OneTimeSessions>(&*store_name, &ulid.to_string())
-            .await?
+            .await
         {
             sessions = existing_sessions;
         }

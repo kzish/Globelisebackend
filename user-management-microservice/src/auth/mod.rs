@@ -49,7 +49,7 @@ pub async fn create_account(
     if is_valid_email {
         let mut shared_state = shared_state.lock().await;
         let email = email.unwrap();
-        is_email_available = shared_state.user_id(email.clone(), role).await?.is_none();
+        is_email_available = shared_state.user_id(&email, role).await?.is_none();
 
         if is_email_available && is_password_at_least_8_chars && passwords_match {
             let salt: [u8; 16] = rand::thread_rng().gen();
@@ -94,7 +94,7 @@ pub async fn login(
     // Mitigating this is not strictly necessary, as attackers can still find out
     // if an email is registered by using the sign-up page.
     let mut shared_state = shared_state.lock().await;
-    if let Some(ulid) = shared_state.user_id(email, role).await? {
+    if let Some(ulid) = shared_state.user_id(&email, role).await? {
         if let Some(User {
             password_hash: Some(hash),
             ..
