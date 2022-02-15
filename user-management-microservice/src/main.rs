@@ -13,6 +13,7 @@ use axum::{
     routing::{get, post},
     BoxError, Router,
 };
+use dotenv;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
 use tower_http::add_extension::AddExtensionLayer;
@@ -21,13 +22,14 @@ mod auth;
 
 #[tokio::main]
 async fn main() {
+    dotenv::dotenv().ok();
     let shared_state = auth::State::new().await.expect("Could not connect to Dapr");
     let shared_state = Arc::new(Mutex::new(shared_state));
 
     let app = Router::new()
         .route("/signup/:role", post(auth::create_account))
         .route("/login/:role", post(auth::login))
-        .route("/google/signup/:role", post(auth::google::create_account))
+        .route("/google/loginpage", get(auth::google::login_page))
         .route("/google/login/:role", post(auth::google::login))
         .route("/google/authorize", post(auth::google::get_refresh_token))
         .route("/auth/refresh", post(auth::renew_access_token))

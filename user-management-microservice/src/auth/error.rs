@@ -26,6 +26,7 @@ pub enum Error {
     Unauthorized,
     BadRequest,
     Internal,
+    NotImplemented(String),
 }
 
 #[cfg(debug_assertions)]
@@ -47,6 +48,7 @@ impl IntoResponse for Error {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal server error".into(),
             ),
+            Error::NotImplemented(message) => (StatusCode::NOT_IMPLEMENTED, message),
         };
         (status, message).into_response()
     }
