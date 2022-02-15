@@ -39,7 +39,7 @@ async fn main() {
                 .layer(HandleErrorLayer::new(handle_error))
                 .load_shed()
                 .concurrency_limit(1024)
-                .timeout(Duration::from_secs(100))
+                .timeout(Duration::from_secs(10))
                 .layer(AddExtensionLayer::new(shared_state)),
         );
 
