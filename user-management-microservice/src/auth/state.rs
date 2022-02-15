@@ -53,7 +53,7 @@ impl State {
 
         // Ensure that we do not overwrite an existing user.
         if self.user_id(&email, role).await?.is_some() || self.user(ulid, role).await?.is_some() {
-            return Ok(());
+            return Err(Error::Unauthorized);
         }
 
         self.serialize(Self::store_name(role), &ulid.to_string(), user)
