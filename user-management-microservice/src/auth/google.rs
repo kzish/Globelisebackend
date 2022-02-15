@@ -60,9 +60,7 @@ pub async fn login(
             return Ok(Redirect::to(redirect_uri));
         } else {
             // TODO: Implement linking with an existing account.
-            return Err(Error::NotImplemented(
-                "Linking existing account with google account is not implemented".to_string(),
-            ));
+            return Err(Error::BadRequest);
         }
     } else {
         let ulid = Ulid::generate();

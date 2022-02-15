@@ -157,7 +157,5 @@ pub struct LoginRequest {
 // TODO: Calibrate hash parameters for production server.
 pub static HASH_CONFIG: Lazy<Config> = Lazy::new(|| Config {
     variant: argon2::Variant::Argon2id,
-    mem_cost: 65536,
-    time_cost: 3,
     ..Default::default()
 });
