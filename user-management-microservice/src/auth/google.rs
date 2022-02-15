@@ -205,7 +205,17 @@ impl OneTimeTokenAudience for Google {
 pub static CLIENT_ID: Lazy<String> =
     Lazy::new(|| std::env::var("GOOGLE_CLIENT_ID").expect("GOOGLE_CLIENT_ID must be set"));
 
-//
+#[cfg(not(debug_asserstions))]
+// Use absolute namespace to silence errors about unused imports.
+pub async fn login_page() -> axum::response::Response {
+    axum::response::IntoResponse::into_response((
+        axum::http::StatusCode::UNAUTHORIZED,
+        "Not Found".to_string(),
+    ))
+}
+
+#[cfg(debug_asserstions)]
+// Use absolute namespace to silence errors about unused imports.
 pub async fn login_page() -> axum::response::Html<String> {
     axum::response::Html(format!(
         r##"
