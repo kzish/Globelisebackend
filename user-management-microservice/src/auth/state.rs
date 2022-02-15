@@ -144,9 +144,9 @@ impl State {
 
         let mut sessions = OneTimeSessions::default();
         let store_name = Self::one_time_store_name::<T>();
-        if let Ok(Some(existing_sessions)) = self
+        if let Some(existing_sessions) = self
             .deserialize::<OneTimeSessions>(&*store_name, &ulid.to_string())
-            .await
+            .await?
         {
             sessions = existing_sessions;
         }
