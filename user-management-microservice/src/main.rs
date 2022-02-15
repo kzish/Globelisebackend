@@ -7,7 +7,6 @@
 
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
-use auth::google::CLIENT_ID;
 use axum::{
     error_handling::HandleErrorLayer,
     http::StatusCode,

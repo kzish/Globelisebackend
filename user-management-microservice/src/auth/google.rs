@@ -202,7 +202,7 @@ impl OneTimeTokenAudience for Google {
 }
 
 /// The Google app's client ID.
-pub static CLIENT_ID: Lazy<String> =
+static CLIENT_ID: Lazy<String> =
     Lazy::new(|| std::env::var("GOOGLE_CLIENT_ID").expect("GOOGLE_CLIENT_ID must be set"));
 
 #[cfg(not(debug_asserstions))]
