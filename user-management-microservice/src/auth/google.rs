@@ -219,26 +219,30 @@ pub async fn login_page() -> axum::response::Response {
 pub async fn login_page() -> axum::response::Html<String> {
     axum::response::Html(format!(
         r##"
-    <html>
-        <body>
-        <script src="https://accounts.google.com/gsi/client" async defer></script>
-        <div
-            id="g_id_onload"
-            data-client_id="{}"
-            data-login_uri="http://localhost:3000/google/login/client_individual?redirect_uri=http://localhost:3000/auth/keys"
-            data-auto_prompt="false"
-        ></div>
-        <div
-            class="g_id_signin"
-            data-type="standard"
-            data-size="large"
-            data-theme="outline"
-            data-text="sign_in_with"
-            data-shape="rectangular"
-            data-logo_alignment="left"
-        ></div>
-        </body>
-    </html>      
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Globelise Login Page</title>
+          </head>
+          <body>
+            <script src="https://accounts.google.com/gsi/client" async defer></script>
+            <div
+              id="g_id_onload"
+              data-client_id="{}"
+              data-login_uri="http://localhost:3000/google/signup/client_individual"
+              data-auto_prompt="false"
+            ></div>
+            <div
+              class="g_id_signin"
+              data-type="standard"
+              data-size="large"
+              data-theme="outline"
+              data-text="sign_in_with"
+              data-shape="rectangular"
+              data-logo_alignment="left"
+            ></div>
+          </body>
+        </html>        
         "##,
         (*CLIENT_ID)
     ))

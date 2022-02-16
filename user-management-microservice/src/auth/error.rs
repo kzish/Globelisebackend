@@ -26,7 +26,7 @@ pub enum Error {
     Unauthorized,
     BadRequest,
     Internal,
-    NotImplemented(String),
+    InternalVerbose(String),
 }
 
 #[cfg(debug_assertions)]
@@ -48,7 +48,7 @@ impl IntoResponse for Error {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal server error".into(),
             ),
-            Error::NotImplemented(message) => (StatusCode::NOT_IMPLEMENTED, message),
+            Error::InternalVerbose(message) => (StatusCode::INTERNAL_SERVER_ERROR, message),
         };
         (status, message).into_response()
     }
@@ -66,7 +66,9 @@ impl IntoResponse for Error {
             Error::Conversion(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
             Error::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized"),
             Error::BadRequest => (StatusCode::BAD_REQUEST, "Bad request"),
-            Error::Internal => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
+            Error::Internal | Error::InternalVerbose(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
+            }
         };
         (status, message).into_response()
     }

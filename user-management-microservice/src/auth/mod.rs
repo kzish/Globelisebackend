@@ -3,8 +3,19 @@
 use std::str::FromStr;
 
 use argon2::{self, hash_encoded, verify_encoded, Config};
-use axum::extract::{Extension, Form, Path};
+use axum::{
+    extract::{Extension, Form, OriginalUri, Path},
+    http::{
+        uri::{self, Builder as UriBuilder},
+        Uri,
+    },
+    response::{Redirect, Response},
+};
 use email_address::EmailAddress;
+use lettre::{
+    transport::smtp::authentication::Credentials as SmtpCredentials, Message as EmailBuilder,
+    SmtpTransport, Transport,
+};
 use once_cell::sync::Lazy;
 use rand::Rng;
 use rusty_ulid::Ulid;
@@ -110,6 +121,169 @@ pub async fn login(
     Err(Error::Unauthorized)
 }
 
+/// Logs a user in.
+pub async fn lost_password(Form(request): Form<LostPasswordRequest>) -> Result<Redirect, Error> {
+    let email_address: EmailAddress = request.email.parse().map_err(|_| Error::BadRequest)?;
+
+    let sender_email =
+        std::env::var("GLOBELISE_SENDER_EMAIL").expect("GLOBELISE_SENDER_EMAIL must be set");
+    let smtp_username =
+        std::env::var("GLOBELISE_SMTP_USERNAME").expect("GLOBELISE_SMTP_USERNAME must be set");
+    let smtp_password =
+        std::env::var("GLOBELISE_SMTP_PASSWORD").expect("GLOBELISE_SMTP_PASSWORD must be set");
+    let domain_url =
+        std::env::var("GLOBELISE_DOMAIN_URL").expect("GLOBELISE_DOMAIN_URL must be set");
+
+    let email = EmailBuilder::builder()
+        .from(sender_email.parse().unwrap())
+        .reply_to(sender_email.parse().unwrap())
+        // TODO: Get the name of the person associated to this email address
+        // and prepend it like so `name <email>`
+        .to(format!("<{}>", email_address.as_ref()).parse().unwrap())
+        .subject("Confirm Request to Reset Password")
+        .body(format!(
+            "Are you sure you want to reset the password? Please follow this link to reset it",
+        ))
+        .unwrap();
+
+    let creds = SmtpCredentials::new(smtp_username, smtp_password);
+
+    // Open a remote connection to gmail
+    let mailer = SmtpTransport::relay("smtp.gmail.com")
+        .unwrap()
+        .credentials(creds)
+        .build();
+
+    // Send the email
+    mailer
+        .send(&email)
+        .map_err(|e| Error::InternalVerbose(e.to_string()))?;
+
+    // TODO: Better ways to create url for redirection?
+    let redirect_url = format!("{}/auth/keys", domain_url);
+    let uri = Uri::from_str(redirect_url.as_str()).unwrap();
+
+    Ok(Redirect::to(uri))
+}
+
+#[cfg(not(debug_assertions))]
+// Use absolute namespace to silence errors about unused imports.
+pub async fn lost_password_page() -> axum::response::Response {
+    axum::response::IntoResponse::into_response((
+        axum::http::StatusCode::NOT_FOUND,
+        "Not Found".to_string(),
+    ))
+}
+
+#[cfg(debug_assertions)]
+// Use absolute namespace to silence errors about unused imports.
+pub async fn lost_password_page() -> axum::response::Html<String> {
+    axum::response::Html(
+        r##"
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Globelise Password Recovery</title>
+        </head>
+        <body>
+            <h2>Recover Password</h2>
+
+            <form
+            action="lostpassword"
+            method="post"
+            enctype="application/x-www-form-urlencoded"
+            >
+            <label for="user_email">Email:</label><br />
+            <input
+                type="email"
+                id="user_email"
+                name="user_email"
+                placeholder="example@email.com"
+            /><br />
+            <input type="submit" value="Submit" />
+            </form>
+        </body>
+        </html>           
+        "##
+        .to_string(),
+    )
+}
+
+/// Logs a user in.
+pub async fn change_password(
+    Form(request): Form<ChangePasswordRequest>,
+    Path(role): Path<Role>,
+    Extension(shared_state): Extension<SharedState>,
+) -> Result<String, Error> {
+    let email: EmailAddress = request.email.parse().map_err(|_| Error::BadRequest)?;
+    // NOTE: Admin sign up disabled until we figure out how to restrict access.
+    if matches!(role, Role::Admin) {
+        return Err(Error::Unauthorized);
+    }
+
+    // NOTE: A timing attack can detect registered emails.
+    // Mitigating this is not strictly necessary, as attackers can still find out
+    // if an email is registered by using the sign-up page.
+    let mut shared_state = shared_state.lock().await;
+    if let Some(ulid) = shared_state.user_id(&email, role).await? {
+        if let Some(User {
+            password_hash: Some(hash),
+            ..
+        }) = shared_state.user(ulid, role).await?
+        {
+            if let Ok(true) = verify_encoded(&hash, request.password.as_bytes()) {
+                let refresh_token = shared_state.open_session(ulid, role).await?;
+                return Ok(refresh_token);
+            }
+        }
+    }
+
+    Err(Error::Unauthorized)
+}
+
+#[cfg(not(debug_assertions))]
+// Use absolute namespace to silence errors about unused imports.
+pub async fn change_password_page() -> axum::response::Response {
+    axum::response::IntoResponse::into_response((
+        axum::http::StatusCode::NOT_FOUND,
+        "Not Found".to_string(),
+    ))
+}
+
+#[cfg(debug_assertions)]
+// Use absolute namespace to silence errors about unused imports.
+pub async fn change_password_page() -> axum::response::Html<String> {
+    axum::response::Html(
+        r##"
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Globelise Password Recovery</title>
+        </head>
+        <body>
+            <h2>Recover Password</h2>
+
+            <form
+            action="lostpassword"
+            method="post"
+            enctype="application/x-www-form-urlencoded"
+            >
+            <label for="user_email">Email:</label><br />
+            <input
+                type="email"
+                id="user_email"
+                name="user_email"
+                placeholder="example@email.com"
+            /><br />
+            <input type="submit" value="Submit" />
+            </form>
+        </body>
+        </html>           
+        "##
+        .to_string(),
+    )
+}
+
 /// Gets a new access token.
 pub async fn renew_access_token(
     claims: RefreshToken,
@@ -151,6 +325,21 @@ pub struct CreateAccountRequest {
 pub struct LoginRequest {
     email: String,
     password: String,
+}
+
+/// Request for requesting password reset.
+#[derive(Debug, Deserialize)]
+pub struct LostPasswordRequest {
+    #[serde(rename(deserialize = "user_email"))]
+    email: String,
+}
+
+/// Request to change password.
+#[derive(Debug, Deserialize)]
+pub struct ChangePasswordRequest {
+    email: String,
+    password: String,
+    confirm_password: String,
 }
 
 /// The parameters used for hashing.
