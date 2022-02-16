@@ -61,7 +61,7 @@ impl State {
         // NOTE: It is possible for the stores to desync if the following call fails.
         // This will leave an orphan entry in the user store and force the user
         // to sign up again.
-        self.serialize(Self::id_store_name(role), &email.as_ref(), ulid)
+        self.serialize(Self::id_store_name(role), email.as_ref(), ulid)
             .await
     }
 
@@ -77,7 +77,7 @@ impl State {
         email: &EmailAddress,
         role: Role,
     ) -> Result<Option<Ulid>, Error> {
-        self.deserialize(Self::id_store_name(role), &email.as_ref())
+        self.deserialize(Self::id_store_name(role), email.as_ref())
             .await
     }
 

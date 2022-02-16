@@ -5,6 +5,8 @@
 //!     - RSA key pair files `private.pem` and `public.pem`
 //!     - GOOGLE_CLIENT_ID environment variable
 
+#![allow(dead_code, unused_imports)]
+
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use axum::{
@@ -13,7 +15,7 @@ use axum::{
     routing::{get, post},
     BoxError, Router,
 };
-use dotenv;
+
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
 use tower_http::add_extension::AddExtensionLayer;

@@ -57,10 +57,10 @@ pub async fn login(
                 .await?;
 
             let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
-            return Ok(Redirect::to(redirect_uri));
+            Ok(Redirect::to(redirect_uri))
         } else {
             // TODO: Implement linking with an existing account.
-            return Err(Error::BadRequest);
+            Err(Error::BadRequest)
         }
     } else {
         let ulid = Ulid::generate();
@@ -75,7 +75,7 @@ pub async fn login(
             .open_one_time_session::<Google>(ulid, role)
             .await?;
         let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
-        return Ok(Redirect::to(redirect_uri));
+        Ok(Redirect::to(redirect_uri))
     }
 }
 
