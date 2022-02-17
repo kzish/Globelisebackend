@@ -17,7 +17,7 @@ use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 
-use super::{error::Error, user::Role, SharedState};
+use super::{error::Error, user::Role, SharedDatabase, SharedState};
 
 pub mod one_time;
 
@@ -92,6 +92,9 @@ where
             TypedHeader::<Authorization<Bearer>>::from_request(req)
                 .await
                 .map_err(|_| Error::Unauthorized)?;
+        let Extension(database) = Extension::<SharedDatabase>::from_request(req)
+            .await
+            .map_err(|_| Error::Internal)?;
         let Extension(shared_state) = Extension::<SharedState>::from_request(req)
             .await
             .map_err(|_| Error::Internal)?;
@@ -108,13 +111,14 @@ where
         let role: Role = claims.role.parse().map_err(|_| Error::Unauthorized)?;
 
         // Make sure the user actually exists.
-        let mut shared_state = shared_state.lock().await;
-        if shared_state.user(ulid, role).await?.is_none() {
+        let database = database.lock().await;
+        if database.user(ulid, Some(role)).await?.is_none() {
             return Err(Error::Unauthorized);
         }
 
         // Do not authorize if the server has revoked the session,
         // even if the token is otherwise valid.
+        let mut shared_state = shared_state.lock().await;
         let mut is_session_valid = false;
         let _ = shared_state.clear_expired_sessions(ulid).await;
         if let Some(sessions) = shared_state.sessions(ulid).await? {

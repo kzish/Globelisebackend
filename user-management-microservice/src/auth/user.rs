@@ -55,8 +55,8 @@ impl fmt::Display for Role {
         match self {
             Role::ClientIndividual => write!(f, "client_individual"),
             Role::ClientEntity => write!(f, "client_entity"),
-            Role::ContractorEntity => write!(f, "contractor_individual"),
-            Role::ContractorIndividual => write!(f, "contractor_entity"),
+            Role::ContractorIndividual => write!(f, "contractor_individual"),
+            Role::ContractorEntity => write!(f, "contractor_entity"),
             Role::Admin => write!(f, "admin"),
         }
     }

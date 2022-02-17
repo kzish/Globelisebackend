@@ -55,6 +55,9 @@ where
             TypedHeader::<Authorization<Bearer>>::from_request(req)
                 .await
                 .map_err(|_| Error::Unauthorized)?;
+        let Extension(database) = Extension::<SharedDatabase>::from_request(req)
+            .await
+            .map_err(|_| Error::Internal)?;
         let Extension(shared_state) = Extension::<SharedState>::from_request(req)
             .await
             .map_err(|_| Error::Internal)?;
@@ -71,12 +74,13 @@ where
         let role: Role = claims.role.parse().map_err(|_| Error::Unauthorized)?;
 
         // Make sure the user actually exists.
-        let mut shared_state = shared_state.lock().await;
-        if shared_state.user(ulid, role).await?.is_none() {
+        let database = database.lock().await;
+        if database.user(ulid, Some(role)).await?.is_none() {
             return Err(Error::Unauthorized);
         }
 
         // Do not authorize if the token has already been used.
+        let mut shared_state = shared_state.lock().await;
         if shared_state
             .is_one_time_token_valid::<T>(ulid, bearer.token().as_bytes())
             .await?

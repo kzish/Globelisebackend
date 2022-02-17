@@ -18,6 +18,7 @@ mod state;
 mod token;
 mod user;
 
+pub use database::{Database, SharedDatabase};
 use error::{Error, RegistrationError};
 pub use state::{SharedState, State};
 use token::{create_access_token, RefreshToken};
@@ -27,6 +28,7 @@ use user::{Role, User};
 pub async fn create_account(
     Form(request): Form<CreateAccountRequest>,
     Path(role): Path<Role>,
+    Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<String, Error> {
     // Credentials should be normalized for maximum compatibility.
@@ -48,25 +50,25 @@ pub async fn create_account(
     let passwords_match = password == confirm_password;
 
     if is_valid_email {
-        let mut shared_state = shared_state.lock().await;
+        let database = database.lock().await;
         let email = email.unwrap();
-        is_email_available = shared_state.user_id(&email, role).await?.is_none();
+        is_email_available = database.user_id(&email, role).await?.is_none();
 
         if is_email_available && is_password_at_least_8_chars && passwords_match {
             let salt: [u8; 16] = rand::thread_rng().gen();
             let hash = hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG)
                 .map_err(|_| Error::Internal)?;
 
-            let ulid = Ulid::generate();
             let user = User {
                 email,
                 password_hash: Some(hash),
                 google: false,
                 outlook: false,
             };
-            shared_state.create_user(ulid, user, role).await?;
+            let ulid = database.create_user(user, role).await?;
 
-            let refresh_token = shared_state.open_session(ulid, role).await?;
+            let mut shared_state = shared_state.lock().await;
+            let refresh_token = shared_state.open_session(&database, ulid, role).await?;
             return Ok(refresh_token);
         }
     }
@@ -83,6 +85,7 @@ pub async fn create_account(
 pub async fn login(
     Form(request): Form<LoginRequest>,
     Path(role): Path<Role>,
+    Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<String, Error> {
     let email: EmailAddress = request.email.parse().map_err(|_| Error::BadRequest)?;
@@ -94,15 +97,19 @@ pub async fn login(
     // NOTE: A timing attack can detect registered emails.
     // Mitigating this is not strictly necessary, as attackers can still find out
     // if an email is registered by using the sign-up page.
-    let mut shared_state = shared_state.lock().await;
-    if let Some(ulid) = shared_state.user_id(&email, role).await? {
-        if let Some(User {
-            password_hash: Some(hash),
-            ..
-        }) = shared_state.user(ulid, role).await?
+    let database = database.lock().await;
+    if let Some(ulid) = database.user_id(&email, role).await? {
+        if let Some((
+            User {
+                password_hash: Some(hash),
+                ..
+            },
+            _,
+        )) = database.user(ulid, Some(role)).await?
         {
             if let Ok(true) = verify_encoded(&hash, request.password.as_bytes()) {
-                let refresh_token = shared_state.open_session(ulid, role).await?;
+                let mut shared_state = shared_state.lock().await;
+                let refresh_token = shared_state.open_session(&database, ulid, role).await?;
                 return Ok(refresh_token);
             }
         }
@@ -114,7 +121,7 @@ pub async fn login(
 /// Gets a new access token.
 pub async fn renew_access_token(
     claims: RefreshToken,
-    Extension(shared_state): Extension<SharedState>,
+    Extension(database): Extension<SharedDatabase>,
 ) -> Result<String, Error> {
     let ulid: Ulid = claims
         .sub
@@ -125,8 +132,8 @@ pub async fn renew_access_token(
         .parse()
         .map_err(|_| Error::Conversion("role parse error".into()))?;
 
-    let mut shared_state = shared_state.lock().await;
-    if let Some(User { email, .. }) = shared_state.user(ulid, role).await? {
+    let database = database.lock().await;
+    if let Some((User { email, .. }, _)) = database.user(ulid, Some(role)).await? {
         let access_token = create_access_token(ulid, email, role)?;
         Ok(access_token)
     } else {
