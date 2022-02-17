@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use argon2::{hash_encoded, verify_encoded};
 use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
-use email_address::EmailAddress;
+
 use rand::Rng;
 use rusty_ulid::Ulid;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -18,7 +18,7 @@ use super::{
         create_refresh_token,
         one_time::{create_one_time_token, OneTimeTokenAudience},
     },
-    user::{Role, User},
+    user::{Role},
     Database, HASH_CONFIG,
 };
 

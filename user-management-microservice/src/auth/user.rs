@@ -3,7 +3,7 @@
 use std::{fmt, str::FromStr};
 
 use email_address::EmailAddress;
-use rusty_ulid::Ulid;
+
 use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 

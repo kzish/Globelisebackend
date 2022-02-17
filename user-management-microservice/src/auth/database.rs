@@ -1,12 +1,9 @@
 use std::{sync::Arc, time::Duration};
 
-use axum::{
-    async_trait,
-    extract::{Extension, FromRequest},
-};
+
 use email_address::EmailAddress;
 use rusty_ulid::Ulid;
-use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres, Row};
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
 use strum::IntoEnumIterator;
 use tokio::sync::Mutex;
 

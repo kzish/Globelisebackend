@@ -5,8 +5,6 @@
 //!     - RSA key pair files `private.pem` and `public.pem`
 //!     - GOOGLE_CLIENT_ID environment variable
 
-#![allow(dead_code, unused_imports)]
-
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use axum::{
