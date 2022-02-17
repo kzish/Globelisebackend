@@ -23,8 +23,12 @@ mod env;
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
+
     let shared_state = auth::State::new().await.expect("Could not connect to Dapr");
     let shared_state = Arc::new(Mutex::new(shared_state));
+
+    let database = auth::Database::new().await;
+    let database = Arc::new(Mutex::new(database));
 
     let app = Router::new()
         .route("/signup/:role", post(auth::create_account))
@@ -44,6 +48,7 @@ async fn main() {
                 .load_shed()
                 .concurrency_limit(1024)
                 .timeout(Duration::from_secs(10))
+                .layer(AddExtensionLayer::new(database))
                 .layer(AddExtensionLayer::new(shared_state)),
         );
 

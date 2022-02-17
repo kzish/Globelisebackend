@@ -3,7 +3,9 @@
 use std::{fmt, str::FromStr};
 
 use email_address::EmailAddress;
+
 use serde::{Deserialize, Serialize};
+use strum::EnumIter;
 
 use super::error::Error;
 
@@ -23,7 +25,7 @@ impl User {
 }
 
 /// Type representing which role a user has.
-#[derive(Clone, Copy, Deserialize, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Deserialize, EnumIter, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
     ClientIndividual,
@@ -53,8 +55,8 @@ impl fmt::Display for Role {
         match self {
             Role::ClientIndividual => write!(f, "client_individual"),
             Role::ClientEntity => write!(f, "client_entity"),
-            Role::ContractorEntity => write!(f, "contractor_individual"),
-            Role::ContractorIndividual => write!(f, "contractor_entity"),
+            Role::ContractorIndividual => write!(f, "contractor_individual"),
+            Role::ContractorEntity => write!(f, "contractor_entity"),
             Role::Admin => write!(f, "admin"),
         }
     }

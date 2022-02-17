@@ -21,6 +21,7 @@ pub struct RegistrationError {
 pub enum Error {
     Registration(RegistrationError),
     Dapr(String),
+    Database(String),
     GooglePublicKeys,
     Conversion(String),
     Unauthorized,
@@ -38,6 +39,7 @@ impl IntoResponse for Error {
                 return (StatusCode::BAD_REQUEST, Json(error)).into_response();
             }
             Error::Dapr(message) => (StatusCode::INTERNAL_SERVER_ERROR, message),
+            Error::Database(message) => (StatusCode::INTERNAL_SERVER_ERROR, message),
             Error::GooglePublicKeys => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to get Google's public keys".into(),
@@ -64,6 +66,7 @@ impl IntoResponse for Error {
                 return (StatusCode::BAD_REQUEST, Json(error)).into_response();
             }
             Error::Dapr(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
+            Error::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
             Error::GooglePublicKeys => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
             Error::Conversion(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
             Error::Unauthorized | Error::UnauthorizedVerbose(_) => {

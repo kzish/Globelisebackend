@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use argon2::{hash_encoded, verify_encoded};
 use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
-use email_address::EmailAddress;
+
 use rand::Rng;
 use rusty_ulid::Ulid;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -18,8 +18,8 @@ use super::{
         create_refresh_token,
         one_time::{create_one_time_token, OneTimeTokenAudience},
     },
-    user::{Role, User},
-    HASH_CONFIG,
+    user::{Role},
+    Database, HASH_CONFIG,
 };
 
 pub type SharedState = Arc<Mutex<State>>;
@@ -44,76 +44,17 @@ impl State {
         Ok(Self { dapr_client })
     }
 
-    /// Creates and stores a new user.
-    pub async fn create_user(&mut self, ulid: Ulid, user: User, role: Role) -> Result<(), Error> {
-        if !user.has_authentication() {
-            return Err(Error::Unauthorized);
-        }
-        let email = user.email.clone();
-
-        // Ensure that we do not overwrite an existing user.
-        if self.user_id(&email, role).await?.is_some() || self.user(ulid, role).await?.is_some() {
-            return Err(Error::Unauthorized);
-        }
-
-        self.serialize(Self::store_name(role), &ulid.to_string(), user)
-            .await?;
-        // NOTE: It is possible for the stores to desync if the following call fails.
-        // This will leave an orphan entry in the user store and force the user
-        // to sign up again.
-        self.serialize(Self::id_store_name(role), email.as_ref(), ulid)
-            .await
-    }
-
-    /// Creates and stores a new user.
-    pub async fn update_password(
-        &mut self,
-        ulid: Ulid,
-        role: Role,
-        // TODO: Create a newtype to ensure only hashed password are inserted
-        new_password_hash: Option<String>,
-    ) -> Result<(), Error> {
-        let user = self.user(ulid, role).await?.ok_or(Error::BadRequest)?;
-        let email = user.email.clone();
-
-        self.serialize(
-            Self::store_name(role),
-            &ulid.to_string(),
-            User {
-                password_hash: new_password_hash,
-                ..user
-            },
-        )
-        .await?;
-        // NOTE: It is possible for the stores to desync if the following call fails.
-        // This will leave an orphan entry in the user store and force the user
-        // to sign up again.
-        self.serialize(Self::id_store_name(role), email.as_ref(), ulid)
-            .await
-    }
-
-    /// Gets a user's information.
-    pub async fn user(&mut self, ulid: Ulid, role: Role) -> Result<Option<User>, Error> {
-        self.deserialize(Self::store_name(role), &ulid.to_string())
-            .await
-    }
-
-    /// Gets a user's id.
-    pub async fn user_id(
-        &mut self,
-        email: &EmailAddress,
-        role: Role,
-    ) -> Result<Option<Ulid>, Error> {
-        self.deserialize(Self::id_store_name(role), email.as_ref())
-            .await
-    }
-
     /// Opens a new session for a user.
     ///
     /// Returns the refresh token for the session.
-    pub async fn open_session(&mut self, ulid: Ulid, role: Role) -> Result<String, Error> {
+    pub async fn open_session(
+        &mut self,
+        database: &Database,
+        ulid: Ulid,
+        role: Role,
+    ) -> Result<String, Error> {
         // Validate that the user and role are correct.
-        if self.user(ulid, role).await?.is_none() {
+        if database.user(ulid, Some(role)).await?.is_none() {
             return Err(Error::Unauthorized);
         }
 
@@ -158,6 +99,7 @@ impl State {
     /// Opens a new one-time session for a user.
     pub async fn open_one_time_session<T>(
         &mut self,
+        database: &Database,
         ulid: Ulid,
         role: Role,
     ) -> Result<String, Error>
@@ -165,7 +107,7 @@ impl State {
         T: OneTimeTokenAudience,
     {
         // Validate that the user and role are correct.
-        if self.user(ulid, role).await?.is_none() {
+        if database.user(ulid, Some(role)).await?.is_none() {
             return Err(Error::Unauthorized);
         }
 
@@ -252,26 +194,6 @@ impl State {
             Ok(Some(value))
         } else {
             Ok(None)
-        }
-    }
-
-    /// Gets the store name for users of the specified role.
-    fn store_name(role: Role) -> &'static str {
-        match role {
-            Role::ClientIndividual => "client_individuals",
-            Role::ClientEntity => "client_entities",
-            Role::ContractorEntity => "contractor_individuals",
-            Role::ContractorIndividual => "contractor_entities",
-            Role::Admin => "admins",
-        }
-    }
-
-    /// Gets the store name for mapping emails to ids.
-    fn id_store_name(role: Role) -> &'static str {
-        match role {
-            Role::ClientIndividual | Role::ClientEntity => "client_ids",
-            Role::ContractorIndividual | Role::ContractorEntity => "contractor_ids",
-            Role::Admin => "admin_ids",
         }
     }
 

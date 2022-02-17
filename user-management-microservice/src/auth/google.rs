@@ -19,7 +19,7 @@ use super::{
     error::Error,
     token::one_time::{OneTimeToken, OneTimeTokenAudience},
     user::{Role, User},
-    SharedState,
+    SharedDatabase, SharedState,
 };
 
 /// Log in as a Google user.
@@ -28,6 +28,7 @@ pub async fn login(
     Form(id_token): Form<IdToken>,
     Path(role): Path<Role>,
     Query(params): Query<HashMap<String, String>>,
+    Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<Redirect, Error> {
     // NOTE: Admin sign up disabled until we figure out how to restrict access.
@@ -49,11 +50,12 @@ pub async fn login(
     let claims = id_token.decode(&keys)?;
     let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
 
+    let database = database.lock().await;
     let mut shared_state = shared_state.lock().await;
-    if let Some(ulid) = shared_state.user_id(&email, role).await? {
-        if let Some(User { google: true, .. }) = shared_state.user(ulid, role).await? {
+    if let Some(ulid) = database.user_id(&email, role).await? {
+        if let Some((User { google: true, .. }, _)) = database.user(ulid, Some(role)).await? {
             let one_time_token = shared_state
-                .open_one_time_session::<Google>(ulid, role)
+                .open_one_time_session::<Google>(&database, ulid, role)
                 .await?;
 
             let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
@@ -63,16 +65,15 @@ pub async fn login(
             Err(Error::BadRequest)
         }
     } else {
-        let ulid = Ulid::generate();
         let user = User {
             email,
             password_hash: None,
             google: true,
             outlook: false,
         };
-        shared_state.create_user(ulid, user, role).await?;
+        let ulid = database.create_user(user, role).await?;
         let one_time_token = shared_state
-            .open_one_time_session::<Google>(ulid, role)
+            .open_one_time_session::<Google>(&database, ulid, role)
             .await?;
         let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
         Ok(Redirect::to(redirect_uri))
@@ -81,6 +82,7 @@ pub async fn login(
 
 pub async fn get_refresh_token(
     claims: OneTimeToken<Google>,
+    Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<String, Error> {
     let ulid: Ulid = claims
@@ -92,8 +94,9 @@ pub async fn get_refresh_token(
         .parse()
         .map_err(|_| Error::Conversion("role parse error".into()))?;
 
+    let database = database.lock().await;
     let mut shared_state = shared_state.lock().await;
-    let refresh_token = shared_state.open_session(ulid, role).await?;
+    let refresh_token = shared_state.open_session(&database, ulid, role).await?;
     Ok(refresh_token)
 }
 
