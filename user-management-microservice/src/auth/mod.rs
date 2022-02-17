@@ -10,7 +10,6 @@ use axum::{
     response::Redirect,
 };
 use email_address::EmailAddress;
-use jsonwebtoken::{decode, Algorithm, TokenData, Validation};
 use lettre::{Message as EmailBuilder, SmtpTransport, Transport};
 use once_cell::sync::Lazy;
 use rand::Rng;
@@ -34,7 +33,7 @@ use user::{Role, User};
 pub use state::{SharedState, State};
 
 use crate::{
-    auth::token::{one_time::OneTimeToken, ISSSUER, KEYS},
+    auth::token::one_time::OneTimeToken,
     env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, SMTP_CREDENTIAL},
 };
 
@@ -244,22 +243,9 @@ pub async fn lost_password_page(Path(role): Path<Role>) -> axum::response::Html<
 pub async fn change_password(
     Form(request): Form<ChangePasswordRequest>,
     Path(role): Path<Role>,
-    Query(params): Query<HashMap<String, String>>,
+    claims: OneTimeToken<ChangePasswordToken>,
     Extension(database): Extension<SharedDatabase>,
-    Extension(shared_state): Extension<SharedState>,
 ) -> Result<Redirect, Error> {
-    // TODO: Reimplement using FromRequest
-    let token = params.get("token").unwrap();
-
-    let mut validation = Validation::new(Algorithm::RS256);
-    validation.set_audience(&[ChangePasswordToken::name()]);
-    validation.set_issuer(&[ISSSUER]);
-    validation.set_required_spec_claims(&["aud", "iss", "exp"]);
-    let validation = validation;
-
-    let TokenData { claims, .. } =
-        decode::<OneTimeToken<ChangePasswordToken>>(token, &KEYS.decoding, &validation)
-            .map_err(|_| Error::Unauthorized)?;
     let ulid: Ulid = claims
         .sub
         .parse()
@@ -271,17 +257,6 @@ pub async fn change_password(
     }
     if request.password != request.confirm_password {
         return Err(Error::BadRequest);
-    }
-
-    // Make sure the user actually exists.
-    let mut shared_state = shared_state.lock().await;
-
-    // Do not authorize if the token has already been used.
-    if !shared_state
-        .is_one_time_token_valid::<ChangePasswordToken>(ulid, token.as_bytes())
-        .await?
-    {
-        return Err(Error::Unauthorized);
     }
 
     let database = database.lock().await;
