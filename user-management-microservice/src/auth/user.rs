@@ -3,7 +3,9 @@
 use std::{fmt, str::FromStr};
 
 use email_address::EmailAddress;
+use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
+use strum::EnumIter;
 
 use super::error::Error;
 
@@ -23,7 +25,7 @@ impl User {
 }
 
 /// Type representing which role a user has.
-#[derive(Clone, Copy, Deserialize, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Deserialize, EnumIter, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
     ClientIndividual,

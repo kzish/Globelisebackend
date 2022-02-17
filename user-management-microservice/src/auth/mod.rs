@@ -11,6 +11,7 @@ use rusty_ulid::Ulid;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 
+mod database;
 mod error;
 pub mod google;
 mod state;
