@@ -13,12 +13,12 @@ use axum::{
     routing::{get, post},
     BoxError, Router,
 };
-use dotenv;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
 use tower_http::add_extension::AddExtensionLayer;
 
 mod auth;
+mod env;
 
 #[tokio::main]
 async fn main() {
@@ -29,10 +29,10 @@ async fn main() {
     let app = Router::new()
         .route("/signup/:role", post(auth::create_account))
         .route("/login/:role", post(auth::login))
-        .route("/lostpasswordpage", get(auth::lost_password_page))
-        .route("/lostpassword", post(auth::lost_password))
-        .route("/changepasswordpage", get(auth::change_password_page))
-        .route("/changepassword", post(auth::change_password))
+        .route("/lostpasswordpage/:role", get(auth::lost_password_page))
+        .route("/lostpassword/:role", post(auth::lost_password))
+        .route("/changepasswordpage/:role", get(auth::change_password_page))
+        .route("/changepassword/:role", post(auth::change_password))
         .route("/google/loginpage", get(auth::google::login_page))
         .route("/google/login/:role", post(auth::google::login))
         .route("/google/authorize", post(auth::google::get_refresh_token))

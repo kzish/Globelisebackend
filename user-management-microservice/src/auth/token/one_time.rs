@@ -1,6 +1,18 @@
 use std::marker::PhantomData;
 
-use super::*;
+use axum::{
+    async_trait,
+    extract::{Extension, FromRequest, RequestParts, TypedHeader},
+    headers::{authorization::Bearer, Authorization},
+};
+use jsonwebtoken::{decode, encode, Algorithm, Header, TokenData, Validation};
+use rusty_ulid::Ulid;
+use serde::{Deserialize, Serialize};
+use time::{Duration, OffsetDateTime};
+
+use crate::auth::{error::Error, user::Role, SharedState};
+
+use super::{ISSSUER, KEYS};
 
 /// Creates a one-time token.
 pub fn create_one_time_token<T>(ulid: Ulid, role: Role) -> Result<(String, i64), Error>
@@ -29,7 +41,7 @@ where
 }
 
 /// Claims for one-time token
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct OneTimeToken<T>
 where
     T: OneTimeTokenAudience,

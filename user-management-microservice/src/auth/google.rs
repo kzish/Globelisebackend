@@ -57,10 +57,10 @@ pub async fn login(
                 .await?;
 
             let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
-            return Ok(Redirect::to(redirect_uri));
+            Ok(Redirect::to(redirect_uri))
         } else {
             // TODO: Implement linking with an existing account.
-            return Err(Error::BadRequest);
+            Err(Error::BadRequest)
         }
     } else {
         let ulid = Ulid::generate();
@@ -71,11 +71,11 @@ pub async fn login(
             outlook: false,
         };
         shared_state.create_user(ulid, user, role).await?;
-        let one_time_token: String = shared_state
+        let one_time_token = shared_state
             .open_one_time_session::<Google>(ulid, role)
             .await?;
         let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
-        return Ok(Redirect::to(redirect_uri));
+        Ok(Redirect::to(redirect_uri))
     }
 }
 
@@ -217,6 +217,8 @@ pub async fn login_page() -> axum::response::Response {
 #[cfg(debug_assertions)]
 // Use absolute namespace to silence errors about unused imports.
 pub async fn login_page() -> axum::response::Html<String> {
+    use crate::env::GLOBELISE_DOMAIN_URL;
+
     axum::response::Html(format!(
         r##"
         <!DOCTYPE html>
@@ -229,7 +231,7 @@ pub async fn login_page() -> axum::response::Html<String> {
             <div
               id="g_id_onload"
               data-client_id="{}"
-              data-login_uri="http://localhost:3000/google/signup/client_individual"
+              data-login_uri="{}/google/signup/client_individual"
               data-auto_prompt="false"
             ></div>
             <div
@@ -244,6 +246,7 @@ pub async fn login_page() -> axum::response::Html<String> {
           </body>
         </html>        
         "##,
+        (*GLOBELISE_DOMAIN_URL),
         (*CLIENT_ID)
     ))
 }

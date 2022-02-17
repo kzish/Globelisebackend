@@ -61,7 +61,34 @@ impl State {
         // NOTE: It is possible for the stores to desync if the following call fails.
         // This will leave an orphan entry in the user store and force the user
         // to sign up again.
-        self.serialize(Self::id_store_name(role), &email.as_ref(), ulid)
+        self.serialize(Self::id_store_name(role), email.as_ref(), ulid)
+            .await
+    }
+
+    /// Creates and stores a new user.
+    pub async fn update_password(
+        &mut self,
+        ulid: Ulid,
+        role: Role,
+        // TODO: Create a newtype to ensure only hashed password are inserted
+        new_password_hash: Option<String>,
+    ) -> Result<(), Error> {
+        let user = self.user(ulid, role).await?.ok_or(Error::BadRequest)?;
+        let email = user.email.clone();
+
+        self.serialize(
+            Self::store_name(role),
+            &ulid.to_string(),
+            User {
+                password_hash: new_password_hash,
+                ..user
+            },
+        )
+        .await?;
+        // NOTE: It is possible for the stores to desync if the following call fails.
+        // This will leave an orphan entry in the user store and force the user
+        // to sign up again.
+        self.serialize(Self::id_store_name(role), email.as_ref(), ulid)
             .await
     }
 
@@ -77,7 +104,7 @@ impl State {
         email: &EmailAddress,
         role: Role,
     ) -> Result<Option<Ulid>, Error> {
-        self.deserialize(Self::id_store_name(role), &email.as_ref())
+        self.deserialize(Self::id_store_name(role), email.as_ref())
             .await
     }
 
@@ -185,6 +212,7 @@ impl State {
 
             self.serialize(&*store_name, &ulid.to_string(), sessions)
                 .await?;
+            return Ok(true);
         }
 
         Ok(false)
@@ -293,7 +321,7 @@ impl Sessions {
 }
 
 /// Stores hashes of session tokens, mapped to their expiration time.
-#[derive(Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct OneTimeSessions {
     sessions: HashMap<String, i64>,
 }
