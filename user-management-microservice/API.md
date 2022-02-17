@@ -1,5 +1,8 @@
 # API
 
+**Warning:** This document no longer reflects the current API. This document will be updated once
+all features have been implemented.
+
 **Note:** The API is still a work in progress. Feel free to make suggestions.
 
 Replace `<domain>` with the address that the server listens on.
@@ -84,11 +87,7 @@ Success: `text/plain`
 See Google's [guide](https://developers.google.com/identity/gsi/web/guides/display-button)
 for displaying the Google sign in button.
 
-For **sign up**, when rendering the button using:
-- HTML - set `data-login_uri` to `<domain>/google/signup/<role>?=<callback uri>`
-- JavaScript - set `login_uri` to `<domain>/google/signup/<role>?=<callback uri>`
-
-For **login**, when rendering the button using:
+When rendering the button using:
 - HTML - set `data-login_uri` to `<domain>/google/login/<role>?=<callback uri>`
 - JavaScript - set `login_uri` to `<domain>/google/login/<role>?=<callback uri>`
 
