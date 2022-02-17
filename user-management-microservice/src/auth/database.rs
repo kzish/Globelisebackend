@@ -65,6 +65,27 @@ impl Database {
         Ok(ulid)
     }
 
+    /// Updates a user's password.
+    pub async fn update_password(
+        &self,
+        ulid: Ulid,
+        role: Role,
+        // TODO: Create a newtype to ensure only hashed password are inserted
+        new_password_hash: Option<String>,
+    ) -> Result<(), Error> {
+        sqlx::query(&format!(
+            "UPDATE {} SET password = $1 WHERE ulid = $2",
+            Self::user_table_name(role)
+        ))
+        .bind(new_password_hash)
+        .bind(ulid_to_sql_uuid(ulid))
+        .execute(&self.0)
+        .await
+        .map_err(|e| Error::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
     /// Gets a user's information.
     ///
     /// If `role` is specified, this function only searches that role's table.

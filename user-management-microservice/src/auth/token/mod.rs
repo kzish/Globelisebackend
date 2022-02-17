@@ -61,10 +61,10 @@ pub fn create_refresh_token(ulid: Ulid, role: Role) -> Result<(String, i64), Err
 }
 
 /// Claims for access tokens.
-#[derive(Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AccessToken {
     sub: String,
-    email: String,
+    pub email: String,
     role: String,
     iss: String,
     exp: usize,
@@ -78,6 +78,20 @@ pub struct RefreshToken {
     aud: String,
     iss: String,
     exp: usize,
+}
+
+impl RefreshToken {
+    pub fn decode(input: &str) -> Result<RefreshToken, Error> {
+        let mut validation = Validation::new(Algorithm::RS256);
+        validation.set_audience(&["refresh_token"]);
+        validation.set_issuer(&[ISSSUER]);
+        validation.set_required_spec_claims(&["aud", "iss", "exp"]);
+        let validation = validation;
+
+        let TokenData { claims, .. } = decode::<RefreshToken>(input, &KEYS.decoding, &validation)
+            .map_err(|_| Error::Unauthorized)?;
+        Ok(claims)
+    }
 }
 
 #[async_trait]
@@ -98,15 +112,7 @@ where
         let Extension(shared_state) = Extension::<SharedState>::from_request(req)
             .await
             .map_err(|_| Error::Internal)?;
-        let mut validation = Validation::new(Algorithm::RS256);
-        validation.set_audience(&["refresh_token"]);
-        validation.set_issuer(&[ISSSUER]);
-        validation.set_required_spec_claims(&["aud", "iss", "exp"]);
-        let validation = validation;
-
-        let TokenData { claims, .. } =
-            decode::<RefreshToken>(bearer.token(), &KEYS.decoding, &validation)
-                .map_err(|_| Error::Unauthorized)?;
+        let claims = RefreshToken::decode(bearer.token())?;
         let ulid: Ulid = claims.sub.parse().map_err(|_| Error::Unauthorized)?;
         let role: Role = claims.role.parse().map_err(|_| Error::Unauthorized)?;
 
@@ -139,9 +145,9 @@ where
 }
 
 /// Stores the keys used for encoding and decoding tokens.
-struct Keys {
-    encoding: EncodingKey,
-    decoding: DecodingKey,
+pub struct Keys {
+    pub encoding: EncodingKey,
+    pub decoding: DecodingKey,
 }
 
 impl Keys {
@@ -168,7 +174,7 @@ pub static PUBLIC_KEY: Lazy<String> = Lazy::new(|| {
 });
 
 /// The encoding/decoding key pair.
-static KEYS: Lazy<Keys> = Lazy::new(|| {
+pub static KEYS: Lazy<Keys> = Lazy::new(|| {
     let mut private_key: Vec<u8> = Vec::new();
     File::open("private.pem")
         .expect("Could not open private key")

@@ -154,6 +154,7 @@ impl State {
 
             self.serialize(&*store_name, &ulid.to_string(), sessions)
                 .await?;
+            return Ok(true);
         }
 
         Ok(false)
@@ -242,7 +243,7 @@ impl Sessions {
 }
 
 /// Stores hashes of session tokens, mapped to their expiration time.
-#[derive(Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct OneTimeSessions {
     sessions: HashMap<String, i64>,
 }

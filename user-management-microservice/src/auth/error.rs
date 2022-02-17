@@ -25,8 +25,10 @@ pub enum Error {
     GooglePublicKeys,
     Conversion(String),
     Unauthorized,
+    UnauthorizedVerbose(String),
     BadRequest,
     Internal,
+    InternalVerbose(String),
 }
 
 #[cfg(debug_assertions)]
@@ -44,11 +46,13 @@ impl IntoResponse for Error {
             ),
             Error::Conversion(message) => (StatusCode::INTERNAL_SERVER_ERROR, message),
             Error::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized".into()),
+            Error::UnauthorizedVerbose(message) => (StatusCode::UNAUTHORIZED, message),
             Error::BadRequest => (StatusCode::BAD_REQUEST, "Bad request".into()),
             Error::Internal => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal server error".into(),
             ),
+            Error::InternalVerbose(message) => (StatusCode::INTERNAL_SERVER_ERROR, message),
         };
         (status, message).into_response()
     }
@@ -65,9 +69,13 @@ impl IntoResponse for Error {
             Error::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
             Error::GooglePublicKeys => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
             Error::Conversion(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
-            Error::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized"),
+            Error::Unauthorized | Error::UnauthorizedVerbose(_) => {
+                (StatusCode::UNAUTHORIZED, "Unauthorized")
+            }
             Error::BadRequest => (StatusCode::BAD_REQUEST, "Bad request"),
-            Error::Internal => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
+            Error::Internal | Error::InternalVerbose(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
+            }
         };
         (status, message).into_response()
     }
