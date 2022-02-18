@@ -1,6 +1,5 @@
 use std::{sync::Arc, time::Duration};
 
-
 use email_address::EmailAddress;
 use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
@@ -136,7 +135,7 @@ impl Database {
             Role::ContractorIndividual | Role::ContractorEntity => {
                 vec![Role::ContractorIndividual, Role::ContractorEntity]
             }
-            Role::Admin => vec![Role::Admin],
+            Role::EorAdmin => vec![Role::EorAdmin],
         };
 
         for r in roles_to_check {
@@ -166,7 +165,7 @@ impl Database {
             Role::ClientEntity => "client_entities",
             Role::ContractorIndividual => "contractor_individuals",
             Role::ContractorEntity => "contractor_entities",
-            Role::Admin => "admins",
+            Role::EorAdmin => "eor_admins",
         }
     }
 }

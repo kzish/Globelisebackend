@@ -60,8 +60,8 @@ pub async fn login(
             Err(Error::BadRequest)
         }
     } else {
-        // NOTE: Admin sign up disabled until we figure out how to restrict access.
-        if matches!(role, Role::Admin) {
+        // NOTE: EOR admin sign up disabled until we figure out how to restrict access.
+        if matches!(role, Role::EorAdmin) {
             return Err(Error::BadRequest);
         }
 

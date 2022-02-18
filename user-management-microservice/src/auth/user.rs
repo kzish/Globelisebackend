@@ -32,7 +32,7 @@ pub enum Role {
     ClientEntity,
     ContractorIndividual,
     ContractorEntity,
-    Admin,
+    EorAdmin,
 }
 
 impl FromStr for Role {
@@ -44,7 +44,7 @@ impl FromStr for Role {
             "client_entity" => Ok(Role::ClientEntity),
             "contractor_individual" => Ok(Role::ContractorIndividual),
             "contractor_entity" => Ok(Role::ContractorEntity),
-            "admin" => Ok(Role::Admin),
+            "eor_admin" => Ok(Role::EorAdmin),
             _ => Err(Error::Unauthorized),
         }
     }
@@ -57,7 +57,7 @@ impl fmt::Display for Role {
             Role::ClientEntity => write!(f, "client_entity"),
             Role::ContractorIndividual => write!(f, "contractor_individual"),
             Role::ContractorEntity => write!(f, "contractor_entity"),
-            Role::Admin => write!(f, "admin"),
+            Role::EorAdmin => write!(f, "eor_admin"),
         }
     }
 }
