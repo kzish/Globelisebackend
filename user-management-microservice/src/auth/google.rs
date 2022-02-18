@@ -220,7 +220,7 @@ pub async fn login_page() -> axum::response::Response {
 #[cfg(debug_assertions)]
 // Use absolute namespace to silence errors about unused imports.
 pub async fn login_page() -> axum::response::Html<String> {
-    use crate::env::GLOBELISE_DOMAIN_URL;
+    use crate::env::LISTENING_ADDRESS;
 
     axum::response::Html(format!(
         r##"
@@ -249,7 +249,7 @@ pub async fn login_page() -> axum::response::Html<String> {
           </body>
         </html>        
         "##,
-        (*GLOBELISE_DOMAIN_URL),
-        (*CLIENT_ID)
+        (*CLIENT_ID),
+        (*LISTENING_ADDRESS)
     ))
 }
