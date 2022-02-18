@@ -31,11 +31,6 @@ pub async fn login(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<Redirect, Error> {
-    // NOTE: Admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::Admin) {
-        return Err(Error::BadRequest);
-    }
-
     let redirect_uri: Uri = match params.get("redirect_uri") {
         Some(uri) => uri.parse().map_err(|_| Error::BadRequest)?,
         None => return Err(Error::BadRequest),
@@ -65,6 +60,11 @@ pub async fn login(
             Err(Error::BadRequest)
         }
     } else {
+        // NOTE: Admin sign up disabled until we figure out how to restrict access.
+        if matches!(role, Role::Admin) {
+            return Err(Error::BadRequest);
+        }
+
         let user = User {
             email,
             password_hash: None,

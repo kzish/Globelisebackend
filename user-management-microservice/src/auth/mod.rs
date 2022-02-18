@@ -91,10 +91,6 @@ pub async fn login(
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<String, Error> {
     let email: EmailAddress = request.email.parse().map_err(|_| Error::BadRequest)?;
-    // NOTE: Admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::Admin) {
-        return Err(Error::Unauthorized);
-    }
 
     // NOTE: A timing attack can detect registered emails.
     // Mitigating this is not strictly necessary, as attackers can still find out

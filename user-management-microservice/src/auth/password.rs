@@ -143,10 +143,6 @@ pub async fn change_password(
         .parse()
         .map_err(|e: DecodingError| Error::UnauthorizedVerbose(e.to_string()))?;
 
-    // NOTE: Admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::Admin) {
-        return Err(Error::Unauthorized);
-    }
     if request.password != request.confirm_password {
         return Err(Error::BadRequest);
     }
