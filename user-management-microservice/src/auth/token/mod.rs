@@ -81,7 +81,7 @@ pub struct RefreshToken {
 }
 
 impl RefreshToken {
-    pub fn decode(input: &str) -> Result<RefreshToken, Error> {
+    fn decode(input: &str) -> Result<Self, Error> {
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_audience(&["refresh_token"]);
         validation.set_issuer(&[ISSSUER]);

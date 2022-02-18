@@ -1,9 +1,8 @@
-use std::marker::PhantomData;
+use std::{collections::HashMap, marker::PhantomData};
 
 use axum::{
     async_trait,
-    extract::{Extension, FromRequest, RequestParts, TypedHeader},
-    headers::{authorization::Bearer, Authorization},
+    extract::{Extension, FromRequest, Query, RequestParts},
 };
 use jsonwebtoken::{decode, encode, Algorithm, Header, TokenData, Validation};
 use rusty_ulid::Ulid;
@@ -54,6 +53,24 @@ where
     one_time_audience: PhantomData<T>,
 }
 
+impl<T> OneTimeToken<T>
+where
+    T: OneTimeTokenAudience,
+{
+    fn decode(input: &str) -> Result<Self, Error> {
+        let mut validation = Validation::new(Algorithm::RS256);
+        validation.set_audience(&[T::name()]);
+        validation.set_issuer(&[ISSSUER]);
+        validation.set_required_spec_claims(&["aud", "iss", "exp"]);
+        let validation = validation;
+
+        let TokenData { claims, .. } =
+            decode::<OneTimeToken<T>>(input, &KEYS.decoding, &validation)
+                .map_err(|_| Error::Unauthorized)?;
+        Ok(claims)
+    }
+}
+
 #[async_trait]
 impl<B, T> FromRequest<B> for OneTimeToken<T>
 where
@@ -63,25 +80,19 @@ where
     type Rejection = Error;
 
     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let TypedHeader(Authorization(bearer)) =
-            TypedHeader::<Authorization<Bearer>>::from_request(req)
-                .await
-                .map_err(|_| Error::Unauthorized)?;
+        let Query(params) = Query::<HashMap<String, String>>::from_request(req)
+            .await
+            .map_err(|_| Error::BadRequest)?;
         let Extension(database) = Extension::<SharedDatabase>::from_request(req)
             .await
             .map_err(|_| Error::Internal)?;
         let Extension(shared_state) = Extension::<SharedState>::from_request(req)
             .await
             .map_err(|_| Error::Internal)?;
-        let mut validation = Validation::new(Algorithm::RS256);
-        validation.set_audience(&[T::name()]);
-        validation.set_issuer(&[ISSSUER]);
-        validation.set_required_spec_claims(&["aud", "iss", "exp"]);
-        let validation = validation;
 
-        let TokenData { claims, .. } =
-            decode::<OneTimeToken<T>>(bearer.token(), &KEYS.decoding, &validation)
-                .map_err(|_| Error::Unauthorized)?;
+        let token = params.get("token").ok_or(Error::BadRequest)?;
+
+        let claims = OneTimeToken::<T>::decode(token)?;
         let ulid: Ulid = claims.sub.parse().map_err(|_| Error::Unauthorized)?;
         let role: Role = claims.role.parse().map_err(|_| Error::Unauthorized)?;
 
@@ -94,7 +105,7 @@ where
         // Do not authorize if the token has already been used.
         let mut shared_state = shared_state.lock().await;
         if shared_state
-            .is_one_time_token_valid::<T>(ulid, bearer.token().as_bytes())
+            .is_one_time_token_valid::<T>(ulid, token.as_bytes())
             .await?
         {
             Ok(claims)

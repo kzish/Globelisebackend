@@ -5,7 +5,7 @@
 //!     - RSA key pair files `private.pem` and `public.pem`
 //!     - GOOGLE_CLIENT_ID environment variable
 
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use axum::{
     error_handling::HandleErrorLayer,
@@ -20,6 +20,8 @@ use tower_http::add_extension::AddExtensionLayer;
 mod auth;
 mod env;
 
+use env::LISTENING_ADDRESS;
+
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
@@ -31,17 +33,28 @@ async fn main() {
     let database = Arc::new(Mutex::new(database));
 
     let app = Router::new()
+        // ========== PUBLIC PAGES ==========
         .route("/signup/:role", post(auth::create_account))
         .route("/login/:role", post(auth::login))
-        .route("/lostpasswordpage/:role", get(auth::lost_password_page))
-        .route("/lostpassword/:role", post(auth::lost_password))
-        .route("/changepasswordpage/:role", get(auth::change_password_page))
-        .route("/changepassword/:role", post(auth::change_password))
-        .route("/google/loginpage", get(auth::google::login_page))
+        .route("/lostpassword/:role", post(auth::password::lost_password))
+        .route(
+            "/changepassword/:role",
+            post(auth::password::change_password),
+        )
         .route("/google/login/:role", post(auth::google::login))
         .route("/google/authorize", post(auth::google::get_refresh_token))
         .route("/auth/refresh", post(auth::renew_access_token))
         .route("/auth/keys", get(auth::public_key))
+        // ========== DEBUG PAGES ==========
+        .route("/google/loginpage", get(auth::google::login_page))
+        .route(
+            "/changepasswordpage/:role",
+            get(auth::password::change_password_page),
+        )
+        .route(
+            "/lostpasswordpage/:role",
+            get(auth::password::lost_password_page),
+        )
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
@@ -52,11 +65,14 @@ async fn main() {
                 .layer(AddExtensionLayer::new(shared_state)),
         );
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    axum::Server::bind(
+        &(*LISTENING_ADDRESS)
+            .parse()
+            .expect("Invalid listening address"),
+    )
+    .serve(app.into_make_service())
+    .await
+    .unwrap();
 }
 
 /// Handle errors from fallible services.

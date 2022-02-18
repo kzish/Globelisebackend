@@ -31,11 +31,6 @@ pub async fn login(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<Redirect, Error> {
-    // NOTE: Admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::Admin) {
-        return Err(Error::BadRequest);
-    }
-
     let redirect_uri: Uri = match params.get("redirect_uri") {
         Some(uri) => uri.parse().map_err(|_| Error::BadRequest)?,
         None => return Err(Error::BadRequest),
@@ -65,6 +60,11 @@ pub async fn login(
             Err(Error::BadRequest)
         }
     } else {
+        // NOTE: Admin sign up disabled until we figure out how to restrict access.
+        if matches!(role, Role::Admin) {
+            return Err(Error::BadRequest);
+        }
+
         let user = User {
             email,
             password_hash: None,
@@ -117,7 +117,7 @@ fn append_token_to_uri(uri: Uri, token: &str) -> Result<Uri, Error> {
 }
 
 /// Representation of Google's ID token.
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 pub struct IdToken {
     credential: String,
     g_csrf_token: String,
@@ -156,7 +156,7 @@ impl IdToken {
 }
 
 /// Claims for Google ID tokens.
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 struct Claims {
     email: String,
 }
@@ -220,7 +220,7 @@ pub async fn login_page() -> axum::response::Response {
 #[cfg(debug_assertions)]
 // Use absolute namespace to silence errors about unused imports.
 pub async fn login_page() -> axum::response::Html<String> {
-    use crate::env::GLOBELISE_DOMAIN_URL;
+    use crate::env::LISTENING_ADDRESS;
 
     axum::response::Html(format!(
         r##"
@@ -249,7 +249,7 @@ pub async fn login_page() -> axum::response::Html<String> {
           </body>
         </html>        
         "##,
-        (*GLOBELISE_DOMAIN_URL),
-        (*CLIENT_ID)
+        (*CLIENT_ID),
+        (*LISTENING_ADDRESS)
     ))
 }

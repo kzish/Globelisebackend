@@ -10,8 +10,8 @@ macro_rules! init_global_static {
     };
 }
 
+init_global_static!(LISTENING_ADDRESS);
 init_global_static!(GLOBELISE_SENDER_EMAIL);
-init_global_static!(GLOBELISE_DOMAIN_URL);
 
 pub static SMTP_CREDENTIAL: Lazy<SmtpCredentials> = Lazy::new(|| {
     SmtpCredentials::new(
