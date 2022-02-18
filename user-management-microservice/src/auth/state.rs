@@ -233,7 +233,7 @@ impl Sessions {
     /// Clears all expired sessions.
     fn clear_expired(&mut self) {
         self.sessions
-            .retain(|_, expiration| *expiration < OffsetDateTime::now_utc().unix_timestamp());
+            .retain(|_, expiration| *expiration > OffsetDateTime::now_utc().unix_timestamp());
     }
 
     /// Produces an iterator over the sessions.
