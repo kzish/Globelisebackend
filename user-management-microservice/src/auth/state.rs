@@ -18,7 +18,7 @@ use super::{
         create_refresh_token,
         one_time::{create_one_time_token, OneTimeTokenAudience},
     },
-    user::{Role},
+    user::Role,
     Database, HASH_CONFIG,
 };
 
@@ -30,8 +30,10 @@ pub struct State {
 }
 
 impl State {
-    /// The store name for sessions.
-    const SESSION_STORE: &'static str = "sessions";
+    /// The state store name.
+    const STATE_STORE: &'static str = "state_store";
+    /// The category name for sessions.
+    const SESSION_CATEGORY: &'static str = "sessions";
 
     /// Connects to Dapr.
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
@@ -63,7 +65,7 @@ impl State {
             sessions = existing_sessions;
         }
         let refresh_token = sessions.open(ulid, role)?;
-        self.serialize(Self::SESSION_STORE, &ulid.to_string(), sessions)
+        self.serialize(Self::SESSION_CATEGORY, &ulid.to_string(), sessions)
             .await?;
         Ok(refresh_token)
     }
@@ -72,7 +74,7 @@ impl State {
     pub async fn revoke_all_sessions(&mut self, ulid: Ulid) -> Result<(), Error> {
         if let Some(mut sessions) = self.sessions(ulid).await? {
             sessions.revoke_all();
-            self.serialize(Self::SESSION_STORE, &ulid.to_string(), sessions)
+            self.serialize(Self::SESSION_CATEGORY, &ulid.to_string(), sessions)
                 .await
         } else {
             Ok(())
@@ -83,7 +85,7 @@ impl State {
     pub async fn clear_expired_sessions(&mut self, ulid: Ulid) -> Result<(), Error> {
         if let Some(mut sessions) = self.sessions(ulid).await? {
             sessions.clear_expired();
-            self.serialize(Self::SESSION_STORE, &ulid.to_string(), sessions)
+            self.serialize(Self::SESSION_CATEGORY, &ulid.to_string(), sessions)
                 .await
         } else {
             Ok(())
@@ -92,7 +94,7 @@ impl State {
 
     /// Gets existing sessions for a user.
     pub async fn sessions(&mut self, ulid: Ulid) -> Result<Option<Sessions>, Error> {
-        self.deserialize(Self::SESSION_STORE, &ulid.to_string())
+        self.deserialize(Self::SESSION_CATEGORY, &ulid.to_string())
             .await
     }
 
@@ -112,20 +114,20 @@ impl State {
         }
 
         let mut sessions = OneTimeSessions::default();
-        let store_name = Self::one_time_store_name::<T>();
+        let category = Self::one_time_session_category::<T>();
         if let Some(existing_sessions) = self
-            .deserialize::<OneTimeSessions>(&*store_name, &ulid.to_string())
+            .deserialize::<OneTimeSessions>(&*category, &ulid.to_string())
             .await?
         {
             sessions = existing_sessions;
         }
         let one_time_token = sessions.open::<T>(ulid, role)?;
-        self.serialize(&*store_name, &ulid.to_string(), sessions)
+        self.serialize(&*category, &ulid.to_string(), sessions)
             .await?;
         Ok(one_time_token)
     }
 
-    /// Check if a one-time token is valid.
+    /// Checks if a one-time token is valid.
     pub async fn is_one_time_token_valid<T>(
         &mut self,
         ulid: Ulid,
@@ -134,9 +136,9 @@ impl State {
     where
         T: OneTimeTokenAudience,
     {
-        let store_name = Self::one_time_store_name::<T>();
+        let category = Self::one_time_session_category::<T>();
         if let Some(mut sessions) = self
-            .deserialize::<OneTimeSessions>(&*store_name, &ulid.to_string())
+            .deserialize::<OneTimeSessions>(&*category, &ulid.to_string())
             .await?
         {
             let mut matching_hash: Option<String> = None;
@@ -152,7 +154,7 @@ impl State {
                 sessions.sessions.remove(&hash);
             }
 
-            self.serialize(&*store_name, &ulid.to_string(), sessions)
+            self.serialize(&*category, &ulid.to_string(), sessions)
                 .await?;
             return Ok(true);
         }
@@ -160,31 +162,29 @@ impl State {
         Ok(false)
     }
 
-    /// Serialize and store data in the state store.
-    async fn serialize<T>(&mut self, store_name: &str, key: &str, value: T) -> Result<(), Error>
+    /// Serializes and stores data in the state store.
+    async fn serialize<T>(&mut self, category: &str, key: &str, value: T) -> Result<(), Error>
     where
         T: Serialize,
     {
-        // TODO: Get multiple state stores working so that no prefixing is necessary.
-        let prefixed_key = store_name.to_string() + "--" + key;
+        let prefixed_key = category.to_string() + "--" + key;
         let value = serde_json::to_vec(&value).map_err(|e| Error::Conversion(e.to_string()))?;
         self.dapr_client
-            .save_state(store_name, vec![(&*prefixed_key, value)])
+            .save_state(Self::STATE_STORE, vec![(&*prefixed_key, value)])
             .await
             .map_err(|e| Error::Dapr(e.to_string()))?;
         Ok(())
     }
 
-    /// Deserialize data from the state store.
-    async fn deserialize<T>(&mut self, store_name: &str, key: &str) -> Result<Option<T>, Error>
+    /// Deserializes data from the state store.
+    async fn deserialize<T>(&mut self, category: &str, key: &str) -> Result<Option<T>, Error>
     where
         T: DeserializeOwned,
     {
-        // TODO: Get multiple state stores working so that no prefixing is necessary.
-        let prefixed_key = store_name.to_string() + "--" + key;
+        let prefixed_key = category.to_string() + "--" + key;
         let result = self
             .dapr_client
-            .get_state(store_name, &*prefixed_key, None)
+            .get_state(Self::STATE_STORE, &*prefixed_key, None)
             .await
             .map_err(|e| Error::Dapr(e.to_string()))?;
 
@@ -198,7 +198,7 @@ impl State {
     }
 
     /// Gets the store name for one-time sessions.
-    fn one_time_store_name<T>() -> String
+    fn one_time_session_category<T>() -> String
     where
         T: OneTimeTokenAudience,
     {
