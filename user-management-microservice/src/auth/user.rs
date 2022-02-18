@@ -10,7 +10,7 @@ use strum::EnumIter;
 use super::error::Error;
 
 /// Stores information associated with a user id.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct User {
     pub email: EmailAddress,
     pub password_hash: Option<String>,
@@ -25,7 +25,7 @@ impl User {
 }
 
 /// Type representing which role a user has.
-#[derive(Clone, Copy, PartialEq, Eq, Deserialize, EnumIter, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
     ClientIndividual,

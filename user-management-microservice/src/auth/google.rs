@@ -117,7 +117,7 @@ fn append_token_to_uri(uri: Uri, token: &str) -> Result<Uri, Error> {
 }
 
 /// Representation of Google's ID token.
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 pub struct IdToken {
     credential: String,
     g_csrf_token: String,
@@ -156,7 +156,7 @@ impl IdToken {
 }
 
 /// Claims for Google ID tokens.
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 struct Claims {
     email: String,
 }
