@@ -27,6 +27,8 @@ pub enum Error {
     Unauthorized,
     UnauthorizedVerbose(String),
     BadRequest,
+    PayloadTooLarge,
+    UnsupportedMediaType,
     Internal,
     InternalVerbose(String),
 }
@@ -48,11 +50,16 @@ impl IntoResponse for Error {
             Error::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized".into()),
             Error::UnauthorizedVerbose(message) => (StatusCode::UNAUTHORIZED, message),
             Error::BadRequest => (StatusCode::BAD_REQUEST, "Bad request".into()),
+            Error::PayloadTooLarge => (StatusCode::PAYLOAD_TOO_LARGE, "Payload too large".into()),
+            Error::UnsupportedMediaType => (
+                StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                "Unsupported media type".into(),
+            ),
             Error::Internal => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal server error".into(),
             ),
-            Error::InternalVerbose(message) => (StatusCode::INTERNAL_SERVER_ERROR, message),
+            Error::InternalVerbose(message) => (StatusCode::UNPROCESSABLE_ENTITY, message),
         };
         (status, message).into_response()
     }
@@ -73,6 +80,11 @@ impl IntoResponse for Error {
                 (StatusCode::UNAUTHORIZED, "Unauthorized")
             }
             Error::BadRequest => (StatusCode::BAD_REQUEST, "Bad request"),
+            Error::PayloadTooLarge => (StatusCode::PAYLOAD_TOO_LARGE, "Payload too large".into()),
+            Error::UnsupportedMediaType => (
+                StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                "Unsupported media type".into(),
+            ),
             Error::Internal | Error::InternalVerbose(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }

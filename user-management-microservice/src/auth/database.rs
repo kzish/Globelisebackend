@@ -7,6 +7,7 @@ use strum::IntoEnumIterator;
 use tokio::sync::Mutex;
 
 use super::{
+    onboarding::IndividualDetails,
     user::{Role, User},
     Error,
 };
@@ -157,6 +158,16 @@ impl Database {
             }
         }
         Ok(None)
+    }
+
+    pub async fn onboard_individual_details(
+        &self,
+        ulid: Ulid,
+        role: Option<Role>,
+        details: IndividualDetails,
+    ) -> Result<(), Error> {
+        eprintln!("{details:?}");
+        Ok(())
     }
 
     fn user_table_name(role: Role) -> &'static str {

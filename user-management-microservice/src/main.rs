@@ -45,6 +45,7 @@ async fn main() {
         .route("/google/authorize", post(auth::google::get_refresh_token))
         .route("/auth/refresh", post(auth::renew_access_token))
         .route("/auth/keys", get(auth::public_key))
+        .route("/onboard/:role", post(auth::onboarding::individual_details))
         // ========== DEBUG PAGES ==========
         .route("/google/loginpage", get(auth::google::login_page))
         .route(

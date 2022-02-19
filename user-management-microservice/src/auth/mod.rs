@@ -14,6 +14,7 @@ use unicode_normalization::UnicodeNormalization;
 mod database;
 mod error;
 pub mod google;
+pub mod onboarding;
 pub mod password;
 mod state;
 mod token;
