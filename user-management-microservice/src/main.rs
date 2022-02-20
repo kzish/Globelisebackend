@@ -33,9 +33,11 @@ async fn main() {
     let app = Router::new()
         .route("/signup/:role", post(auth::create_account))
         .route("/login/:role", post(auth::login))
-        .route("/lostpasswordpage/:role", get(auth::lost_password_page))
         .route("/lostpassword/:role", post(auth::lost_password))
-        .route("/changepasswordpage/:role", get(auth::change_password_page))
+        .route(
+            "/changepasswordredirect/:role",
+            get(auth::change_password_redirect),
+        )
         .route("/changepassword/:role", post(auth::change_password))
         .route("/google/loginpage", get(auth::google::login_page))
         .route("/google/login/:role", post(auth::google::login))

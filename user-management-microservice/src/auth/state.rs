@@ -18,7 +18,7 @@ use super::{
         create_refresh_token,
         one_time::{create_one_time_token, OneTimeTokenAudience},
     },
-    user::{Role},
+    user::Role,
     Database, HASH_CONFIG,
 };
 
@@ -141,6 +141,7 @@ impl State {
         {
             let mut matching_hash: Option<String> = None;
             sessions.clear_expired();
+
             for (hash, _) in sessions.iter() {
                 if let Ok(true) = verify_encoded(hash, token) {
                     matching_hash = Some(hash.clone());
@@ -150,11 +151,12 @@ impl State {
 
             if let Some(hash) = matching_hash {
                 sessions.sessions.remove(&hash);
+                self.serialize(&*store_name, &ulid.to_string(), sessions)
+                    .await?;
+                return Ok(true);
+            } else {
+                return Ok(false);
             }
-
-            self.serialize(&*store_name, &ulid.to_string(), sessions)
-                .await?;
-            return Ok(true);
         }
 
         Ok(false)

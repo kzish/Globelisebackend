@@ -16,7 +16,6 @@ use once_cell::sync::Lazy;
 use rand::Rng;
 use rusty_ulid::{DecodingError, Ulid};
 use serde::Deserialize;
-use time::Duration;
 use unicode_normalization::UnicodeNormalization;
 
 mod database;
@@ -35,8 +34,10 @@ pub use state::{SharedState, State};
 
 use crate::{
     auth::token::{one_time::OneTimeToken, ISSSUER, KEYS},
-    env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, SMTP_CREDENTIAL},
+    env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL},
 };
+
+use self::token::{change_password::ChangePasswordToken, lost_password::LostPasswordToken};
 
 /// Creates an account.
 pub async fn create_account(
@@ -132,13 +133,13 @@ pub async fn login(
     Err(Error::Unauthorized)
 }
 
-/// Logs a user in.
+/// Send email to the user with the steps to recover their password.
 pub async fn lost_password(
     Form(request): Form<LostPasswordRequest>,
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<Redirect, Error> {
+) -> Result<(), Error> {
     let email_address: EmailAddress = request.email.parse().map_err(|_| Error::BadRequest)?;
 
     let database = database.lock().await;
@@ -149,39 +150,46 @@ pub async fn lost_password(
 
     let mut shared_state = shared_state.lock().await;
     let access_token = shared_state
-        .open_one_time_session::<ChangePasswordToken>(&database, user_ulid, role)
+        .open_one_time_session::<LostPasswordToken>(&database, user_ulid, role)
         .await?;
 
-    let email = EmailBuilder::builder()
-        .from(GLOBELISE_SENDER_EMAIL.parse().unwrap())
-        .reply_to(GLOBELISE_SENDER_EMAIL.parse().unwrap())
+    let receiver_email = email_address
         // TODO: Get the name of the person associated to this email address
-        // and prepend it like so `name <email>`
-        .to(format!("<{}>", email_address.as_ref()).parse().unwrap())
+        .to_display("")
+        .parse()
+        .map_err(|_| Error::BadRequest)?;
+    let email = EmailBuilder::builder()
+        .from(GLOBELISE_SENDER_EMAIL.clone())
+        .reply_to(GLOBELISE_SENDER_EMAIL.clone())
+        .to(receiver_email)
         .subject("Confirm Request to Reset Password")
         .header(lettre::message::header::ContentType::TEXT_HTML)
+        // TODO: Once designer have a template for this. Use a templating library to populate data.
         .body(format!(
             r##"
             <!DOCTYPE html>
-<html>
-  <head>
-    <title>Change Password Request</title>
-  </head>
-  <body>
-    <p>
-      If you requested to change your password, please follow this
-      <a href="http://localhost:3000/changepasswordpage/{}?token={}">link</a> to reset it.
-    </p>
-    <p>Otherwise, please report this occurence.</p>
-  </body>
-</html>"##,
-            role, access_token
+            <html>
+            <head>
+                <title>Change Password Request</title>
+            </head>
+            <body>
+                <p>
+                If you requested to change your password, please follow this
+                <a href="{}/changepasswordredirect/{}?token={}">link</a> to reset it.
+                </p>
+                <p>Otherwise, please report this occurence.</p>
+            </body>
+            </html>
+"##,
+            (*GLOBELISE_DOMAIN_URL),
+            role,
+            access_token
         ))
-        .unwrap();
+        .map_err(|_| Error::Internal)?;
 
     // Open a remote connection to gmail
-    let mailer = SmtpTransport::relay("smtp.gmail.com")
-        .unwrap()
+    let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)
+        .map_err(|_| Error::Internal)?
         .credentials(SMTP_CREDENTIAL.clone())
         .build();
 
@@ -190,66 +198,76 @@ pub async fn lost_password(
         .send(&email)
         .map_err(|e| Error::InternalVerbose(e.to_string()))?;
 
-    // TODO: Better ways to create url for redirection?
-    let redirect_url = format!("{}/auth/keys", (*GLOBELISE_DOMAIN_URL));
-    let uri = Uri::from_str(redirect_url.as_str()).unwrap();
+    Ok(())
+}
 
+// Respond to user clicking the reset password link in their email.
+pub async fn change_password_redirect(
+    Path(role): Path<Role>,
+    Query(params): Query<HashMap<String, String>>,
+    Extension(database): Extension<SharedDatabase>,
+    Extension(shared_state): Extension<SharedState>,
+) -> Result<Redirect, Error> {
+    // TODO: Reimplement using FromRequest which does the validation etc.
+    let token = params.get("token").ok_or(Error::BadRequest)?;
+
+    let mut validation = Validation::new(Algorithm::RS256);
+    validation.set_audience(&[LostPasswordToken::name()]);
+    validation.set_issuer(&[ISSSUER]);
+    validation.set_required_spec_claims(&["aud", "iss", "exp"]);
+    let validation = validation;
+
+    let TokenData { claims, .. } =
+        decode::<OneTimeToken<LostPasswordToken>>(token, &KEYS.decoding, &validation)
+            .map_err(|e| Error::UnauthorizedVerbose(e.to_string()))?;
+    let ulid: Ulid = claims
+        .sub
+        .parse()
+        .map_err(|e: DecodingError| Error::UnauthorizedVerbose(e.to_string()))?;
+
+    // NOTE: Admin sign up disabled until we figure out how to restrict access.
+    if matches!(role, Role::Admin) {
+        return Err(Error::Unauthorized);
+    }
+
+    // Make sure the user actually exists.
+    let mut shared_state = shared_state.lock().await;
+    let database = database.lock().await;
+
+    // Do not authorize if the token has already been used.
+    if !shared_state
+        .is_one_time_token_valid::<LostPasswordToken>(ulid, token.as_bytes())
+        .await?
+    {
+        return Err(Error::UnauthorizedVerbose(
+            "Invalid lost password token used".to_string(),
+        ));
+    }
+
+    let change_password_token = shared_state
+        .open_one_time_session::<ChangePasswordToken>(&database, ulid, role)
+        .await?;
+
+    let redirect_url = format!(
+        "{}/changepasswordpage/{}?token={}",
+        (*GLOBELISE_DOMAIN_URL),
+        role,
+        change_password_token
+    );
+    let uri = Uri::from_str(redirect_url.as_str()).unwrap();
     Ok(Redirect::to(uri))
 }
 
-#[cfg(not(debug_assertions))]
-// Use absolute namespace to silence errors about unused imports.
-pub async fn lost_password_page() -> axum::response::Response {
-    axum::response::IntoResponse::into_response((
-        axum::http::StatusCode::NOT_FOUND,
-        "Not Found".to_string(),
-    ))
-}
-
-#[cfg(debug_assertions)]
-// Use absolute namespace to silence errors about unused imports.
-pub async fn lost_password_page(Path(role): Path<Role>) -> axum::response::Html<String> {
-    return axum::response::Html(format!(
-        r##"
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Globelise Password Recovery</title>
-        </head>
-        <body>
-            <h2>Recover Password</h2>
-
-            <form
-            action="http://localhost:3000/lostpassword/{}"
-            method="post"
-            enctype="application/x-www-form-urlencoded"
-            >
-            <label for="user_email">Email:</label><br />
-            <input
-                type="email"
-                id="user_email"
-                name="user_email"
-                placeholder="example@email.com"
-            /><br />
-            <input type="submit" value="Submit" />
-            </form>
-        </body>
-        </html>           
-        "##,
-        role
-    ));
-}
-
-/// Logs a user in.
+/// Replace the password for a user with the requested one.
 pub async fn change_password(
     Form(request): Form<ChangePasswordRequest>,
     Path(role): Path<Role>,
     Query(params): Query<HashMap<String, String>>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<Redirect, Error> {
-    // TODO: Reimplement using FromRequest
-    let token = params.get("token").unwrap();
+) -> Result<(), Error> {
+    // TODO: Reimplement using FromRequest which does the validation etc.
+    let token = params.get("token").ok_or(Error::BadRequest)?;
 
     let mut validation = Validation::new(Algorithm::RS256);
     validation.set_audience(&[ChangePasswordToken::name()]);
@@ -275,6 +293,7 @@ pub async fn change_password(
 
     // Make sure the user actually exists.
     let mut shared_state = shared_state.lock().await;
+    let database = database.lock().await;
 
     // Do not authorize if the token has already been used.
     if !shared_state
@@ -284,7 +303,8 @@ pub async fn change_password(
         return Err(Error::Unauthorized);
     }
 
-    let database = database.lock().await;
+    // NOTE: This is not atomic, so this check is quite pointless.
+    // Either rely completely on SQL or use some kind of transaction commit.
     if database.user(ulid, Some(role)).await?.is_some() {
         let salt: [u8; 16] = rand::thread_rng().gen();
         let hash = hash_encoded(request.password.as_bytes(), &salt, &HASH_CONFIG)
@@ -292,60 +312,10 @@ pub async fn change_password(
 
         database.update_password(ulid, role, Some(hash)).await?;
 
-        let redirect_url = format!("{}/auth/keys", (*GLOBELISE_DOMAIN_URL));
-        let uri = Uri::from_str(redirect_url.as_str()).unwrap();
-        Ok(Redirect::to(uri))
+        Ok(())
     } else {
         Err(Error::BadRequest)
     }
-}
-
-#[cfg(not(debug_assertions))]
-// Use absolute namespace to silence errors about unused imports.
-pub async fn change_password_page() -> axum::response::Response {
-    axum::response::IntoResponse::into_response((
-        axum::http::StatusCode::NOT_FOUND,
-        "Not Found".to_string(),
-    ))
-}
-
-#[cfg(debug_assertions)]
-// Use absolute namespace to silence errors about unused imports.
-pub async fn change_password_page(
-    Path(role): Path<Role>,
-    Query(params): Query<HashMap<String, String>>,
-) -> axum::response::Html<String> {
-    let token = params.get("token").unwrap();
-    axum::response::Html(format!(
-        r##"
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Globelise Password Change</title>
-        </head>
-        <body>
-            <h2>Change Password</h2>
-
-            <form
-            action="http://localhost:3000/changepassword/{}?token={}"
-            method="post"
-            enctype="application/x-www-form-urlencoded"
-            >
-            <label for="new_password">Password:</label><br />
-            <input type="password" id="new_password" name="new_password" /><br />
-            <label for="confirm_new_password">Confirm Password:</label><br />
-            <input
-                type="password"
-                id="confirm_new_password"
-                name="confirm_new_password"
-            /><br />
-            <input type="submit" value="Submit" />
-            </form>
-        </body>
-        </html>      
-        "##,
-        role, token
-    ))
 }
 
 /// Gets a new access token.
@@ -413,23 +383,3 @@ pub static HASH_CONFIG: Lazy<Config> = Lazy::new(|| Config {
     variant: argon2::Variant::Argon2id,
     ..Default::default()
 });
-
-#[derive(Debug)]
-pub struct ChangePasswordToken;
-
-impl OneTimeTokenAudience for ChangePasswordToken {
-    fn name() -> &'static str {
-        "change_password"
-    }
-
-    fn from_str(s: &str) -> Result<(), Error> {
-        match s {
-            "change_password" => Ok(()),
-            _ => Err(Error::Unauthorized),
-        }
-    }
-
-    fn lifetime() -> Duration {
-        Duration::minutes(60)
-    }
-}
