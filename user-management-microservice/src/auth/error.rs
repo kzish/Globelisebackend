@@ -66,7 +66,7 @@ impl IntoResponse for Error {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal server error".into(),
             ),
-            Error::InternalVerbose(message) => (StatusCode::UNPROCESSABLE_ENTITY, message),
+            Error::InternalVerbose(message) => (StatusCode::INTERNAL_SERVER_ERROR, message),
         };
         (status, message).into_response()
     }
