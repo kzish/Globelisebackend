@@ -11,7 +11,6 @@ use serde::Serialize;
 #[derive(Debug, Serialize)]
 pub struct RegistrationError {
     pub is_valid_email: bool,
-    pub is_email_available: bool,
     pub is_password_at_least_8_chars: bool,
     pub passwords_match: bool,
 }
@@ -22,6 +21,8 @@ pub enum Error {
     Registration(RegistrationError),
     Dapr(String),
     Database(String),
+    UnavailableEmail,
+    WrongUserType,
     GooglePublicKeys,
     Conversion(String),
     Unauthorized,
@@ -48,6 +49,11 @@ impl IntoResponse for Error {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to get Google's public keys".into(),
             ),
+            Error::UnavailableEmail => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "Email is unavailable".into(),
+            ),
+            Error::WrongUserType => (StatusCode::UNAUTHORIZED, "Wrong user type".into()),
             Error::Conversion(message) => (StatusCode::INTERNAL_SERVER_ERROR, message),
             Error::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized".into()),
             Error::UnauthorizedVerbose(message) => (StatusCode::UNAUTHORIZED, message),
@@ -82,6 +88,11 @@ impl IntoResponse for Error {
             Error::Dapr(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
             Error::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
             Error::GooglePublicKeys => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
+            Error::UnavailableEmail => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "Email is unavailable".into(),
+            ),
+            Error::WrongUserType => (StatusCode::UNAUTHORIZED, "Unauthorized".into()),
             Error::Conversion(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
             Error::Unauthorized | Error::UnauthorizedVerbose(_) => {
                 (StatusCode::UNAUTHORIZED, "Unauthorized")
