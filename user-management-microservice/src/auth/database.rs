@@ -7,7 +7,7 @@ use strum::IntoEnumIterator;
 use tokio::sync::Mutex;
 
 use super::{
-    onboarding::{BankDetails, EntityDetails, IndividualDetails, PicDetails},
+    onboarding::{BankDetails, EntityDetails, EorDetails, IndividualDetails, PicDetails},
     user::{Role, User},
     Error,
 };
@@ -265,6 +265,42 @@ impl Database {
         .bind(details.dob)
         .bind(details.dial_code)
         .bind(details.phone_number)
+        .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
+        .bind(ulid_to_sql_uuid(ulid))
+        .execute(&self.0)
+        .await
+        .map_err(|e| Error::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
+    pub async fn onboard_eor_details(
+        &self,
+        ulid: Ulid,
+        role: Role,
+        details: EorDetails,
+    ) -> Result<(), Error> {
+        if !matches!(role, Role::EorAdmin) {
+            return Err(Error::UnprocessableEntity);
+        }
+        if self.user(ulid, Some(role)).await?.is_none() {
+            return Err(Error::UnprocessableEntity);
+        }
+
+        sqlx::query(&format!(
+            "UPDATE {}
+            SET first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
+            country = $6, time_zone = $7, profile_picture = $8
+            WHERE ulid = $9",
+            Self::user_table_name(role)
+        ))
+        .bind(details.first_name)
+        .bind(details.last_name)
+        .bind(details.dob)
+        .bind(details.dial_code)
+        .bind(details.phone_number)
+        .bind(details.country)
+        .bind(details.time_zone)
         .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
         .bind(ulid_to_sql_uuid(ulid))
         .execute(&self.0)
