@@ -2319,7 +2319,6 @@ dependencies = [
  "rusty_ulid",
  "serde",
  "serde_json",
- "serde_urlencoded",
  "sqlx",
  "strum",
  "time 0.3.7",
