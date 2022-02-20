@@ -44,8 +44,10 @@ impl Database {
         }
 
         // Avoid overwriting an existing user.
-        if self.user_id(&user.email, role).await?.is_some() {
-            return Err(Error::BadRequest);
+        match self.user_id(&user.email, role).await {
+            Ok(Some(_)) | Err(Error::WrongUserType) => return Err(Error::UnavailableEmail),
+            Ok(None) => (),
+            Err(e) => return Err(e),
         }
 
         let ulid = Ulid::generate();
@@ -158,7 +160,7 @@ impl Database {
                 if r == role {
                     return Ok(Some(ulid_from_sql_uuid(id.get("ulid"))));
                 } else {
-                    return Err(Error::BadRequest);
+                    return Err(Error::WrongUserType);
                 }
             }
         }

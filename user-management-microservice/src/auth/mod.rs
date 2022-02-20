@@ -44,16 +44,14 @@ pub async fn create_account(
     let email = EmailAddress::from_str(&email);
 
     let is_valid_email = email.is_ok();
-    let mut is_email_available = false;
     let is_password_at_least_8_chars = request.password.len() >= 8;
     let passwords_match = password == confirm_password;
 
     if is_valid_email {
         let database = database.lock().await;
         let email = email.unwrap();
-        is_email_available = database.user_id(&email, role).await?.is_none();
 
-        if is_email_available && is_password_at_least_8_chars && passwords_match {
+        if is_password_at_least_8_chars && passwords_match {
             let salt: [u8; 16] = rand::thread_rng().gen();
             let hash = hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG)
                 .map_err(|_| Error::Internal)?;
@@ -74,7 +72,6 @@ pub async fn create_account(
 
     Err(Error::Registration(RegistrationError {
         is_valid_email,
-        is_email_available,
         is_password_at_least_8_chars,
         passwords_match,
     }))
