@@ -105,6 +105,6 @@ pub trait MultipartFormFields {
 }
 
 /// Maximum length of a `multipart/form-data` request.
-pub const FORM_DATA_LENGTH_LIMIT: u64 = 6 * 1024 * 1024;
+pub const FORM_DATA_LENGTH_LIMIT: u64 = 9 * 1024 * 1024;
 /// Maximum size of an uploaded image.
-const IMAGE_SIZE_LIMIT: usize = 5 * 1024 * 1024;
+const IMAGE_SIZE_LIMIT: usize = 8 * 1024 * 1024;
