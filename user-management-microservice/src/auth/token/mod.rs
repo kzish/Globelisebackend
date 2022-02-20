@@ -63,11 +63,53 @@ pub fn create_refresh_token(ulid: Ulid, role: Role) -> Result<(String, i64), Err
 /// Claims for access tokens.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AccessToken {
-    sub: String,
+    pub sub: String,
     pub email: String,
-    role: String,
+    pub role: String,
     iss: String,
     exp: usize,
+}
+
+impl AccessToken {
+    fn decode(input: &str) -> Result<Self, Error> {
+        let mut validation = Validation::new(Algorithm::RS256);
+        validation.set_issuer(&[ISSSUER]);
+        validation.set_required_spec_claims(&["iss", "exp"]);
+        let validation = validation;
+
+        let TokenData { claims, .. } = decode::<AccessToken>(input, &KEYS.decoding, &validation)
+            .map_err(|_| Error::Unauthorized)?;
+        Ok(claims)
+    }
+}
+
+#[async_trait]
+impl<B> FromRequest<B> for AccessToken
+where
+    B: Send,
+{
+    type Rejection = Error;
+
+    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        let TypedHeader(Authorization(bearer)) =
+            TypedHeader::<Authorization<Bearer>>::from_request(req)
+                .await
+                .map_err(|_| Error::Unauthorized)?;
+        let Extension(database) = Extension::<SharedDatabase>::from_request(req)
+            .await
+            .map_err(|_| Error::Internal)?;
+        let claims = AccessToken::decode(bearer.token())?;
+        let ulid: Ulid = claims.sub.parse().map_err(|_| Error::Unauthorized)?;
+        let role: Role = claims.role.parse().map_err(|_| Error::Unauthorized)?;
+
+        // Make sure the user actually exists.
+        let database = database.lock().await;
+        if database.user(ulid, Some(role)).await?.is_none() {
+            return Err(Error::Unauthorized);
+        }
+
+        Ok(claims)
+    }
 }
 
 /// Claims for refresh tokens.

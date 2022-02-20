@@ -14,6 +14,7 @@ use unicode_normalization::UnicodeNormalization;
 mod database;
 mod error;
 pub mod google;
+pub mod onboarding;
 pub mod password;
 mod state;
 mod token;
@@ -41,10 +42,6 @@ pub async fn create_account(
     // Frontend validation can be bypassed, so perform basic validation
     // in the backend as well.
     let email = EmailAddress::from_str(&email);
-    // NOTE: EOR admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::EorAdmin) {
-        return Err(Error::Unauthorized);
-    }
 
     let is_valid_email = email.is_ok();
     let mut is_email_available = false;

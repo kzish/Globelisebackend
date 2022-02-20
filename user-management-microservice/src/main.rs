@@ -45,6 +45,30 @@ async fn main() {
         .route("/google/authorize", post(auth::google::get_refresh_token))
         .route("/auth/refresh", post(auth::renew_access_token))
         .route("/auth/keys", get(auth::public_key))
+        .route(
+            "/onboard/individual_details",
+            post(auth::onboarding::individual::account_details),
+        )
+        .route(
+            "/onboard/entity_details",
+            post(auth::onboarding::entity::account_details),
+        )
+        .route(
+            "/onboard/pic_details",
+            post(auth::onboarding::entity::pic_details),
+        )
+        .route(
+            "/onboard/eor_details",
+            post(auth::onboarding::eor::account_details),
+        )
+        .route(
+            "/onboard/bank_details",
+            post(auth::onboarding::bank::bank_details),
+        )
+        .route(
+            "/onboard/eor_bank_details",
+            post(auth::onboarding::bank::eor_bank_details),
+        )
         // ========== DEBUG PAGES ==========
         .route("/google/loginpage", get(auth::google::login_page))
         .route(
