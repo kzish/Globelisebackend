@@ -7,7 +7,7 @@ use strum::IntoEnumIterator;
 use tokio::sync::Mutex;
 
 use super::{
-    onboarding::IndividualDetails,
+    onboarding::{BankDetails, IndividualDetails},
     user::{Role, User},
     Error,
 };
@@ -167,7 +167,10 @@ impl Database {
         details: IndividualDetails,
     ) -> Result<(), Error> {
         if !matches!(role, Role::ClientIndividual | Role::ContractorIndividual) {
-            return Err(Error::BadRequest);
+            return Err(Error::UnprocessableEntity);
+        }
+        if self.user(ulid, Some(role)).await?.is_none() {
+            return Err(Error::UnprocessableEntity);
         }
 
         sqlx::query(&format!(
@@ -190,6 +193,36 @@ impl Database {
         .bind(details.tax_id)
         .bind(details.time_zone)
         .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
+        .bind(ulid_to_sql_uuid(ulid))
+        .execute(&self.0)
+        .await
+        .map_err(|e| Error::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
+    pub async fn onboard_bank_details(
+        &self,
+        ulid: Ulid,
+        role: Role,
+        details: BankDetails,
+    ) -> Result<(), Error> {
+        if !matches!(role, Role::ContractorIndividual | Role::ContractorEntity) {
+            return Err(Error::UnprocessableEntity);
+        }
+        if self.user(ulid, Some(role)).await?.is_none() {
+            return Err(Error::UnprocessableEntity);
+        }
+
+        sqlx::query(&format!(
+            "UPDATE {}
+            SET bank_name = $1, bank_account_name = $2, bank_account_number = $3
+            WHERE ulid = $4",
+            Self::user_table_name(role)
+        ))
+        .bind(details.bank_name)
+        .bind(details.account_name)
+        .bind(details.account_number)
         .bind(ulid_to_sql_uuid(ulid))
         .execute(&self.0)
         .await

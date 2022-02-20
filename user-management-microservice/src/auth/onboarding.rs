@@ -6,9 +6,10 @@ use std::{
 
 use axum::{
     body::Bytes,
-    extract::{multipart::Field, ContentLengthLimit, Extension, Multipart},
+    extract::{multipart::Field, ContentLengthLimit, Extension, Form, Multipart},
 };
 use rusty_ulid::Ulid;
+use serde::Deserialize;
 use strum::{EnumIter, EnumString, IntoEnumIterator};
 
 use super::{error::Error, token::AccessToken, user::Role, SharedDatabase};
@@ -60,6 +61,17 @@ pub async fn individual_details(
     database
         .onboard_individual_details(ulid, role, details)
         .await
+}
+
+pub async fn bank_details(
+    claims: AccessToken,
+    Form(details): Form<BankDetails>,
+    Extension(database): Extension<SharedDatabase>,
+) -> Result<(), Error> {
+    let ulid: Ulid = claims.sub.parse().unwrap();
+    let role: Role = claims.role.parse().unwrap();
+    let database = database.lock().await;
+    database.onboard_bank_details(ulid, role, details).await
 }
 
 async fn extract_multipart_form_data<T>(
@@ -149,7 +161,6 @@ async fn validate_image_field(field: Field<'_>) -> Result<Bytes, Error> {
     Ok(data)
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct IndividualDetails {
     pub first_name: String,
@@ -196,12 +207,11 @@ impl MultipartFormFields for IndividualDetailNames {
     }
 }
 
-#[derive(Debug, EnumIter, EnumString)]
-#[strum(serialize_all = "snake_case")]
-enum BankDetails {
-    BankName,
-    AccountName,
-    AccountNumber,
+#[derive(Debug, Deserialize)]
+pub struct BankDetails {
+    pub bank_name: String,
+    pub account_name: String,
+    pub account_number: String,
 }
 
 trait MultipartFormFields {

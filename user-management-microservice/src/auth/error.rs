@@ -29,6 +29,7 @@ pub enum Error {
     BadRequest,
     PayloadTooLarge,
     UnsupportedMediaType,
+    UnprocessableEntity,
     Internal,
     InternalVerbose(String),
 }
@@ -54,6 +55,10 @@ impl IntoResponse for Error {
             Error::UnsupportedMediaType => (
                 StatusCode::UNSUPPORTED_MEDIA_TYPE,
                 "Unsupported media type".into(),
+            ),
+            Error::UnprocessableEntity => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "Unprocessable entity".into(),
             ),
             Error::Internal => (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -84,6 +89,10 @@ impl IntoResponse for Error {
             Error::UnsupportedMediaType => (
                 StatusCode::UNSUPPORTED_MEDIA_TYPE,
                 "Unsupported media type".into(),
+            ),
+            Error::UnprocessableEntity => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "Unprocessable entity".into(),
             ),
             Error::Internal | Error::InternalVerbose(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
