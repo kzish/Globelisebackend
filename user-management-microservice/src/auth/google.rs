@@ -60,11 +60,6 @@ pub async fn login(
             Err(Error::BadRequest)
         }
     } else {
-        // NOTE: EOR admin sign up disabled until we figure out how to restrict access.
-        if matches!(role, Role::EorAdmin) {
-            return Err(Error::BadRequest);
-        }
-
         let user = User {
             email,
             password_hash: None,
