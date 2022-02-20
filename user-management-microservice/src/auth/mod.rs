@@ -87,7 +87,11 @@ pub async fn login(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<String, Error> {
-    let email: EmailAddress = request.email.parse().map_err(|_| Error::BadRequest)?;
+    // Credentials should be normalized for maximum compatibility.
+    let email: String = request.email.trim().nfc().collect();
+    let password: String = request.password.nfc().collect();
+
+    let email: EmailAddress = email.parse().map_err(|_| Error::BadRequest)?;
 
     // NOTE: A timing attack can detect registered emails.
     // Mitigating this is not strictly necessary, as attackers can still find out
@@ -102,7 +106,7 @@ pub async fn login(
             _,
         )) = database.user(ulid, Some(role)).await?
         {
-            if let Ok(true) = verify_encoded(&hash, request.password.as_bytes()) {
+            if let Ok(true) = verify_encoded(&hash, password.as_bytes()) {
                 let mut shared_state = shared_state.lock().await;
                 let refresh_token = shared_state.open_session(&database, ulid, role).await?;
                 return Ok(refresh_token);
