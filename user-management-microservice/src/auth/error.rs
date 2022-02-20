@@ -27,6 +27,7 @@ pub enum Error {
     Unauthorized,
     UnauthorizedVerbose(String),
     BadRequest,
+    Forbidden,
     PayloadTooLarge,
     UnsupportedMediaType,
     UnprocessableEntity,
@@ -51,6 +52,7 @@ impl IntoResponse for Error {
             Error::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized".into()),
             Error::UnauthorizedVerbose(message) => (StatusCode::UNAUTHORIZED, message),
             Error::BadRequest => (StatusCode::BAD_REQUEST, "Bad request".into()),
+            Error::Forbidden => (StatusCode::FORBIDDEN, "Forbidden".into()),
             Error::PayloadTooLarge => (StatusCode::PAYLOAD_TOO_LARGE, "Payload too large".into()),
             Error::UnsupportedMediaType => (
                 StatusCode::UNSUPPORTED_MEDIA_TYPE,
@@ -85,6 +87,7 @@ impl IntoResponse for Error {
                 (StatusCode::UNAUTHORIZED, "Unauthorized")
             }
             Error::BadRequest => (StatusCode::BAD_REQUEST, "Bad request"),
+            Error::Forbidden => (StatusCode::FORBIDDEN, "Forbidden".into()),
             Error::PayloadTooLarge => (StatusCode::PAYLOAD_TOO_LARGE, "Payload too large".into()),
             Error::UnsupportedMediaType => (
                 StatusCode::UNSUPPORTED_MEDIA_TYPE,

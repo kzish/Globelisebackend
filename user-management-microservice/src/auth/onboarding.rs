@@ -19,6 +19,11 @@ pub async fn individual_details(
     ContentLengthLimit(multipart): ContentLengthLimit<Multipart, FORM_DATA_LENGTH_LIMIT>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
+    let role: Role = claims.role.parse().unwrap();
+    if !matches!(role, Role::ClientIndividual | Role::ContractorIndividual) {
+        return Err(Error::Forbidden);
+    }
+
     let (mut text_fields, mut byte_fields) =
         extract_multipart_form_data::<IndividualDetailNames>(multipart).await?;
 
@@ -56,7 +61,6 @@ pub async fn individual_details(
     };
 
     let ulid: Ulid = claims.sub.parse().unwrap();
-    let role: Role = claims.role.parse().unwrap();
     let database = database.lock().await;
     database
         .onboard_individual_details(ulid, role, details)
@@ -68,8 +72,12 @@ pub async fn bank_details(
     Form(details): Form<BankDetails>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
-    let ulid: Ulid = claims.sub.parse().unwrap();
     let role: Role = claims.role.parse().unwrap();
+    if !matches!(role, Role::ContractorIndividual | Role::ContractorEntity) {
+        return Err(Error::Forbidden);
+    }
+
+    let ulid: Ulid = claims.sub.parse().unwrap();
     let database = database.lock().await;
     database.onboard_bank_details(ulid, role, details).await
 }
