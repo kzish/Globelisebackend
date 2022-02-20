@@ -8,7 +8,10 @@ use tokio::sync::Mutex;
 
 use super::{
     onboarding::{
-        BankDetails, EntityDetails, EorBankDetails, EorDetails, IndividualDetails, PicDetails,
+        bank::{BankDetails, EorBankDetails},
+        entity::{EntityDetails, PicDetails},
+        eor::EorDetails,
+        individual::IndividualDetails,
     },
     user::{Role, User},
     Error,
@@ -162,6 +165,18 @@ impl Database {
         Ok(None)
     }
 
+    fn user_table_name(role: Role) -> &'static str {
+        match role {
+            Role::ClientIndividual => "client_individuals",
+            Role::ClientEntity => "client_entities",
+            Role::ContractorIndividual => "contractor_individuals",
+            Role::ContractorEntity => "contractor_entities",
+            Role::EorAdmin => "eor_admins",
+        }
+    }
+}
+
+impl Database {
     pub async fn onboard_individual_details(
         &self,
         ulid: Ulid,
@@ -373,16 +388,6 @@ impl Database {
         .map_err(|e| Error::Database(e.to_string()))?;
 
         Ok(())
-    }
-
-    fn user_table_name(role: Role) -> &'static str {
-        match role {
-            Role::ClientIndividual => "client_individuals",
-            Role::ClientEntity => "client_entities",
-            Role::ContractorIndividual => "contractor_individuals",
-            Role::ContractorEntity => "contractor_entities",
-            Role::EorAdmin => "eor_admins",
-        }
     }
 }
 
