@@ -102,6 +102,12 @@ pub async fn validate_image_field(field: Field<'_>) -> Result<Bytes, Error> {
         _ => return Err(Error::UnsupportedMediaType),
     }
 
+    let image = image::load_from_memory(data.as_ref()).map_err(|_| Error::UnsupportedMediaType)?;
+    let (width, height) = image::GenericImageView::dimensions(&image);
+    if width > IMAGE_DIMENSION_LIMIT || height > IMAGE_DIMENSION_LIMIT {
+        return Err(Error::PayloadTooLarge);
+    }
+
     Ok(data)
 }
 
@@ -114,3 +120,5 @@ pub trait MultipartFormFields {
 pub const FORM_DATA_LENGTH_LIMIT: u64 = 9 * 1024 * 1024;
 /// Maximum size of an uploaded image.
 const IMAGE_SIZE_LIMIT: usize = 8 * 1024 * 1024;
+/// Maximum dimensions of an uploaded image.
+const IMAGE_DIMENSION_LIMIT: u32 = 400;
