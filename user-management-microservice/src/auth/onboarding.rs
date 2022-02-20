@@ -10,7 +10,6 @@ use axum::{
 };
 use rusty_ulid::Ulid;
 use strum::{EnumIter, EnumString, IntoEnumIterator};
-use time::{format_description, Date};
 
 use super::{error::Error, token::AccessToken, user::Role, SharedDatabase};
 
@@ -30,10 +29,9 @@ pub async fn individual_details(
             .remove(&IndividualDetailNames::LastName)
             .unwrap(),
         dob: {
-            let format = format_description::parse("[year]-[month]-[day]").unwrap();
-            Date::parse(
+            sqlx::types::time::Date::parse(
                 &text_fields.remove(&IndividualDetailNames::Dob).unwrap(),
-                &format,
+                "%F",
             )
             .map_err(|_| Error::BadRequest)?
         },
@@ -60,7 +58,7 @@ pub async fn individual_details(
     let role: Role = claims.role.parse().unwrap();
     let database = database.lock().await;
     database
-        .onboard_individual_details(ulid, Some(role), details)
+        .onboard_individual_details(ulid, role, details)
         .await
 }
 
@@ -154,18 +152,18 @@ async fn validate_image_field(field: Field<'_>) -> Result<Bytes, Error> {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct IndividualDetails {
-    first_name: String,
-    last_name: String,
-    dob: Date,
-    dial_code: String,
-    phone_number: String,
-    country: String,
-    address: String,
-    city: String,
-    postal_code: String,
-    tax_id: Option<String>,
-    time_zone: String,
-    profile_picture: Option<Bytes>,
+    pub first_name: String,
+    pub last_name: String,
+    pub dob: sqlx::types::time::Date,
+    pub dial_code: String,
+    pub phone_number: String,
+    pub country: String,
+    pub address: String,
+    pub city: String,
+    pub postal_code: String,
+    pub tax_id: Option<String>,
+    pub time_zone: String,
+    pub profile_picture: Option<Bytes>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, EnumString)]

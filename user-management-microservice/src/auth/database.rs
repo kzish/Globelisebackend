@@ -47,7 +47,7 @@ impl Database {
 
         sqlx::query(&format!(
             "INSERT INTO {} (ulid, email, password, is_google, is_outlook)
-                VALUES ($1, $2, $3, $4, $5)",
+            VALUES ($1, $2, $3, $4, $5)",
             Self::user_table_name(role)
         ))
         .bind(ulid_to_sql_uuid(ulid))
@@ -163,10 +163,38 @@ impl Database {
     pub async fn onboard_individual_details(
         &self,
         ulid: Ulid,
-        role: Option<Role>,
+        role: Role,
         details: IndividualDetails,
     ) -> Result<(), Error> {
-        eprintln!("{details:?}");
+        if !matches!(role, Role::ClientIndividual | Role::ContractorIndividual) {
+            return Err(Error::BadRequest);
+        }
+
+        sqlx::query(&format!(
+            "UPDATE {}
+            SET first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
+            country = $6, address = $7, city = $8, postal_code = $9, tax_id = $10,
+            time_zone = $11, profile_picture = $12
+            WHERE ulid = $13",
+            Self::user_table_name(role)
+        ))
+        .bind(details.first_name)
+        .bind(details.last_name)
+        .bind(details.dob)
+        .bind(details.dial_code)
+        .bind(details.phone_number)
+        .bind(details.country)
+        .bind(details.address)
+        .bind(details.city)
+        .bind(details.postal_code)
+        .bind(details.tax_id)
+        .bind(details.time_zone)
+        .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
+        .bind(ulid_to_sql_uuid(ulid))
+        .execute(&self.0)
+        .await
+        .map_err(|e| Error::Database(e.to_string()))?;
+
         Ok(())
     }
 
