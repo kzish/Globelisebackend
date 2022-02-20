@@ -42,7 +42,6 @@ async fn main() {
             post(auth::password::change_password),
         )
         .route("/google/login/:role", post(auth::google::login))
-        .route("/google/authorize", post(auth::google::get_refresh_token))
         .route("/auth/refresh", post(auth::renew_access_token))
         .route("/auth/keys", get(auth::public_key))
         .route(
@@ -91,6 +90,7 @@ async fn main() {
 
     axum::Server::bind(
         &(*LISTENING_ADDRESS)
+            .replace("localhost", "127.0.0.1")
             .parse()
             .expect("Invalid listening address"),
     )
