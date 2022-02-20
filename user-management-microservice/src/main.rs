@@ -50,6 +50,11 @@ async fn main() {
             post(auth::onboarding::individual_details),
         )
         .route(
+            "/onboard/entity_details",
+            post(auth::onboarding::entity_details),
+        )
+        .route("/onboard/pic_details", post(auth::onboarding::pic_details))
+        .route(
             "/onboard/bank_details",
             post(auth::onboarding::bank_details),
         )
