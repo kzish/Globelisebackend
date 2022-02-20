@@ -7,7 +7,9 @@ use strum::IntoEnumIterator;
 use tokio::sync::Mutex;
 
 use super::{
-    onboarding::{BankDetails, EntityDetails, EorDetails, IndividualDetails, PicDetails},
+    onboarding::{
+        BankDetails, EntityDetails, EorBankDetails, EorDetails, IndividualDetails, PicDetails,
+    },
     user::{Role, User},
     Error,
 };
@@ -332,6 +334,39 @@ impl Database {
         .bind(details.bank_name)
         .bind(details.account_name)
         .bind(details.account_number)
+        .bind(ulid_to_sql_uuid(ulid))
+        .execute(&self.0)
+        .await
+        .map_err(|e| Error::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
+    pub async fn onboard_eor_bank_details(
+        &self,
+        ulid: Ulid,
+        role: Role,
+        details: EorBankDetails,
+    ) -> Result<(), Error> {
+        if !matches!(role, Role::EorAdmin) {
+            return Err(Error::UnprocessableEntity);
+        }
+        if self.user(ulid, Some(role)).await?.is_none() {
+            return Err(Error::UnprocessableEntity);
+        }
+
+        sqlx::query(&format!(
+            "UPDATE {}
+            SET bank_name = $1, bank_account_number = $2, city_address = $3, postal_code = $4,
+            tax_id = $5
+            WHERE ulid = $6",
+            Self::user_table_name(role)
+        ))
+        .bind(details.bank_name)
+        .bind(details.account_number)
+        .bind(details.city_address)
+        .bind(details.postal_code)
+        .bind(details.tax_id)
         .bind(ulid_to_sql_uuid(ulid))
         .execute(&self.0)
         .await
