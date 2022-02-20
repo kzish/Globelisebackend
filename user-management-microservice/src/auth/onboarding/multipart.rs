@@ -88,12 +88,18 @@ pub async fn validate_image_field(field: Field<'_>) -> Result<Bytes, Error> {
         return Err(Error::PayloadTooLarge);
     }
 
-    let cookie = magic::Cookie::open(magic::CookieFlags::MIME_TYPE | magic::CookieFlags::ERROR)
-        .map_err(|_| Error::Internal)?;
-    cookie.load::<&str>(&[]).map_err(|_| Error::Internal)?;
-    let detected_mime = cookie.buffer(&data).map_err(|_| Error::Internal)?;
-    if detected_mime != content_type.to_string() {
-        return Err(Error::UnsupportedMediaType);
+    match image::guess_format(data.as_ref()).map_err(|_| Error::UnsupportedMediaType)? {
+        image::ImageFormat::Png => {
+            if content_type != mime::IMAGE_PNG {
+                return Err(Error::UnsupportedMediaType);
+            }
+        }
+        image::ImageFormat::Jpeg => {
+            if content_type != mime::IMAGE_JPEG {
+                return Err(Error::UnsupportedMediaType);
+            }
+        }
+        _ => return Err(Error::UnsupportedMediaType),
     }
 
     Ok(data)
