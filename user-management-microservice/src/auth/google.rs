@@ -39,7 +39,7 @@ pub async fn login(
             Ok(refresh_token)
         } else {
             // TODO: Implement linking with an existing account.
-            Err(Error::BadRequest)
+            Err(Error::Unauthorized)
         }
     } else {
         let user = User {
