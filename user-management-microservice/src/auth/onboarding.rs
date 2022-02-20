@@ -8,7 +8,6 @@ use axum::{
     body::Bytes,
     extract::{multipart::Field, ContentLengthLimit, Extension, Multipart},
 };
-use mime_detective::MimeDetective;
 use rusty_ulid::Ulid;
 use strum::{EnumIter, EnumString, IntoEnumIterator};
 use time::{format_description, Date};
@@ -141,15 +140,13 @@ async fn validate_image_field(field: Field<'_>) -> Result<Bytes, Error> {
         return Err(Error::PayloadTooLarge);
     }
 
-    /*
-    let mime = MimeDetective::new()
-        .map_err(|_| Error::Internal)?
-        .detect_buffer(&data)
+    let cookie = magic::Cookie::open(magic::CookieFlags::MIME_TYPE | magic::CookieFlags::ERROR)
         .map_err(|_| Error::Internal)?;
-    if mime != content_type {
+    cookie.load::<&str>(&[]).map_err(|_| Error::Internal)?;
+    let detected_mime = cookie.buffer(&data).map_err(|_| Error::Internal)?;
+    if detected_mime != content_type.to_string() {
         return Err(Error::UnsupportedMediaType);
     }
-    */
 
     Ok(data)
 }
