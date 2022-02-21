@@ -103,10 +103,7 @@ pub async fn change_password_redirect(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<Redirect, Error> {
-    let ulid: Ulid = claims
-        .sub
-        .parse()
-        .map_err(|e: DecodingError| Error::UnauthorizedVerbose(e.to_string()))?;
+    let ulid: Ulid = claims.sub.parse().unwrap();
 
     // Make sure the user actually exists.
     let mut shared_state = shared_state.lock().await;
@@ -133,10 +130,7 @@ pub async fn change_password(
     claims: OneTimeToken<ChangePasswordToken>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
-    let ulid: Ulid = claims
-        .sub
-        .parse()
-        .map_err(|e: DecodingError| Error::UnauthorizedVerbose(e.to_string()))?;
+    let ulid: Ulid = claims.sub.parse().unwrap();
 
     if request.password != request.confirm_password {
         return Err(Error::BadRequest);

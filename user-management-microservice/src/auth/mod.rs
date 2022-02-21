@@ -119,14 +119,8 @@ pub async fn renew_access_token(
     claims: RefreshToken,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<String, Error> {
-    let ulid: Ulid = claims
-        .sub
-        .parse()
-        .map_err(|_| Error::Conversion("uuid parse error".into()))?;
-    let role: Role = claims
-        .role
-        .parse()
-        .map_err(|_| Error::Conversion("role parse error".into()))?;
+    let ulid: Ulid = claims.sub.parse().unwrap();
+    let role: Role = claims.role.parse().unwrap();
 
     let database = database.lock().await;
     if let Some((User { email, .. }, _)) = database.user(ulid, Some(role)).await? {
