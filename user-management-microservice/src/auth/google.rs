@@ -55,22 +55,6 @@ pub async fn login(
     }
 }
 
-fn append_token_to_uri(uri: Uri, token: &str) -> Result<Uri, Error> {
-    let query = uri.path_and_query().ok_or(Error::BadRequest)?;
-    let query = match query.query() {
-        Some(_) => query.to_string() + "&token=" + token,
-        None => query.to_string() + "?token=" + token,
-    };
-
-    let uri = uri::Builder::new()
-        .scheme(uri.scheme().ok_or(Error::BadRequest)?.clone())
-        .authority(uri.authority().ok_or(Error::BadRequest)?.clone())
-        .path_and_query(query)
-        .build()
-        .map_err(|_| Error::BadRequest)?;
-    Ok(uri)
-}
-
 /// Representation of Google's ID token.
 #[derive(Debug, Deserialize)]
 pub struct IdToken {
