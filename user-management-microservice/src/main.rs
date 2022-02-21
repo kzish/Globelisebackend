@@ -1,10 +1,3 @@
-//! User management microservice.
-//!
-//! Requirements:
-//!     - Dapr for state storage
-//!     - RSA key pair files `private.pem` and `public.pem`
-//!     - GOOGLE_CLIENT_ID environment variable
-
 use std::{sync::Arc, time::Duration};
 
 use axum::{
