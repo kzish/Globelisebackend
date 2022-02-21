@@ -10,16 +10,16 @@ macro_rules! init_global_static {
     };
 }
 
+init_global_static!(LISTENING_ADDRESS);
 init_global_static!(GLOBELISE_DOMAIN_URL);
 init_global_static!(GLOBELISE_SMTP_URL);
 
 pub static GLOBELISE_SENDER_EMAIL: Lazy<Mailbox> = Lazy::new(|| {
     std::env::var("GLOBELISE_SENDER_EMAIL")
-        .expect(&format!("GLOBELISE_SENDER_EMAIL must be set",))
+        .expect("GLOBELISE_SMTP_USERNAME not set")
         .parse()
-        .expect("Please provide a valid sender email.")
+        .expect("GLOBELISE_SENDER_EMAIL not set properly")
 });
-
 pub static SMTP_CREDENTIAL: Lazy<SmtpCredentials> = Lazy::new(|| {
     SmtpCredentials::new(
         std::env::var("GLOBELISE_SMTP_USERNAME").expect("GLOBELISE_SMTP_USERNAME not set"),

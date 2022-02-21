@@ -1,48 +1,28 @@
 //! Endpoint for handling Google authentication.
 
-use std::collections::HashMap;
-
 use axum::{
-    extract::{Extension, Form, Path, Query, TypedHeader},
-    headers::Cookie,
+    extract::{Extension, Form, Path},
     http::{uri, Uri},
-    response::Redirect,
 };
 use email_address::EmailAddress;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use once_cell::sync::Lazy;
-use rusty_ulid::Ulid;
+
 use serde::Deserialize;
-use time::Duration;
 
 use super::{
     error::Error,
-    token::one_time::{OneTimeToken, OneTimeTokenAudience},
     user::{Role, User},
     SharedDatabase, SharedState,
 };
 
 /// Log in as a Google user.
 pub async fn login(
-    TypedHeader(cookie): TypedHeader<Cookie>,
     Form(id_token): Form<IdToken>,
     Path(role): Path<Role>,
-    Query(params): Query<HashMap<String, String>>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<Redirect, Error> {
-    // NOTE: Admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::Admin) {
-        return Err(Error::BadRequest);
-    }
-
-    let redirect_uri: Uri = match params.get("redirect_uri") {
-        Some(uri) => uri.parse().map_err(|_| Error::BadRequest)?,
-        None => return Err(Error::BadRequest),
-    };
-
-    id_token.check_crsf_token(cookie)?;
-
+) -> Result<String, Error> {
     let OauthKeyList { keys } = OauthKeyList::new()
         .await
         .map_err(|_| Error::GooglePublicKeys)?;
@@ -54,15 +34,12 @@ pub async fn login(
     let mut shared_state = shared_state.lock().await;
     if let Some(ulid) = database.user_id(&email, role).await? {
         if let Some((User { google: true, .. }, _)) = database.user(ulid, Some(role)).await? {
-            let one_time_token = shared_state
-                .open_one_time_session::<Google>(&database, ulid, role)
-                .await?;
+            let refresh_token = shared_state.open_session(&database, ulid, role).await?;
 
-            let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
-            Ok(Redirect::to(redirect_uri))
+            Ok(refresh_token)
         } else {
             // TODO: Implement linking with an existing account.
-            Err(Error::BadRequest)
+            Err(Error::Unauthorized)
         }
     } else {
         let user = User {
@@ -72,32 +49,10 @@ pub async fn login(
             outlook: false,
         };
         let ulid = database.create_user(user, role).await?;
-        let one_time_token = shared_state
-            .open_one_time_session::<Google>(&database, ulid, role)
-            .await?;
-        let redirect_uri = append_token_to_uri(redirect_uri, &one_time_token)?;
-        Ok(Redirect::to(redirect_uri))
+        let refresh_token = shared_state.open_session(&database, ulid, role).await?;
+
+        Ok(refresh_token)
     }
-}
-
-pub async fn get_refresh_token(
-    claims: OneTimeToken<Google>,
-    Extension(database): Extension<SharedDatabase>,
-    Extension(shared_state): Extension<SharedState>,
-) -> Result<String, Error> {
-    let ulid: Ulid = claims
-        .sub
-        .parse()
-        .map_err(|_| Error::Conversion("uuid parse error".into()))?;
-    let role: Role = claims
-        .role
-        .parse()
-        .map_err(|_| Error::Conversion("role parse error".into()))?;
-
-    let database = database.lock().await;
-    let mut shared_state = shared_state.lock().await;
-    let refresh_token = shared_state.open_session(&database, ulid, role).await?;
-    Ok(refresh_token)
 }
 
 fn append_token_to_uri(uri: Uri, token: &str) -> Result<Uri, Error> {
@@ -117,23 +72,12 @@ fn append_token_to_uri(uri: Uri, token: &str) -> Result<Uri, Error> {
 }
 
 /// Representation of Google's ID token.
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 pub struct IdToken {
     credential: String,
-    g_csrf_token: String,
 }
 
 impl IdToken {
-    /// Validate the CRSF token.
-    fn check_crsf_token(&self, cookie: Cookie) -> Result<(), Error> {
-        if let Some(crsf_token) = cookie.get("g_csrf_token") {
-            if crsf_token == self.g_csrf_token {
-                return Ok(());
-            }
-        }
-        Err(Error::Unauthorized)
-    }
-
     /// Decode and validate the token.
     fn decode(&self, keys: &[OuathKey; 2]) -> Result<Claims, Error> {
         let mut validation = Validation::new(Algorithm::RS256);
@@ -156,7 +100,7 @@ impl IdToken {
 }
 
 /// Claims for Google ID tokens.
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 struct Claims {
     email: String,
 }
@@ -185,25 +129,6 @@ impl OauthKeyList {
     }
 }
 
-pub struct Google;
-
-impl OneTimeTokenAudience for Google {
-    fn name() -> &'static str {
-        "google"
-    }
-
-    fn from_str(s: &str) -> Result<(), Error> {
-        match s {
-            "google" => Ok(()),
-            _ => Err(Error::Unauthorized),
-        }
-    }
-
-    fn lifetime() -> Duration {
-        Duration::seconds(60)
-    }
-}
-
 /// The Google app's client ID.
 static CLIENT_ID: Lazy<String> =
     Lazy::new(|| std::env::var("GOOGLE_CLIENT_ID").expect("GOOGLE_CLIENT_ID must be set"));
@@ -220,7 +145,7 @@ pub async fn login_page() -> axum::response::Response {
 #[cfg(debug_assertions)]
 // Use absolute namespace to silence errors about unused imports.
 pub async fn login_page() -> axum::response::Html<String> {
-    use crate::env::GLOBELISE_DOMAIN_URL;
+    use crate::env::LISTENING_ADDRESS;
 
     axum::response::Html(format!(
         r##"
@@ -234,7 +159,7 @@ pub async fn login_page() -> axum::response::Html<String> {
             <div
               id="g_id_onload"
               data-client_id="{}"
-              data-login_uri="{}/google/signup/client_individual"
+              data-login_uri="http://{}/google/login/client_individual"
               data-auto_prompt="false"
             ></div>
             <div
@@ -249,7 +174,7 @@ pub async fn login_page() -> axum::response::Html<String> {
           </body>
         </html>        
         "##,
-        (*GLOBELISE_DOMAIN_URL),
-        (*CLIENT_ID)
+        (*CLIENT_ID),
+        (*LISTENING_ADDRESS)
     ))
 }

@@ -1,7 +1,6 @@
 //! Endpoints for user authentication and authorization.
 
-use std::collections::HashMap;
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 use argon2::{self, hash_encoded, verify_encoded, Config};
 use axum::{
@@ -11,7 +10,7 @@ use axum::{
 };
 use email_address::EmailAddress;
 use jsonwebtoken::{decode, Algorithm, TokenData, Validation};
-use lettre::{Message as EmailBuilder, SmtpTransport, Transport};
+use lettre::{message::Message, SmtpTransport, Transport};
 use once_cell::sync::Lazy;
 use rand::Rng;
 use rusty_ulid::{DecodingError, Ulid};
@@ -21,13 +20,15 @@ use unicode_normalization::UnicodeNormalization;
 mod database;
 mod error;
 pub mod google;
+pub mod onboarding;
+pub mod password;
 mod state;
 mod token;
 mod user;
 
 pub use database::{Database, SharedDatabase};
 use error::{Error, RegistrationError};
-use token::{create_access_token, one_time::OneTimeTokenAudience, RefreshToken};
+use token::{create_access_token, RefreshToken};
 use user::{Role, User};
 
 pub use state::{SharedState, State};
@@ -37,7 +38,13 @@ use crate::{
     env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL},
 };
 
-use self::token::{change_password::ChangePasswordToken, lost_password::LostPasswordToken};
+use self::{
+    password::{ChangePasswordRequest, LostPasswordRequest},
+    token::{
+        change_password::ChangePasswordToken, lost_password::LostPasswordToken,
+        one_time::OneTimeTokenAudience,
+    },
+};
 
 /// Creates an account.
 pub async fn create_account(
@@ -54,22 +61,16 @@ pub async fn create_account(
     // Frontend validation can be bypassed, so perform basic validation
     // in the backend as well.
     let email = EmailAddress::from_str(&email);
-    // NOTE: Admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::Admin) {
-        return Err(Error::Unauthorized);
-    }
 
     let is_valid_email = email.is_ok();
-    let mut is_email_available = false;
     let is_password_at_least_8_chars = request.password.len() >= 8;
     let passwords_match = password == confirm_password;
 
     if is_valid_email {
         let database = database.lock().await;
         let email = email.unwrap();
-        is_email_available = database.user_id(&email, role).await?.is_none();
 
-        if is_email_available && is_password_at_least_8_chars && passwords_match {
+        if is_password_at_least_8_chars && passwords_match {
             let salt: [u8; 16] = rand::thread_rng().gen();
             let hash = hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG)
                 .map_err(|_| Error::Internal)?;
@@ -90,7 +91,6 @@ pub async fn create_account(
 
     Err(Error::Registration(RegistrationError {
         is_valid_email,
-        is_email_available,
         is_password_at_least_8_chars,
         passwords_match,
     }))
@@ -103,11 +103,11 @@ pub async fn login(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<String, Error> {
-    let email: EmailAddress = request.email.parse().map_err(|_| Error::BadRequest)?;
-    // NOTE: Admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::Admin) {
-        return Err(Error::Unauthorized);
-    }
+    // Credentials should be normalized for maximum compatibility.
+    let email: String = request.email.trim().nfc().collect();
+    let password: String = request.password.nfc().collect();
+
+    let email: EmailAddress = email.parse().map_err(|_| Error::BadRequest)?;
 
     // NOTE: A timing attack can detect registered emails.
     // Mitigating this is not strictly necessary, as attackers can still find out
@@ -122,7 +122,7 @@ pub async fn login(
             _,
         )) = database.user(ulid, Some(role)).await?
         {
-            if let Ok(true) = verify_encoded(&hash, request.password.as_bytes()) {
+            if let Ok(true) = verify_encoded(&hash, password.as_bytes()) {
                 let mut shared_state = shared_state.lock().await;
                 let refresh_token = shared_state.open_session(&database, ulid, role).await?;
                 return Ok(refresh_token);
@@ -158,7 +158,7 @@ pub async fn lost_password(
         .to_display("")
         .parse()
         .map_err(|_| Error::BadRequest)?;
-    let email = EmailBuilder::builder()
+    let email = Message::builder()
         .from(GLOBELISE_SENDER_EMAIL.clone())
         .reply_to(GLOBELISE_SENDER_EMAIL.clone())
         .to(receiver_email)
@@ -226,7 +226,7 @@ pub async fn change_password_redirect(
         .map_err(|e: DecodingError| Error::UnauthorizedVerbose(e.to_string()))?;
 
     // NOTE: Admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::Admin) {
+    if matches!(role, Role::EorAdmin) {
         return Err(Error::Unauthorized);
     }
 
@@ -284,7 +284,7 @@ pub async fn change_password(
         .map_err(|e: DecodingError| Error::UnauthorizedVerbose(e.to_string()))?;
 
     // NOTE: Admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::Admin) {
+    if matches!(role, Role::EorAdmin) {
         return Err(Error::Unauthorized);
     }
     if request.password != request.confirm_password {
@@ -359,22 +359,6 @@ pub struct CreateAccountRequest {
 pub struct LoginRequest {
     email: String,
     password: String,
-}
-
-/// Request for requesting password reset.
-#[derive(Debug, Deserialize)]
-pub struct LostPasswordRequest {
-    #[serde(rename(deserialize = "user_email"))]
-    email: String,
-}
-
-/// Request to change password.
-#[derive(Debug, Deserialize)]
-pub struct ChangePasswordRequest {
-    #[serde(rename(deserialize = "new_password"))]
-    password: String,
-    #[serde(rename(deserialize = "confirm_new_password"))]
-    confirm_password: String,
 }
 
 /// The parameters used for hashing.
