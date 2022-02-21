@@ -29,12 +29,15 @@ async fn main() {
         // ========== PUBLIC PAGES ==========
         .route("/signup/:role", post(auth::create_account))
         .route("/login/:role", post(auth::login))
-        .route("/lostpassword/:role", post(auth::lost_password))
+        .route("/lostpassword/:role", post(auth::password::lost_password))
         .route(
             "/changepasswordredirect/:role",
-            get(auth::change_password_redirect),
+            get(auth::password::change_password_redirect),
         )
-        .route("/changepassword/:role", post(auth::change_password))
+        .route(
+            "/changepassword/:role",
+            post(auth::password::change_password),
+        )
         .route("/google/login/:role", post(auth::google::login))
         .route("/auth/refresh", post(auth::renew_access_token))
         .route("/auth/keys", get(auth::public_key))
@@ -64,14 +67,6 @@ async fn main() {
         )
         // ========== DEBUG PAGES ==========
         .route("/google/loginpage", get(auth::google::login_page))
-        .route(
-            "/changepasswordpage/:role",
-            get(auth::password::change_password_page),
-        )
-        .route(
-            "/lostpasswordpage/:role",
-            get(auth::password::lost_password_page),
-        )
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
