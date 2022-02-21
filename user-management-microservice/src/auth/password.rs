@@ -1,14 +1,12 @@
-use std::collections::HashMap;
 use std::str::FromStr;
 
 use argon2::{self, hash_encoded};
 use axum::{
-    extract::{Extension, Form, Path, Query},
+    extract::{Extension, Form, Path},
     http::Uri,
     response::Redirect,
 };
 use email_address::EmailAddress;
-use jsonwebtoken::{decode, Algorithm, TokenData, Validation};
 use lettre::{Message, SmtpTransport, Transport};
 use rand::Rng;
 use rusty_ulid::{DecodingError, Ulid};
@@ -24,7 +22,6 @@ use super::{
     token::{
         lost_password::LostPasswordToken,
         one_time::{OneTimeToken, OneTimeTokenAudience},
-        ISSSUER, KEYS,
     },
     user::Role,
     SharedDatabase, SharedState, HASH_CONFIG,
@@ -101,22 +98,10 @@ pub async fn lost_password(
 // Respond to user clicking the reset password link in their email.
 pub async fn change_password_redirect(
     Path(role): Path<Role>,
-    Query(params): Query<HashMap<String, String>>,
+    claims: OneTimeToken<LostPasswordToken>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<Redirect, Error> {
-    // TODO: Reimplement using FromRequest which does the validation etc.
-    let token = params.get("token").ok_or(Error::BadRequest)?;
-
-    let mut validation = Validation::new(Algorithm::RS256);
-    validation.set_audience(&[LostPasswordToken::name()]);
-    validation.set_issuer(&[ISSSUER]);
-    validation.set_required_spec_claims(&["aud", "iss", "exp"]);
-    let validation = validation;
-
-    let TokenData { claims, .. } =
-        decode::<OneTimeToken<LostPasswordToken>>(token, &KEYS.decoding, &validation)
-            .map_err(|e| Error::UnauthorizedVerbose(e.to_string()))?;
     let ulid: Ulid = claims
         .sub
         .parse()
@@ -130,16 +115,6 @@ pub async fn change_password_redirect(
     // Make sure the user actually exists.
     let mut shared_state = shared_state.lock().await;
     let database = database.lock().await;
-
-    // Do not authorize if the token has already been used.
-    if !shared_state
-        .is_one_time_token_valid::<LostPasswordToken>(ulid, token.as_bytes())
-        .await?
-    {
-        return Err(Error::UnauthorizedVerbose(
-            "Invalid lost password token used".to_string(),
-        ));
-    }
 
     let change_password_token = shared_state
         .open_one_time_session::<ChangePasswordToken>(&database, ulid, role)
@@ -159,22 +134,10 @@ pub async fn change_password_redirect(
 pub async fn change_password(
     Form(request): Form<ChangePasswordRequest>,
     Path(role): Path<Role>,
-    Query(params): Query<HashMap<String, String>>,
+    claims: OneTimeToken<ChangePasswordToken>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<(), Error> {
-    // TODO: Reimplement using FromRequest which does the validation etc.
-    let token = params.get("token").ok_or(Error::BadRequest)?;
-
-    let mut validation = Validation::new(Algorithm::RS256);
-    validation.set_audience(&[ChangePasswordToken::name()]);
-    validation.set_issuer(&[ISSSUER]);
-    validation.set_required_spec_claims(&["aud", "iss", "exp"]);
-    let validation = validation;
-
-    let TokenData { claims, .. } =
-        decode::<OneTimeToken<ChangePasswordToken>>(token, &KEYS.decoding, &validation)
-            .map_err(|_| Error::Unauthorized)?;
     let ulid: Ulid = claims
         .sub
         .parse()
@@ -188,17 +151,7 @@ pub async fn change_password(
         return Err(Error::BadRequest);
     }
 
-    // Make sure the user actually exists.
-    let mut shared_state = shared_state.lock().await;
     let database = database.lock().await;
-
-    // Do not authorize if the token has already been used.
-    if !shared_state
-        .is_one_time_token_valid::<ChangePasswordToken>(ulid, token.as_bytes())
-        .await?
-    {
-        return Err(Error::Unauthorized);
-    }
 
     // NOTE: This is not atomic, so this check is quite pointless.
     // Either rely completely on SQL or use some kind of transaction commit.
