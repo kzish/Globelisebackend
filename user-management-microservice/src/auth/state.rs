@@ -143,6 +143,7 @@ impl State {
         {
             let mut matching_hash: Option<String> = None;
             sessions.clear_expired();
+
             for (hash, _) in sessions.iter() {
                 if let Ok(true) = verify_encoded(hash, token) {
                     matching_hash = Some(hash.clone());
@@ -152,11 +153,12 @@ impl State {
 
             if let Some(hash) = matching_hash {
                 sessions.sessions.remove(&hash);
+                self.serialize(&*category, &ulid.to_string(), sessions)
+                    .await?;
+                return Ok(true);
+            } else {
+                return Ok(false);
             }
-
-            self.serialize(&*category, &ulid.to_string(), sessions)
-                .await?;
-            return Ok(true);
         }
 
         Ok(false)
@@ -267,7 +269,7 @@ impl OneTimeSessions {
     /// Clears all expired sessions.
     fn clear_expired(&mut self) {
         self.sessions
-            .retain(|_, expiration| *expiration < OffsetDateTime::now_utc().unix_timestamp());
+            .retain(|_, expiration| *expiration > OffsetDateTime::now_utc().unix_timestamp());
     }
 
     /// Produces an iterator over the sessions.

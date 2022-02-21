@@ -19,6 +19,8 @@ use time::{Duration, OffsetDateTime};
 
 use super::{error::Error, user::Role, SharedDatabase, SharedState};
 
+pub mod change_password;
+pub mod lost_password;
 pub mod one_time;
 
 /// Creates an access token.
