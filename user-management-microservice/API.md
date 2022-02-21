@@ -1,12 +1,8 @@
 # API
 
-**Warning:** This document no longer reflects the current API. This document will be updated once
-all features have been implemented.
-
 **Note:** The API is still a work in progress. Feel free to make suggestions.
 
 Replace `<domain>` with the address that the server listens on.
-Currently, it listens on `localhost:3000`.
 
 `<role>` can be one of the following values: 
 ```
@@ -14,13 +10,11 @@ client_individual
 client_entity
 contractor_individual
 contractor_entity
+eor_admin
 ```
 
-There is also an `admin` value, but it has been disabled until there is a way to restrict access
-to those pages. Only Globelise admins should be able to access the admin pages, and only after
-they have been invited.
-
-For any error responses not listed here, assume that the response body is either plaintext or empty.
+For any error responses not listed here, the response body is not consistent.
+Assume that the body is either `text/plain` or nonexistent.
 
 [[_TOC_]]
 
@@ -35,7 +29,7 @@ For any error responses not listed here, assume that the response body is either
 
 **Request**
 
-`POST` these fields as `x-www-form-urlencoded`:
+`POST` these fields as `application/x-www-form-urlencoded`:
 ```
 email
 password
@@ -44,19 +38,23 @@ confirm_password
 
 **Response**
 
-Success: `text/plain`
+Success: `200 OK` - `text/plain`
 ```
 <refresh token>
 ```
 
-Unsuccessful sign up, but all fields are present in request: `application/json`
+All fields present in request, but fields are invalid: `400 Bad Request` - `application/json`
 ```json
 {
     "is_valid_email": <boolean>,
-    "is_email_available": <boolean>,
     "is_password_at_least_8_chars": <boolean>,
     "passwords_match": <boolean>
 }
+```
+
+Email is unavailable: `422 Unprocessable Entity` - `text/plain`
+```
+Email is unavailable
 ```
 
 ### Email login
@@ -68,7 +66,7 @@ Unsuccessful sign up, but all fields are present in request: `application/json`
 
 **Request**
 
-`POST` these fields as `x-www-form-urlencoded`:
+`POST` these fields as `application/x-www-form-urlencoded`:
 ```
 email
 password
@@ -76,42 +74,35 @@ password
 
 **Response**
 
-Success: `text/plain`
+Success: `200 OK` - `text/plain`
 ```
 <refresh token>
 ```
 
 ### Google
 
-#### Display the sign in with Google button
+#### Getting the ID token
 See Google's [guide](https://developers.google.com/identity/gsi/web/guides/display-button)
-for displaying the Google sign in button.
+for displaying the Google sign in button. Tell Google to send the ID token to your JavaScript
+handler.
 
-When rendering the button using:
-- HTML - set `data-login_uri` to `<domain>/google/login/<role>?=<callback uri>`
-- JavaScript - set `login_uri` to `<domain>/google/login/<role>?=<callback uri>`
-
-#### Handling the response
-After validating the ID token from Google, the server will redirect the user to:
-```
-<callback uri>?token=<one time token>
-```
-where `<callback uri>` is a URI of your choosing. The one-time token will be sent as a
-query parameter using the key `token`. To get a refresh token:
-
+#### Sending the ID token
 **Endpoint**
 
 ```
-<domain>/google/authorize
+<domain>/google/login/<role>
 ```
 
 **Request**
 
-`POST` the one-time token using the Bearer authentication scheme.
+`POST` Google's ID token as `application/x-www-form-urlencoded`:
+```
+credentials
+```
 
 **Response**
 
-Success: `text/plain`
+Success: `200 OK` - `text/plain`
 ```
 <refresh token>
 ```
@@ -129,7 +120,7 @@ Success: `text/plain`
 
 **Response**
 
-Success: `text/plain`
+Success: `200 OK` - `text/plain`
 ```
 <access token>
 ```
@@ -147,7 +138,41 @@ Success: `text/plain`
 
 **Response**
 
-Success: `text/plain`
+Success: `200 OK` - `text/plain`
 ```
 <public key>
 ```
+
+## Onboarding
+**Endpoints**
+
+Prefix all endpoints with `<domain>/onboarding/`.
+
+| Endpoints              | Content Type                         | Prototype contains errors? |
+|------------------------|--------------------------------------|----------------------------|
+| `individual_details`   | `multipart/form-data`                |  **Yes**[^1]               |
+| `entity_details`       | `multipart/form-data`                |  No                        |
+| `pic_details`          | `multipart/form-data`                |  No                        |
+| `eor_details`          | `multipart/form-data`                |  No                        |
+| `bank_details`         | `application/x-www-form-urlencoded`  |  **Yes**[^2]               |
+| `eor_bank_details`     | `application/x-www-form-urlencoded`  |  **Yes**[^2]               |
+
+[^1]: The account details for individual contractors are wrong. They should match the form
+for individual clients (see Asana ticket).
+[^2]: The EOR forms contain errors, but we need confirmation for what the correct fields
+should be (there is no Asana ticket). For now, the API mirrors the prototype fields
+(except for the profile picture, which is optional).
+
+**Request**
+
+`POST` the form data as the appropriate content type. Put the access token in the
+`Authorization` header using the Bearer authentication scheme.
+
+**Response**
+
+Success: `200 OK`
+
+## Password reset
+Work in progress.
+
+## Notes
