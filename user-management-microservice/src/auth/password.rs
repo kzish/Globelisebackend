@@ -9,9 +9,8 @@ use axum::{
 use email_address::EmailAddress;
 use lettre::{Message, SmtpTransport, Transport};
 use rand::Rng;
-use rusty_ulid::{DecodingError, Ulid};
+use rusty_ulid::Ulid;
 use serde::Deserialize;
-use time::Duration;
 
 use crate::env::{
     GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
@@ -20,9 +19,8 @@ use crate::env::{
 use super::{
     error::Error,
     token::{
-        change_password::ChangePasswordToken,
-        lost_password::LostPasswordToken,
-        one_time::{OneTimeToken, OneTimeTokenAudience},
+        change_password::ChangePasswordToken, lost_password::LostPasswordToken,
+        one_time::OneTimeToken,
     },
     user::Role,
     SharedDatabase, SharedState, HASH_CONFIG,

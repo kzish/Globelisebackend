@@ -2,7 +2,6 @@
 
 use axum::{
     extract::{Extension, Form, Path},
-    http::{uri, Uri},
 };
 use email_address::EmailAddress;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
