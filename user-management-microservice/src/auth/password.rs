@@ -20,6 +20,7 @@ use crate::env::{
 use super::{
     error::Error,
     token::{
+        change_password::ChangePasswordToken,
         lost_password::LostPasswordToken,
         one_time::{OneTimeToken, OneTimeTokenAudience},
     },
@@ -107,11 +108,6 @@ pub async fn change_password_redirect(
         .parse()
         .map_err(|e: DecodingError| Error::UnauthorizedVerbose(e.to_string()))?;
 
-    // NOTE: Admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::EorAdmin) {
-        return Err(Error::Unauthorized);
-    }
-
     // Make sure the user actually exists.
     let mut shared_state = shared_state.lock().await;
     let database = database.lock().await;
@@ -136,7 +132,6 @@ pub async fn change_password(
     Path(role): Path<Role>,
     claims: OneTimeToken<ChangePasswordToken>,
     Extension(database): Extension<SharedDatabase>,
-    Extension(shared_state): Extension<SharedState>,
 ) -> Result<(), Error> {
     let ulid: Ulid = claims
         .sub
@@ -155,17 +150,13 @@ pub async fn change_password(
 
     // NOTE: This is not atomic, so this check is quite pointless.
     // Either rely completely on SQL or use some kind of transaction commit.
-    if database.user(ulid, Some(role)).await?.is_some() {
-        let salt: [u8; 16] = rand::thread_rng().gen();
-        let hash = hash_encoded(request.password.as_bytes(), &salt, &HASH_CONFIG)
-            .map_err(|_| Error::Internal)?;
+    let salt: [u8; 16] = rand::thread_rng().gen();
+    let hash = hash_encoded(request.password.as_bytes(), &salt, &HASH_CONFIG)
+        .map_err(|_| Error::Internal)?;
 
-        database.update_password(ulid, role, Some(hash)).await?;
+    database.update_password(ulid, role, Some(hash)).await?;
 
-        Ok(())
-    } else {
-        Err(Error::BadRequest)
-    }
+    Ok(())
 }
 
 /// Request for requesting password reset.
@@ -182,24 +173,4 @@ pub struct ChangePasswordRequest {
     pub password: String,
     #[serde(rename(deserialize = "confirm_new_password"))]
     pub confirm_password: String,
-}
-
-#[derive(Debug)]
-pub struct ChangePasswordToken;
-
-impl OneTimeTokenAudience for ChangePasswordToken {
-    fn name() -> &'static str {
-        "change_password"
-    }
-
-    fn from_str(s: &str) -> Result<(), Error> {
-        match s {
-            "change_password" => Ok(()),
-            _ => Err(Error::Unauthorized),
-        }
-    }
-
-    fn lifetime() -> Duration {
-        Duration::minutes(60)
-    }
 }
