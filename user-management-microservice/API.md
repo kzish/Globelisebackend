@@ -13,8 +13,7 @@ contractor_entity
 eor_admin
 ```
 
-For any error responses not listed here, the response body is not consistent.
-Assume that the body is either `text/plain` or nonexistent.
+For any error responses not listed here, assume that the body is either `text/plain` or nonexistent.
 
 [[_TOC_]]
 
@@ -41,15 +40,6 @@ confirm_password
 Success: `200 OK` - `text/plain`
 ```
 <refresh token>
-```
-
-All fields present in request, but fields are invalid: `400 Bad Request` - `application/json`
-```json
-{
-    "is_valid_email": <boolean>,
-    "is_password_at_least_8_chars": <boolean>,
-    "passwords_match": <boolean>
-}
 ```
 
 Email is unavailable: `422 Unprocessable Entity` - `text/plain`
