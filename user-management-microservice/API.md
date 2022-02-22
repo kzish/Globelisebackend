@@ -294,15 +294,6 @@ Success: `200 OK`
 
 The submitted email address should receive an email with a link to reset their password.
 
-**Request as CURL**
-
-```shell
-curl --request POST \
-  --url <domain>/lostpassword/<role> \
-  --header 'Content-Type: application/x-www-form-urlencoded' \
-  --data user_email=<example@email.com>
-```
-
 ## Accessing the password reset page
 
 **Endpoint**
@@ -329,13 +320,6 @@ Redirects user to the frontend password reset page with a new one-time token in 
 <password reset page>?token=<token>
 ```
 
-**Request as CURL**
-
-```shell
- curl --request GET \
-  --url '<domain>/changepasswordredirect?token=<token>'
-```
-
 ## Executing the password reset
 
 **Endpoint**
@@ -359,14 +343,3 @@ confirm_new_password
 **Response**
 
 Success: `200 OK`
-
-**Request as CURL**
-
-```shell
-curl --request POST \
-  --url <token>/changepassword \
-  --header 'Authorization: Bearer <token>' \
-  --header 'Content-Type: application/x-www-form-urlencoded' \
-  --data new_password=<new_password> \
-  --data confirm_new_password=<confirm_new_password>
-```
