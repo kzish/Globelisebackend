@@ -40,7 +40,9 @@ impl Database {
     /// Creates and stores a new user.
     pub async fn create_user(&self, user: User, role: Role) -> Result<Ulid, Error> {
         if !user.has_authentication() {
-            return Err(Error::BadRequest);
+            return Err(Error::Unauthorized(
+                "Refused to create user: no authentication method provided",
+            ));
         }
 
         // Avoid overwriting an existing user.
@@ -119,10 +121,9 @@ impl Database {
             if let Some(user) = user {
                 return Ok(Some((
                     User {
-                        email: user
-                            .get::<String, _>("email")
-                            .parse()
-                            .map_err(|_| Error::Conversion("email parse error".into()))?,
+                        email: user.get::<String, _>("email").parse().map_err(|_| {
+                            Error::Internal("Invalid email address from database".into())
+                        })?,
                         password_hash: user.get("password"),
                         google: user.get("is_google"),
                         outlook: user.get("is_outlook"),
@@ -186,10 +187,10 @@ impl Database {
         details: IndividualDetails,
     ) -> Result<(), Error> {
         if !matches!(role, Role::ClientIndividual | Role::ContractorIndividual) {
-            return Err(Error::UnprocessableEntity);
+            return Err(Error::Forbidden);
         }
         if self.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::UnprocessableEntity);
+            return Err(Error::Forbidden);
         }
 
         sqlx::query(&format!(
@@ -227,10 +228,10 @@ impl Database {
         details: EntityDetails,
     ) -> Result<(), Error> {
         if !matches!(role, Role::ClientEntity | Role::ContractorEntity) {
-            return Err(Error::UnprocessableEntity);
+            return Err(Error::Forbidden);
         }
         if self.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::UnprocessableEntity);
+            return Err(Error::Forbidden);
         }
 
         sqlx::query(&format!(
@@ -266,10 +267,10 @@ impl Database {
         details: PicDetails,
     ) -> Result<(), Error> {
         if !matches!(role, Role::ClientEntity | Role::ContractorEntity) {
-            return Err(Error::UnprocessableEntity);
+            return Err(Error::Forbidden);
         }
         if self.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::UnprocessableEntity);
+            return Err(Error::Forbidden);
         }
 
         sqlx::query(&format!(
@@ -300,10 +301,10 @@ impl Database {
         details: EorDetails,
     ) -> Result<(), Error> {
         if !matches!(role, Role::EorAdmin) {
-            return Err(Error::UnprocessableEntity);
+            return Err(Error::Forbidden);
         }
         if self.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::UnprocessableEntity);
+            return Err(Error::Forbidden);
         }
 
         sqlx::query(&format!(
@@ -336,10 +337,10 @@ impl Database {
         details: BankDetails,
     ) -> Result<(), Error> {
         if !matches!(role, Role::ContractorIndividual | Role::ContractorEntity) {
-            return Err(Error::UnprocessableEntity);
+            return Err(Error::Forbidden);
         }
         if self.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::UnprocessableEntity);
+            return Err(Error::Forbidden);
         }
 
         sqlx::query(&format!(
@@ -366,10 +367,10 @@ impl Database {
         details: EorBankDetails,
     ) -> Result<(), Error> {
         if !matches!(role, Role::EorAdmin) {
-            return Err(Error::UnprocessableEntity);
+            return Err(Error::Forbidden);
         }
         if self.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::UnprocessableEntity);
+            return Err(Error::Forbidden);
         }
 
         sqlx::query(&format!(

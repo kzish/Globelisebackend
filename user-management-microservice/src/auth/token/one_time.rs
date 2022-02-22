@@ -20,7 +20,11 @@ where
 {
     let expiration = match OffsetDateTime::now_utc().checked_add(T::lifetime()) {
         Some(datetime) => datetime.unix_timestamp(),
-        None => return Err(Error::Internal),
+        None => {
+            return Err(Error::Internal(
+                "Could not calculate one-time token expiration timestamp".into(),
+            ))
+        }
     };
 
     let claims = OneTimeToken::<T> {
@@ -34,7 +38,7 @@ where
 
     Ok((
         encode(&Header::new(Algorithm::RS256), &claims, &KEYS.encoding)
-            .map_err(|_| Error::Internal)?,
+            .map_err(|_| Error::Internal("Failed to encode one-time token".into()))?,
         expiration,
     ))
 }
@@ -66,7 +70,7 @@ where
 
         let TokenData { claims, .. } =
             decode::<OneTimeToken<T>>(input, &KEYS.decoding, &validation)
-                .map_err(|_| Error::Unauthorized)?;
+                .map_err(|_| Error::Unauthorized("Failed to decode one-time token"))?;
         Ok(claims)
     }
 }
@@ -82,24 +86,34 @@ where
     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
         let Query(params) = Query::<HashMap<String, String>>::from_request(req)
             .await
-            .map_err(|_| Error::BadRequest)?;
+            .map_err(|_| Error::Unauthorized("No one-time token provided"))?;
         let Extension(database) = Extension::<SharedDatabase>::from_request(req)
             .await
-            .map_err(|_| Error::Internal)?;
+            .map_err(|_| Error::Internal("Could not extract database from request".into()))?;
         let Extension(shared_state) = Extension::<SharedState>::from_request(req)
             .await
-            .map_err(|_| Error::Internal)?;
+            .map_err(|_| Error::Internal("Could not extract state store from request".into()))?;
 
-        let token = params.get("token").ok_or(Error::BadRequest)?;
+        let token = params
+            .get("token")
+            .ok_or(Error::Unauthorized("No one-time token provided"))?;
 
         let claims = OneTimeToken::<T>::decode(token)?;
-        let ulid: Ulid = claims.sub.parse().map_err(|_| Error::Unauthorized)?;
-        let role: Role = claims.role.parse().map_err(|_| Error::Unauthorized)?;
+        let ulid: Ulid = claims
+            .sub
+            .parse()
+            .map_err(|_| Error::Unauthorized("One-time token rejected: invalid ulid"))?;
+        let role: Role = claims
+            .role
+            .parse()
+            .map_err(|_| Error::Unauthorized("One-time token rejected: invalid role"))?;
 
         // Make sure the user actually exists.
         let database = database.lock().await;
         if database.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::Unauthorized);
+            return Err(Error::Unauthorized(
+                "One-time token rejected: user does not exist",
+            ));
         }
 
         // Do not authorize if the token has already been used.
@@ -110,7 +124,9 @@ where
         {
             Ok(claims)
         } else {
-            Err(Error::Unauthorized)
+            Err(Error::Unauthorized(
+                "One-time token rejected: invalid session",
+            ))
         }
     }
 }

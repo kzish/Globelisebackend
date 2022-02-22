@@ -36,7 +36,7 @@ pub async fn account_details(
                 &text_fields.remove(&IndividualDetailNames::Dob).unwrap(),
                 "%F",
             )
-            .map_err(|_| Error::BadRequest)?
+            .map_err(|_| Error::BadRequest("Date must use YYYY-MM-DD format"))?
         },
         dial_code: text_fields
             .remove(&IndividualDetailNames::DialCode)

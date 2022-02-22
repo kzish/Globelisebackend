@@ -9,9 +9,8 @@ use axum::{
 use email_address::EmailAddress;
 use lettre::{Message, SmtpTransport, Transport};
 use rand::Rng;
-use rusty_ulid::{DecodingError, Ulid};
+use rusty_ulid::Ulid;
 use serde::Deserialize;
-use time::Duration;
 
 use crate::env::{
     GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
@@ -20,9 +19,8 @@ use crate::env::{
 use super::{
     error::Error,
     token::{
-        change_password::ChangePasswordToken,
-        lost_password::LostPasswordToken,
-        one_time::{OneTimeToken, OneTimeTokenAudience},
+        change_password::ChangePasswordToken, lost_password::LostPasswordToken,
+        one_time::OneTimeToken,
     },
     user::Role,
     SharedDatabase, SharedState, HASH_CONFIG,
@@ -35,13 +33,17 @@ pub async fn lost_password(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<(), Error> {
-    let email_address: EmailAddress = request.email.parse().map_err(|_| Error::BadRequest)?;
+    let email_address: EmailAddress = request
+        .email
+        .parse()
+        .map_err(|_| Error::BadRequest("Bad request"))?;
 
+    // TODO: Do not reveal correct email and role.
     let database = database.lock().await;
     let user_ulid = database
         .user_id(&email_address, role)
         .await?
-        .ok_or(Error::BadRequest)?;
+        .ok_or(Error::BadRequest("Bad request"))?;
 
     let mut shared_state = shared_state.lock().await;
     let access_token = shared_state
@@ -52,7 +54,7 @@ pub async fn lost_password(
         // TODO: Get the name of the person associated to this email address
         .to_display("")
         .parse()
-        .map_err(|_| Error::BadRequest)?;
+        .map_err(|_| Error::BadRequest("Bad request"))?;
     let email = Message::builder()
         .from(GLOBELISE_SENDER_EMAIL.clone())
         .reply_to(GLOBELISE_SENDER_EMAIL.clone())
@@ -80,18 +82,18 @@ pub async fn lost_password(
             role,
             access_token
         ))
-        .map_err(|_| Error::Internal)?;
+        .map_err(|_| Error::Internal("Could not create email for changing password".into()))?;
 
     // Open a remote connection to gmail
     let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)
-        .map_err(|_| Error::Internal)?
+        .map_err(|_| Error::Internal("Could not connect to SMTP server".into()))?
         .credentials(SMTP_CREDENTIAL.clone())
         .build();
 
     // Send the email
     mailer
         .send(&email)
-        .map_err(|e| Error::InternalVerbose(e.to_string()))?;
+        .map_err(|e| Error::Internal(e.to_string()))?;
 
     Ok(())
 }
@@ -103,10 +105,7 @@ pub async fn change_password_redirect(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<Redirect, Error> {
-    let ulid: Ulid = claims
-        .sub
-        .parse()
-        .map_err(|e: DecodingError| Error::UnauthorizedVerbose(e.to_string()))?;
+    let ulid: Ulid = claims.sub.parse().unwrap();
 
     // Make sure the user actually exists.
     let mut shared_state = shared_state.lock().await;
@@ -133,17 +132,10 @@ pub async fn change_password(
     claims: OneTimeToken<ChangePasswordToken>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
-    let ulid: Ulid = claims
-        .sub
-        .parse()
-        .map_err(|e: DecodingError| Error::UnauthorizedVerbose(e.to_string()))?;
+    let ulid: Ulid = claims.sub.parse().unwrap();
 
-    // NOTE: Admin sign up disabled until we figure out how to restrict access.
-    if matches!(role, Role::EorAdmin) {
-        return Err(Error::Unauthorized);
-    }
     if request.password != request.confirm_password {
-        return Err(Error::BadRequest);
+        return Err(Error::BadRequest("Bad request"));
     }
 
     let database = database.lock().await;
@@ -152,7 +144,7 @@ pub async fn change_password(
     // Either rely completely on SQL or use some kind of transaction commit.
     let salt: [u8; 16] = rand::thread_rng().gen();
     let hash = hash_encoded(request.password.as_bytes(), &salt, &HASH_CONFIG)
-        .map_err(|_| Error::Internal)?;
+        .map_err(|_| Error::Internal("Failed to hash password".into()))?;
 
     database.update_password(ulid, role, Some(hash)).await?;
 

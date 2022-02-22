@@ -1,7 +1,5 @@
 //! Endpoints for user authentication and authorization.
 
-use std::str::FromStr;
-
 use argon2::{self, hash_encoded, verify_encoded, Config};
 use axum::extract::{Extension, Form, Path};
 use email_address::EmailAddress;
@@ -21,7 +19,7 @@ mod token;
 mod user;
 
 pub use database::{Database, SharedDatabase};
-use error::{Error, RegistrationError};
+use error::Error;
 use token::{create_access_token, RefreshToken};
 use user::{Role, User};
 
@@ -41,40 +39,34 @@ pub async fn create_account(
 
     // Frontend validation can be bypassed, so perform basic validation
     // in the backend as well.
-    let email = EmailAddress::from_str(&email);
-
-    let is_valid_email = email.is_ok();
-    let is_password_at_least_8_chars = request.password.len() >= 8;
-    let passwords_match = password == confirm_password;
-
-    if is_valid_email {
-        let database = database.lock().await;
-        let email = email.unwrap();
-
-        if is_password_at_least_8_chars && passwords_match {
-            let salt: [u8; 16] = rand::thread_rng().gen();
-            let hash = hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG)
-                .map_err(|_| Error::Internal)?;
-
-            let user = User {
-                email,
-                password_hash: Some(hash),
-                google: false,
-                outlook: false,
-            };
-            let ulid = database.create_user(user, role).await?;
-
-            let mut shared_state = shared_state.lock().await;
-            let refresh_token = shared_state.open_session(&database, ulid, role).await?;
-            return Ok(refresh_token);
-        }
+    let email: EmailAddress = email
+        .parse()
+        .map_err(|_| Error::BadRequest("Not a valid email address"))?;
+    if password.len() < 8 {
+        return Err(Error::BadRequest(
+            "Password must be at least 8 characters long",
+        ));
+    }
+    if password != confirm_password {
+        return Err(Error::BadRequest("Passwords do not match"));
     }
 
-    Err(Error::Registration(RegistrationError {
-        is_valid_email,
-        is_password_at_least_8_chars,
-        passwords_match,
-    }))
+    let salt: [u8; 16] = rand::thread_rng().gen();
+    let hash = hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG)
+        .map_err(|_| Error::Internal("Failed to hash password".into()))?;
+
+    let user = User {
+        email,
+        password_hash: Some(hash),
+        google: false,
+        outlook: false,
+    };
+    let database = database.lock().await;
+    let ulid = database.create_user(user, role).await?;
+
+    let mut shared_state = shared_state.lock().await;
+    let refresh_token = shared_state.open_session(&database, ulid, role).await?;
+    Ok(refresh_token)
 }
 
 /// Logs a user in.
@@ -88,7 +80,9 @@ pub async fn login(
     let email: String = request.email.trim().nfc().collect();
     let password: String = request.password.nfc().collect();
 
-    let email: EmailAddress = email.parse().map_err(|_| Error::BadRequest)?;
+    let email: EmailAddress = email
+        .parse()
+        .map_err(|_| Error::BadRequest("Not a valid email address"))?;
 
     // NOTE: A timing attack can detect registered emails.
     // Mitigating this is not strictly necessary, as attackers can still find out
@@ -111,7 +105,7 @@ pub async fn login(
         }
     }
 
-    Err(Error::Unauthorized)
+    Err(Error::Unauthorized("Email login failed"))
 }
 
 /// Gets a new access token.
@@ -119,21 +113,15 @@ pub async fn renew_access_token(
     claims: RefreshToken,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<String, Error> {
-    let ulid: Ulid = claims
-        .sub
-        .parse()
-        .map_err(|_| Error::Conversion("uuid parse error".into()))?;
-    let role: Role = claims
-        .role
-        .parse()
-        .map_err(|_| Error::Conversion("role parse error".into()))?;
+    let ulid: Ulid = claims.sub.parse().unwrap();
+    let role: Role = claims.role.parse().unwrap();
 
     let database = database.lock().await;
     if let Some((User { email, .. }, _)) = database.user(ulid, Some(role)).await? {
         let access_token = create_access_token(ulid, email, role)?;
         Ok(access_token)
     } else {
-        Err(Error::Unauthorized)
+        Err(Error::Unauthorized("Invalid refresh token"))
     }
 }
 

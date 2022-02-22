@@ -27,7 +27,11 @@ pub mod one_time;
 pub fn create_access_token(ulid: Ulid, email: EmailAddress, role: Role) -> Result<String, Error> {
     let expiration = match OffsetDateTime::now_utc().checked_add(ACCESS_LIFETIME) {
         Some(datetime) => datetime.unix_timestamp(),
-        None => return Err(Error::Internal),
+        None => {
+            return Err(Error::Internal(
+                "Could not calculate access token expiration timestamp".into(),
+            ))
+        }
     };
 
     let claims = AccessToken {
@@ -37,14 +41,19 @@ pub fn create_access_token(ulid: Ulid, email: EmailAddress, role: Role) -> Resul
         iss: ISSSUER.into(),
         exp: expiration as usize,
     };
-    encode(&Header::new(Algorithm::RS256), &claims, &KEYS.encoding).map_err(|_| Error::Internal)
+    encode(&Header::new(Algorithm::RS256), &claims, &KEYS.encoding)
+        .map_err(|_| Error::Internal("Failed to encode access token".into()))
 }
 
 /// Creates a refresh token.
 pub fn create_refresh_token(ulid: Ulid, role: Role) -> Result<(String, i64), Error> {
     let expiration = match OffsetDateTime::now_utc().checked_add(REFRESH_LIFETIME) {
         Some(datetime) => datetime.unix_timestamp(),
-        None => return Err(Error::Internal),
+        None => {
+            return Err(Error::Internal(
+                "Could not calculate refresh token expiration timestamp".into(),
+            ))
+        }
     };
 
     let claims = RefreshToken {
@@ -57,7 +66,7 @@ pub fn create_refresh_token(ulid: Ulid, role: Role) -> Result<(String, i64), Err
 
     Ok((
         encode(&Header::new(Algorithm::RS256), &claims, &KEYS.encoding)
-            .map_err(|_| Error::Internal)?,
+            .map_err(|_| Error::Internal("Failed to encode refresh token".into()))?,
         expiration,
     ))
 }
@@ -80,7 +89,7 @@ impl AccessToken {
         let validation = validation;
 
         let TokenData { claims, .. } = decode::<AccessToken>(input, &KEYS.decoding, &validation)
-            .map_err(|_| Error::Unauthorized)?;
+            .map_err(|_| Error::Unauthorized("Failed to decode access token"))?;
         Ok(claims)
     }
 }
@@ -96,18 +105,26 @@ where
         let TypedHeader(Authorization(bearer)) =
             TypedHeader::<Authorization<Bearer>>::from_request(req)
                 .await
-                .map_err(|_| Error::Unauthorized)?;
+                .map_err(|_| Error::Unauthorized("No access token provided"))?;
         let Extension(database) = Extension::<SharedDatabase>::from_request(req)
             .await
-            .map_err(|_| Error::Internal)?;
+            .map_err(|_| Error::Internal("Could not extract database from request".into()))?;
         let claims = AccessToken::decode(bearer.token())?;
-        let ulid: Ulid = claims.sub.parse().map_err(|_| Error::Unauthorized)?;
-        let role: Role = claims.role.parse().map_err(|_| Error::Unauthorized)?;
+        let ulid: Ulid = claims
+            .sub
+            .parse()
+            .map_err(|_| Error::Unauthorized("Access token rejected: invalid ulid"))?;
+        let role: Role = claims
+            .role
+            .parse()
+            .map_err(|_| Error::Unauthorized("Access token rejected: invalid role"))?;
 
         // Make sure the user actually exists.
         let database = database.lock().await;
         if database.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::Unauthorized);
+            return Err(Error::Unauthorized(
+                "Access token rejected: user does not exist",
+            ));
         }
 
         Ok(claims)
@@ -132,8 +149,9 @@ impl RefreshToken {
         validation.set_required_spec_claims(&["aud", "iss", "exp"]);
         let validation = validation;
 
-        let TokenData { claims, .. } = decode::<RefreshToken>(input, &KEYS.decoding, &validation)
-            .map_err(|_| Error::Unauthorized)?;
+        let TokenData { claims, .. } =
+            decode::<RefreshToken>(input, &KEYS.decoding, &validation)
+                .map_err(|_| Error::Unauthorized("Failed to decode refresh token"))?;
         Ok(claims)
     }
 }
@@ -149,21 +167,29 @@ where
         let TypedHeader(Authorization(bearer)) =
             TypedHeader::<Authorization<Bearer>>::from_request(req)
                 .await
-                .map_err(|_| Error::Unauthorized)?;
+                .map_err(|_| Error::Unauthorized("No refresh token provided"))?;
         let Extension(database) = Extension::<SharedDatabase>::from_request(req)
             .await
-            .map_err(|_| Error::Internal)?;
+            .map_err(|_| Error::Internal("Could not extract database from request".into()))?;
         let Extension(shared_state) = Extension::<SharedState>::from_request(req)
             .await
-            .map_err(|_| Error::Internal)?;
+            .map_err(|_| Error::Internal("Could not extract state store from request".into()))?;
         let claims = RefreshToken::decode(bearer.token())?;
-        let ulid: Ulid = claims.sub.parse().map_err(|_| Error::Unauthorized)?;
-        let role: Role = claims.role.parse().map_err(|_| Error::Unauthorized)?;
+        let ulid: Ulid = claims
+            .sub
+            .parse()
+            .map_err(|_| Error::Unauthorized("Refresh token rejected: invalid ulid"))?;
+        let role: Role = claims
+            .role
+            .parse()
+            .map_err(|_| Error::Unauthorized("Refresh token rejected: invalid role"))?;
 
         // Make sure the user actually exists.
         let database = database.lock().await;
         if database.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::Unauthorized);
+            return Err(Error::Unauthorized(
+                "Refresh token rejected: user does not exist",
+            ));
         }
 
         // Do not authorize if the server has revoked the session,
@@ -183,7 +209,9 @@ where
         if is_session_valid {
             Ok(claims)
         } else {
-            Err(Error::Unauthorized)
+            Err(Error::Unauthorized(
+                "Refresh token rejected: invalid session",
+            ))
         }
     }
 }

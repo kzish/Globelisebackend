@@ -29,7 +29,7 @@ pub async fn account_details(
         last_name: text_fields.remove(&EorDetailNames::LastName).unwrap(),
         dob: {
             sqlx::types::time::Date::parse(&text_fields.remove(&EorDetailNames::Dob).unwrap(), "%F")
-                .map_err(|_| Error::BadRequest)?
+                .map_err(|_| Error::BadRequest("Date must use YYYY-MM-DD format"))?
         },
         dial_code: text_fields.remove(&EorDetailNames::DialCode).unwrap(),
         phone_number: text_fields.remove(&EorDetailNames::PhoneNumber).unwrap(),

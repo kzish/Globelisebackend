@@ -24,20 +24,23 @@ where
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_err(|_| Error::BadRequest)?
+        .map_err(|_| Error::BadRequest("Bad request"))?
     {
-        let name = field.name().ok_or(Error::BadRequest)?;
-        let name: T = name.parse().map_err(|_| Error::BadRequest)?;
+        let name = field.name().ok_or(Error::BadRequest("Bad request"))?;
+        let name: T = name.parse().map_err(|_| Error::BadRequest("Bad request"))?;
 
         if name.is_image() {
             let data = validate_image_field(field).await?;
             if text_fields.contains_key(&name) || byte_fields.insert(name, data).is_some() {
-                return Err(Error::BadRequest);
+                return Err(Error::BadRequest("Bad request"));
             }
         } else {
-            let data = field.text().await.map_err(|_| Error::BadRequest)?;
+            let data = field
+                .text()
+                .await
+                .map_err(|_| Error::BadRequest("Bad request"))?;
             if byte_fields.contains_key(&name) || text_fields.insert(name, data).is_some() {
-                return Err(Error::BadRequest);
+                return Err(Error::BadRequest("Bad request"));
             }
         }
     }
@@ -49,7 +52,7 @@ where
         .collect();
     for field in T::iter().filter(|f| f.is_required()) {
         if !fields_found.contains(&field) {
-            return Err(Error::BadRequest);
+            return Err(Error::BadRequest("Bad request"));
         }
     }
 
@@ -57,55 +60,64 @@ where
 }
 
 pub async fn validate_image_field(field: Field<'_>) -> Result<Bytes, Error> {
-    let filename = field.file_name().ok_or(Error::BadRequest)?;
+    let filename = field.file_name().ok_or(Error::BadRequest("Bad request"))?;
     let mut file_extension = std::path::Path::new(filename)
         .extension()
-        .ok_or(Error::UnsupportedMediaType)?
+        .ok_or(Error::UnsupportedImageFormat)?
         .to_owned();
     file_extension.make_ascii_lowercase();
     let file_extension = file_extension;
     if !(file_extension == "png" || file_extension == "jpeg" || file_extension == "jpg") {
-        return Err(Error::UnsupportedMediaType);
+        return Err(Error::UnsupportedImageFormat);
     }
 
-    let content_type = field.content_type().ok_or(Error::BadRequest)?.to_owned();
+    let content_type = field
+        .content_type()
+        .ok_or(Error::BadRequest("Bad request"))?
+        .to_owned();
     match (content_type.type_(), content_type.subtype()) {
         (mime::IMAGE, mime::PNG) => {
             if file_extension != "png" {
-                return Err(Error::UnsupportedMediaType);
+                return Err(Error::UnsupportedImageFormat);
             }
         }
         (mime::IMAGE, mime::JPEG) => {
             if !(file_extension == "jpeg" || file_extension == "jpg") {
-                return Err(Error::UnsupportedMediaType);
+                return Err(Error::UnsupportedImageFormat);
             }
         }
-        _ => return Err(Error::UnsupportedMediaType),
+        _ => return Err(Error::UnsupportedImageFormat),
     }
 
-    let data = field.bytes().await.map_err(|_| Error::BadRequest)?;
+    let data = field
+        .bytes()
+        .await
+        .map_err(|_| Error::BadRequest("Bad request"))?;
     if data.len() > IMAGE_SIZE_LIMIT {
-        return Err(Error::PayloadTooLarge);
+        return Err(Error::PayloadTooLarge("File size cannot exceed 8MiB"));
     }
 
-    match image::guess_format(data.as_ref()).map_err(|_| Error::UnsupportedMediaType)? {
+    match image::guess_format(data.as_ref()).map_err(|_| Error::UnsupportedImageFormat)? {
         image::ImageFormat::Png => {
             if content_type != mime::IMAGE_PNG {
-                return Err(Error::UnsupportedMediaType);
+                return Err(Error::UnsupportedImageFormat);
             }
         }
         image::ImageFormat::Jpeg => {
             if content_type != mime::IMAGE_JPEG {
-                return Err(Error::UnsupportedMediaType);
+                return Err(Error::UnsupportedImageFormat);
             }
         }
-        _ => return Err(Error::UnsupportedMediaType),
+        _ => return Err(Error::UnsupportedImageFormat),
     }
 
-    let image = image::load_from_memory(data.as_ref()).map_err(|_| Error::UnsupportedMediaType)?;
+    let image =
+        image::load_from_memory(data.as_ref()).map_err(|_| Error::UnsupportedImageFormat)?;
     let (width, height) = image::GenericImageView::dimensions(&image);
     if width > IMAGE_DIMENSION_LIMIT || height > IMAGE_DIMENSION_LIMIT {
-        return Err(Error::PayloadTooLarge);
+        return Err(Error::PayloadTooLarge(
+            "Image dimensions cannot exceed 400px x 400px",
+        ));
     }
 
     Ok(data)

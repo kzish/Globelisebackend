@@ -1,9 +1,6 @@
 //! Endpoint for handling Google authentication.
 
-use axum::{
-    extract::{Extension, Form, Path},
-    http::{uri, Uri},
-};
+use axum::extract::{Extension, Form, Path};
 use email_address::EmailAddress;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use once_cell::sync::Lazy;
@@ -25,7 +22,7 @@ pub async fn login(
 ) -> Result<String, Error> {
     let OauthKeyList { keys } = OauthKeyList::new()
         .await
-        .map_err(|_| Error::GooglePublicKeys)?;
+        .map_err(|_| Error::Internal("Could not get Google's public keys".into()))?;
 
     let claims = id_token.decode(&keys)?;
     let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
@@ -39,7 +36,9 @@ pub async fn login(
             Ok(refresh_token)
         } else {
             // TODO: Implement linking with an existing account.
-            Err(Error::Unauthorized)
+            Err(Error::Unauthorized(
+                "Linking Google with existing account is not implemented",
+            ))
         }
     } else {
         let user = User {
@@ -53,22 +52,6 @@ pub async fn login(
 
         Ok(refresh_token)
     }
-}
-
-fn append_token_to_uri(uri: Uri, token: &str) -> Result<Uri, Error> {
-    let query = uri.path_and_query().ok_or(Error::BadRequest)?;
-    let query = match query.query() {
-        Some(_) => query.to_string() + "&token=" + token,
-        None => query.to_string() + "?token=" + token,
-    };
-
-    let uri = uri::Builder::new()
-        .scheme(uri.scheme().ok_or(Error::BadRequest)?.clone())
-        .authority(uri.authority().ok_or(Error::BadRequest)?.clone())
-        .path_and_query(query)
-        .build()
-        .map_err(|_| Error::BadRequest)?;
-    Ok(uri)
 }
 
 /// Representation of Google's ID token.
@@ -89,11 +72,12 @@ impl IdToken {
         // NOTE: Currently, only the second key works. This is subject to change.
         let TokenData { claims, .. } = decode::<Claims>(
             &*self.credential,
-            &DecodingKey::from_rsa_components(&*keys[1].n, &*keys[1].e)
-                .map_err(|_| Error::Unauthorized)?,
+            &DecodingKey::from_rsa_components(&*keys[1].n, &*keys[1].e).map_err(|_| {
+                Error::Internal("Could not create decoding key for Google ID token".into())
+            })?,
             &validation,
         )
-        .map_err(|_| Error::Unauthorized)?;
+        .map_err(|_| Error::Unauthorized("Failed to decode Google ID token"))?;
 
         Ok(claims)
     }
@@ -134,12 +118,8 @@ static CLIENT_ID: Lazy<String> =
     Lazy::new(|| std::env::var("GOOGLE_CLIENT_ID").expect("GOOGLE_CLIENT_ID must be set"));
 
 #[cfg(not(debug_assertions))]
-// Use absolute namespace to silence errors about unused imports.
-pub async fn login_page() -> axum::response::Response {
-    axum::response::IntoResponse::into_response((
-        axum::http::StatusCode::NOT_FOUND,
-        "Not Found".to_string(),
-    ))
+pub async fn login_page() -> Error {
+    Error::NotFound
 }
 
 #[cfg(debug_assertions)]
