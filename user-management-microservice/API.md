@@ -13,6 +13,8 @@ contractor_entity
 eor_admin
 ```
 
+Optional form fields will be marked `(optional)`.
+
 For any error responses not listed here, assume that the body is either `text/plain` or nonexistent.
 
 [[_TOC_]]
@@ -157,9 +159,9 @@ country
 city
 address
 postal_code
-tax_id
+tax_id (optional)
 time_zone
-profile_picture
+profile_picture (optional)
 ```
 
 **Response**
@@ -182,13 +184,13 @@ Success: `200 OK`
 company_name
 country
 entity_type
-registration_number
-tax_id
+registration_number (optional)
+tax_id (optional)
 company_address
 city
 postal_code
 time_zone
-logo
+logo (optional)
 ```
 
 **Response**
@@ -213,7 +215,7 @@ last_name
 dob
 dial_code
 phone_number
-profile_picture
+profile_picture (optional)
 ```
 
 **Response**
@@ -244,5 +246,3 @@ Success: `200 OK`
 
 ## Password reset
 Work in progress.
-
-## Notes
