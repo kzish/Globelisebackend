@@ -87,10 +87,6 @@ where
         T::name()
     }
 
-    fn from_str(s: &str) -> Result<(), Error> {
-        T::from_str(s)
-    }
-
     fn lifetime() -> Duration {
         T::lifetime()
     }
@@ -163,10 +159,6 @@ where
         T::name()
     }
 
-    fn from_str(s: &str) -> Result<(), Error> {
-        T::from_str(s)
-    }
-
     fn lifetime() -> Duration {
         T::lifetime()
     }
@@ -212,6 +204,5 @@ where
 
 pub trait OneTimeTokenAudience {
     fn name() -> &'static str;
-    fn from_str(s: &str) -> Result<(), Error>;
     fn lifetime() -> Duration;
 }
