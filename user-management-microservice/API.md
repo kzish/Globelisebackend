@@ -282,15 +282,15 @@ Success: `200 OK`
 <domain>/lostpassword/<role>
 ```
 
-`POST` with the `Content-Type` as `application/x-www-form-urlencoded`.
-
 **Request**
 
-Form Data:
+`POST`
 
-| Key          | Value      |
-| ------------ | ---------- |
-| `user_email` | User email |
+- these fields as `application/x-www-form-urlencoded`:
+
+```
+user_email
+```
 
 **Response**
 
@@ -313,15 +313,15 @@ curl --request POST \
 <domain>/changepasswordredirect/<role>
 ```
 
-`GET` with one query key `token`.
-
 **Request**
 
-Query data:
+`GET`
 
-| Key     | Value        |
-| ------- | ------------ |
-| `token` | Access token |
+- these fields as query:
+
+```
+user_email
+```
 
 **Response**
 
@@ -346,16 +346,17 @@ Redirects user to the page at with a new change password token in its query,
 <domain>/changepasswordredirect/<role>
 ```
 
-`POST` with the `Content-Type` as `application/x-www-form-urlencoded`.
-
 **Request**
 
-Query data:
+`POST`
 
-| Key                    | Value             |
-| ---------------------- | ----------------- |
-| `new_password`         | New user password |
-| `confirm_new_password` | New user password |
+- an access token via the bearer authentication scheme
+- these fields as `application/x-www-form-urlencoded`:
+
+```
+new_password
+confirm_new_password
+```
 
 **Response**
 
@@ -365,10 +366,11 @@ Empty.
 
 ```shell
 curl --request POST \
-  --url '<domain>/changepassword/<role>?token=<token>' \
+  --url <token>/changepassword/<role> \
+  --header 'Authorization: Bearer <token>' \
   --header 'Content-Type: application/x-www-form-urlencoded' \
   --data new_password=<new_password> \
-  --data confirm_new_password=<new_password>
+  --data confirm_new_password=<confirm_new_password>
 ```
 
 ## Notes
