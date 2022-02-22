@@ -198,7 +198,7 @@ impl Database {
         sqlx::query(&format!(
             "UPDATE {}
             SET first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
-            country = $6, address = $7, city = $8, postal_code = $9, tax_id = $10,
+            country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
             time_zone = $11, profile_picture = $12
             WHERE ulid = $13",
             Self::user_table_name(role)
@@ -209,8 +209,8 @@ impl Database {
         .bind(details.dial_code)
         .bind(details.phone_number)
         .bind(details.country)
-        .bind(details.address)
         .bind(details.city)
+        .bind(details.address)
         .bind(details.postal_code)
         .bind(details.tax_id)
         .bind(details.time_zone)
