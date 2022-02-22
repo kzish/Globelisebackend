@@ -28,7 +28,7 @@ use super::{
 };
 
 /// Send email to the user with the steps to recover their password.
-pub async fn lost_password(
+pub async fn send_email(
     Form(request): Form<LostPasswordRequest>,
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
@@ -100,7 +100,7 @@ pub async fn lost_password(
 }
 
 // Respond to user clicking the reset password link in their email.
-pub async fn change_password_redirect(
+pub async fn initiate(
     OneTimeTokenParam(claims): OneTimeTokenParam<OneTimeToken<LostPasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
@@ -125,7 +125,7 @@ pub async fn change_password_redirect(
 }
 
 /// Replace the password for a user with the requested one.
-pub async fn change_password(
+pub async fn execute(
     Form(request): Form<ChangePasswordRequest>,
     OneTimeTokenBearer(claims): OneTimeTokenBearer<OneTimeToken<ChangePasswordToken>>,
     Extension(database): Extension<SharedDatabase>,

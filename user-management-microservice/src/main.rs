@@ -27,35 +27,41 @@ async fn main() {
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
-        .route("/signup/:role", post(auth::create_account))
-        .route("/login/:role", post(auth::login))
-        .route("/lostpassword/:role", post(auth::password::lost_password))
+        .route("/auth/signup/:role", post(auth::signup))
+        .route("/auth/login/:role", post(auth::login))
+        .route("/auth/google/login/:role", post(auth::google::login))
         .route(
-            "/changepasswordredirect",
-            get(auth::password::change_password_redirect),
+            "/auth/password/reset/email/:role",
+            post(auth::password_reset::send_email),
         )
-        .route("/changepassword", post(auth::password::change_password))
-        .route("/google/login/:role", post(auth::google::login))
-        .route("/auth/refresh", post(auth::renew_access_token))
-        .route("/auth/keys", get(auth::public_key))
         .route(
-            "/onboard/individual_details",
+            "/auth/password/reset/initiate",
+            get(auth::password_reset::initiate),
+        )
+        .route(
+            "/auth/password/reset/execute",
+            post(auth::password_reset::execute),
+        )
+        .route("/auth/access-token", post(auth::access_token))
+        .route("/auth/public-key", get(auth::public_key))
+        .route(
+            "/onboard/individual-details",
             post(auth::onboarding::individual::account_details),
         )
         .route(
-            "/onboard/entity_details",
+            "/onboard/entity-details",
             post(auth::onboarding::entity::account_details),
         )
         .route(
-            "/onboard/pic_details",
+            "/onboard/pic-details",
             post(auth::onboarding::entity::pic_details),
         )
         .route(
-            "/onboard/bank_details",
+            "/onboard/bank-details",
             post(auth::onboarding::bank::bank_details),
         )
         // ========== DEBUG PAGES ==========
-        .route("/google/loginpage", get(auth::google::login_page))
+        .route("/debug/google/login", get(auth::google::login_page))
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
