@@ -20,6 +20,8 @@ For any error responses not listed here, assume that the body is either `text/pl
 
 [[_TOC_]]
 
+# Authentication
+
 ## Getting refresh tokens
 
 ### Email sign up
@@ -151,9 +153,9 @@ Success: `200 OK` - `text/plain`
 <public key>
 ```
 
-## Onboarding
+# Onboarding
 
-### Individual account details
+## Individual account details
 
 **Endpoint**
 
@@ -187,7 +189,7 @@ profile_picture (optional)
 
 Success: `200 OK`
 
-### Entity account details
+## Entity account details
 
 **Endpoint**
 
@@ -219,7 +221,7 @@ logo (optional)
 
 Success: `200 OK`
 
-### PIC details
+## PIC details
 
 **Endpoint**
 
@@ -247,7 +249,7 @@ profile_picture (optional)
 
 Success: `200 OK`
 
-### Bank details
+## Bank details
 
 **Endpoint**
 
