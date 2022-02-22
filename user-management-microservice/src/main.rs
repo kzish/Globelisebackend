@@ -61,10 +61,6 @@ async fn main() {
             "/onboard/bank_details",
             post(auth::onboarding::bank::bank_details),
         )
-        .route(
-            "/onboard/eor_bank_details",
-            post(auth::onboarding::bank::eor_bank_details),
-        )
         // ========== DEBUG PAGES ==========
         .route("/google/loginpage", get(auth::google::login_page))
         .layer(
