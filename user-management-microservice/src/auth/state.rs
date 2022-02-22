@@ -57,7 +57,7 @@ impl State {
     ) -> Result<String, Error> {
         // Validate that the user and role are correct.
         if database.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::Unauthorized);
+            return Err(Error::Unauthorized("Refused to open session: invalid user"));
         }
 
         let mut sessions = Sessions::default();
@@ -110,7 +110,9 @@ impl State {
     {
         // Validate that the user and role are correct.
         if database.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::Unauthorized);
+            return Err(Error::Unauthorized(
+                "Refused to open one-time session: invalid user",
+            ));
         }
 
         let mut sessions = OneTimeSessions::default();
@@ -170,7 +172,7 @@ impl State {
         T: Serialize,
     {
         let prefixed_key = category.to_string() + "--" + key;
-        let value = serde_json::to_vec(&value).map_err(|e| Error::Conversion(e.to_string()))?;
+        let value = serde_json::to_vec(&value).map_err(|e| Error::Internal(e.to_string()))?;
         self.dapr_client
             .save_state(Self::STATE_STORE, vec![(&*prefixed_key, value)])
             .await
@@ -191,8 +193,8 @@ impl State {
             .map_err(|e| Error::Dapr(e.to_string()))?;
 
         if !result.data.is_empty() {
-            let value: T = serde_json::from_slice(&result.data)
-                .map_err(|e| Error::Conversion(e.to_string()))?;
+            let value: T =
+                serde_json::from_slice(&result.data).map_err(|e| Error::Internal(e.to_string()))?;
             Ok(Some(value))
         } else {
             Ok(None)
@@ -222,7 +224,7 @@ impl Sessions {
         let (refresh_token, expiration) = create_refresh_token(ulid, role)?;
         let salt: [u8; 16] = rand::thread_rng().gen();
         let hash = hash_encoded(refresh_token.as_bytes(), &salt, &HASH_CONFIG)
-            .map_err(|_| Error::Internal)?;
+            .map_err(|_| Error::Internal("Failed to hash session".into()))?;
         self.sessions.insert(hash, expiration);
         Ok(refresh_token)
     }
@@ -261,7 +263,7 @@ impl OneTimeSessions {
         let (one_time_token, expiration) = create_one_time_token::<T>(ulid, role)?;
         let salt: [u8; 16] = rand::thread_rng().gen();
         let hash = hash_encoded(one_time_token.as_bytes(), &salt, &HASH_CONFIG)
-            .map_err(|_| Error::Internal)?;
+            .map_err(|_| Error::Internal("Failed to hash one-time session".into()))?;
         self.sessions.insert(hash, expiration);
         Ok(one_time_token)
     }

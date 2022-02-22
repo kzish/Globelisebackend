@@ -15,7 +15,7 @@ impl OneTimeTokenAudience for ChangePasswordToken {
     fn from_str(s: &str) -> Result<(), Error> {
         match s {
             "change_password" => Ok(()),
-            _ => Err(Error::Unauthorized),
+            _ => Err(Error::Unauthorized("")),
         }
     }
 

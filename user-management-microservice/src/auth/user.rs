@@ -45,7 +45,7 @@ impl FromStr for Role {
             "contractor_individual" => Ok(Role::ContractorIndividual),
             "contractor_entity" => Ok(Role::ContractorEntity),
             "eor_admin" => Ok(Role::EorAdmin),
-            _ => Err(Error::Unauthorized),
+            _ => Err(Error::Unauthorized("Invalid role")),
         }
     }
 }

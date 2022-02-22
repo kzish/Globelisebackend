@@ -15,7 +15,7 @@ impl OneTimeTokenAudience for LostPasswordToken {
     fn from_str(s: &str) -> Result<(), Error> {
         match s {
             "lost_password" => Ok(()),
-            _ => Err(Error::Unauthorized),
+            _ => Err(Error::Unauthorized("")),
         }
     }
 

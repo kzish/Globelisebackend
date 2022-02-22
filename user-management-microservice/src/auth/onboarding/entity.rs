@@ -62,7 +62,7 @@ pub async fn pic_details(
         last_name: text_fields.remove(&PicDetailNames::LastName).unwrap(),
         dob: {
             sqlx::types::time::Date::parse(&text_fields.remove(&PicDetailNames::Dob).unwrap(), "%F")
-                .map_err(|_| Error::BadRequest)?
+                .map_err(|_| Error::BadRequest("Date must use YYYY-MM-DD format"))?
         },
         dial_code: text_fields.remove(&PicDetailNames::DialCode).unwrap(),
         phone_number: text_fields.remove(&PicDetailNames::PhoneNumber).unwrap(),
