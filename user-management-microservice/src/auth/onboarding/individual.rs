@@ -17,7 +17,10 @@ pub async fn account_details(
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
     let role: Role = claims.role.parse().unwrap();
-    if !matches!(role, Role::ClientIndividual | Role::ContractorIndividual) {
+    if !matches!(
+        role,
+        Role::ClientIndividual | Role::ContractorIndividual | Role::EorAdmin
+    ) {
         return Err(Error::Forbidden);
     }
 
