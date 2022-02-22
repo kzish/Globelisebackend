@@ -99,11 +99,7 @@ handler.
 
 **Request**
 
-`POST` Google's ID token as `application/x-www-form-urlencoded`:
-
-```
-credentials
-```
+`POST` Google's ID token as `application/x-www-form-urlencoded`.
 
 **Response**
 
@@ -276,7 +272,7 @@ Success: `200 OK`
 
 # Password reset
 
-## Request to email the reset password link
+## Emailing the password reset link
 
 **Endpoint**
 
@@ -286,9 +282,7 @@ Success: `200 OK`
 
 **Request**
 
-`POST`
-
-- these fields as `application/x-www-form-urlencoded`:
+`POST` these fields as `application/x-www-form-urlencoded`:
 
 ```
 user_email
@@ -296,7 +290,9 @@ user_email
 
 **Response**
 
-Empty and the submitted email address should receive an email with a link to the reset password page.
+Success: `200 OK`
+
+The submitted email address should receive an email with a link to reset their password.
 
 **Request as CURL**
 
@@ -307,52 +303,52 @@ curl --request POST \
   --data user_email=<example@email.com>
 ```
 
-## Consume lost password token and redirect to the change password page
+## Accessing the password reset page
 
 **Endpoint**
 
 ```
-<domain>/changepasswordredirect/<role>
+<domain>/changepasswordredirect
 ```
 
 **Request**
 
-`GET`
-
-- these fields as query:
+`GET` with these query params:
 
 ```
-user_email
+token
 ```
 
 **Response**
 
-Redirects user to the page at with a new change password token in its query,
+Success: `303 See Other`
+
+Redirects user to the frontend password reset page with a new one-time token in the query params. 
 
 ```
-<role>/changepasswordpage/<role>?token=<change_password_token>
+<password reset page>?token=<token>
 ```
 
 **Request as CURL**
 
 ```shell
  curl --request GET \
-  --url '<domain>/changepasswordredirect/<role>?token=<token>'
+  --url '<domain>/changepasswordredirect?token=<token>'
 ```
 
-## Change user password with the given passwords
+## Executing the password reset
 
 **Endpoint**
 
 ```
-<domain>/changepasswordredirect/<role>
+<domain>/changepassword
 ```
 
 **Request**
 
 `POST`
 
-- an access token via the bearer authentication scheme
+- the provided one-time token via the bearer authentication scheme
 - these fields as `application/x-www-form-urlencoded`:
 
 ```
@@ -362,17 +358,15 @@ confirm_new_password
 
 **Response**
 
-Empty.
+Success: `200 OK`
 
 **Request as CURL**
 
 ```shell
 curl --request POST \
-  --url <token>/changepassword/<role> \
+  --url <token>/changepassword \
   --header 'Authorization: Bearer <token>' \
   --header 'Content-Type: application/x-www-form-urlencoded' \
   --data new_password=<new_password> \
   --data confirm_new_password=<confirm_new_password>
 ```
-
-## Notes
