@@ -144,29 +144,101 @@ Success: `200 OK` - `text/plain`
 ```
 
 ## Onboarding
-**Endpoints**
 
-Prefix all endpoints with `<domain>/onboarding/`.
+### Individual account details
+**Endpoint**
 
-| Endpoints              | Content Type                         | Prototype contains errors? |
-|------------------------|--------------------------------------|----------------------------|
-| `individual_details`   | `multipart/form-data`                |  **Yes**[^1]               |
-| `entity_details`       | `multipart/form-data`                |  No                        |
-| `pic_details`          | `multipart/form-data`                |  No                        |
-| `eor_details`          | `multipart/form-data`                |  No                        |
-| `bank_details`         | `application/x-www-form-urlencoded`  |  **Yes**[^2]               |
-| `eor_bank_details`     | `application/x-www-form-urlencoded`  |  **Yes**[^2]               |
-
-[^1]: The account details for individual contractors are wrong. They should match the form
-for individual clients (see Asana ticket).
-[^2]: The EOR forms contain errors, but we need confirmation for what the correct fields
-should be (there is no Asana ticket). For now, the API mirrors the prototype fields
-(except for the profile picture, which is optional).
+```
+<domain>/onboarding/individual_details
+```
 
 **Request**
 
-`POST` the form data as the appropriate content type. Put the access token in the
-`Authorization` header using the Bearer authentication scheme.
+`POST` these fields as `multipart/form-data`:
+```
+first_name
+last_name
+dob
+dial_code
+phone_number
+country
+city
+address
+postal_code
+tax_id
+time_zone
+profile_picture
+```
+
+**Response**
+
+Success: `200 OK`
+
+### Entity account details
+**Endpoint**
+
+```
+<domain>/onboarding/entity_details
+```
+
+**Request**
+
+`POST` these fields as `multipart/form-data`:
+```
+company_name
+country
+entity_type
+registration_number
+tax_id
+company_address
+city
+postal_code
+time_zone
+logo
+```
+
+**Response**
+
+Success: `200 OK`
+
+### PIC details
+**Endpoint**
+
+```
+<domain>/onboarding/pic_details
+```
+
+**Request**
+
+`POST` these fields as `multipart/form-data`:
+```
+first_name
+last_name
+dob
+dial_code
+phone_number
+profile_picture
+```
+
+**Response**
+
+Success: `200 OK`
+
+### Bank details
+**Endpoint**
+
+```
+<domain>/onboarding/bank_details
+```
+
+**Request**
+
+`POST` these fields as `application/x-www-form-urlencoded`:
+```
+bank_name
+account_name
+account_number
+```
 
 **Response**
 
