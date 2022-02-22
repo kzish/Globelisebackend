@@ -131,6 +131,8 @@ Success: `200 OK` - `text/plain`
 
 ## Getting the public key for verifying tokens
 
+This endpoint is intended for backend use.
+
 **Endpoint**
 
 ```
@@ -296,6 +298,8 @@ The submitted email address should receive an email with a link to reset their p
 
 ## Accessing the password reset page
 
+This endpoint should only be accessed via the link in password reset emails.
+
 **Endpoint**
 
 ```
@@ -317,7 +321,7 @@ Success: `303 See Other`
 Redirects user to the frontend password reset page with a new one-time token in the query params. 
 
 ```
-<password reset page>?token=<token>
+<password reset page>?token=<new token>
 ```
 
 ## Executing the password reset
