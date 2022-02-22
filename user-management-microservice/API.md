@@ -106,7 +106,7 @@ Success: `200 OK` - `text/plain`
 
 **Request**
 
-`POST` the refresh token in the `Authorization` header using the Bearer authentication scheme.
+`POST` a refresh token via the bearer authentication scheme.
 
 **Response**
 
@@ -144,7 +144,9 @@ Success: `200 OK` - `text/plain`
 
 **Request**
 
-`POST` these fields as `multipart/form-data`:
+`POST`
+- an access token via the bearer authentication scheme
+- these fields as `multipart/form-data`:
 ```
 first_name
 last_name
@@ -173,7 +175,9 @@ Success: `200 OK`
 
 **Request**
 
-`POST` these fields as `multipart/form-data`:
+`POST`
+- an access token via the bearer authentication scheme
+- these fields as `multipart/form-data`:
 ```
 company_name
 country
@@ -200,7 +204,9 @@ Success: `200 OK`
 
 **Request**
 
-`POST` these fields as `multipart/form-data`:
+`POST`
+- an access token via the bearer authentication scheme
+- these fields as `multipart/form-data`:
 ```
 first_name
 last_name
@@ -223,7 +229,9 @@ Success: `200 OK`
 
 **Request**
 
-`POST` these fields as `application/x-www-form-urlencoded`:
+`POST`
+- an access token via the bearer authentication scheme
+- these fields as `multipart/form-data`:
 ```
 bank_name
 account_name
