@@ -2,7 +2,8 @@ use std::{collections::HashMap, marker::PhantomData};
 
 use axum::{
     async_trait,
-    extract::{Extension, FromRequest, Query, RequestParts},
+    extract::{Extension, FromRequest, Query, RequestParts, TypedHeader},
+    headers::{authorization::Bearer, Authorization},
 };
 use jsonwebtoken::{decode, encode, Algorithm, Header, TokenData, Validation};
 use rusty_ulid::Ulid;
@@ -75,8 +76,28 @@ where
     }
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct OneTimeTokenParam<T>(pub T);
+
+impl<T> OneTimeTokenAudience for OneTimeTokenParam<T>
+where
+    T: OneTimeTokenAudience,
+{
+    fn name() -> &'static str {
+        T::name()
+    }
+
+    fn from_str(s: &str) -> Result<(), Error> {
+        T::from_str(s)
+    }
+
+    fn lifetime() -> Duration {
+        T::lifetime()
+    }
+}
+
 #[async_trait]
-impl<B, T> FromRequest<B> for OneTimeToken<T>
+impl<B, T> FromRequest<B> for OneTimeTokenParam<OneTimeToken<T>>
 where
     B: Send,
     T: Send + OneTimeTokenAudience,
@@ -122,12 +143,70 @@ where
             .is_one_time_token_valid::<T>(ulid, token.as_bytes())
             .await?
         {
-            Ok(claims)
+            Ok(OneTimeTokenParam(claims))
         } else {
             Err(Error::Unauthorized(
                 "One-time token rejected: invalid session",
             ))
         }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct OneTimeTokenBearer<T>(pub T);
+
+impl<T> OneTimeTokenAudience for OneTimeTokenBearer<T>
+where
+    T: OneTimeTokenAudience,
+{
+    fn name() -> &'static str {
+        T::name()
+    }
+
+    fn from_str(s: &str) -> Result<(), Error> {
+        T::from_str(s)
+    }
+
+    fn lifetime() -> Duration {
+        T::lifetime()
+    }
+}
+
+#[async_trait]
+impl<B, T> FromRequest<B> for OneTimeTokenBearer<OneTimeToken<T>>
+where
+    B: Send,
+    T: Send + OneTimeTokenAudience,
+{
+    type Rejection = Error;
+
+    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        let TypedHeader(Authorization(bearer)) =
+            TypedHeader::<Authorization<Bearer>>::from_request(req)
+                .await
+                .map_err(|_| Error::Unauthorized("No access token provided"))?;
+        let Extension(database) = Extension::<SharedDatabase>::from_request(req)
+            .await
+            .map_err(|_| Error::Internal("Could not extract database from request".into()))?;
+        let claims = OneTimeToken::decode(bearer.token())?;
+        let ulid: Ulid = claims
+            .sub
+            .parse()
+            .map_err(|_| Error::Unauthorized("Access token rejected: invalid ulid"))?;
+        let role: Role = claims
+            .role
+            .parse()
+            .map_err(|_| Error::Unauthorized("Access token rejected: invalid role"))?;
+
+        // Make sure the user actually exists.
+        let database = database.lock().await;
+        if database.user(ulid, Some(role)).await?.is_none() {
+            return Err(Error::Unauthorized(
+                "Access token rejected: user does not exist",
+            ));
+        }
+
+        Ok(OneTimeTokenBearer(claims))
     }
 }
 

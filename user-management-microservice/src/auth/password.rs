@@ -19,8 +19,9 @@ use crate::env::{
 use super::{
     error::Error,
     token::{
-        change_password::ChangePasswordToken, lost_password::LostPasswordToken,
-        one_time::OneTimeToken,
+        change_password::ChangePasswordToken,
+        lost_password::LostPasswordToken,
+        one_time::{OneTimeToken, OneTimeTokenBearer, OneTimeTokenParam},
     },
     user::Role,
     SharedDatabase, SharedState, HASH_CONFIG,
@@ -101,7 +102,7 @@ pub async fn lost_password(
 // Respond to user clicking the reset password link in their email.
 pub async fn change_password_redirect(
     Path(role): Path<Role>,
-    claims: OneTimeToken<LostPasswordToken>,
+    OneTimeTokenParam(claims): OneTimeTokenParam<OneTimeToken<LostPasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<Redirect, Error> {
@@ -129,7 +130,7 @@ pub async fn change_password_redirect(
 pub async fn change_password(
     Form(request): Form<ChangePasswordRequest>,
     Path(role): Path<Role>,
-    claims: OneTimeToken<ChangePasswordToken>,
+    OneTimeTokenBearer(claims): OneTimeTokenBearer<OneTimeToken<ChangePasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
     let ulid: Ulid = claims.sub.parse().unwrap();
