@@ -54,16 +54,8 @@ async fn main() {
             post(auth::onboarding::entity::pic_details),
         )
         .route(
-            "/onboard/eor_details",
-            post(auth::onboarding::eor::account_details),
-        )
-        .route(
             "/onboard/bank_details",
             post(auth::onboarding::bank::bank_details),
-        )
-        .route(
-            "/onboard/eor_bank_details",
-            post(auth::onboarding::bank::eor_bank_details),
         )
         // ========== DEBUG PAGES ==========
         .route("/google/loginpage", get(auth::google::login_page))

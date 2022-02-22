@@ -8,9 +8,8 @@ use tokio::sync::Mutex;
 
 use super::{
     onboarding::{
-        bank::{BankDetails, EorBankDetails},
+        bank::BankDetails,
         entity::{EntityDetails, PicDetails},
-        eor::EorDetails,
         individual::IndividualDetails,
     },
     user::{Role, User},
@@ -186,7 +185,10 @@ impl Database {
         role: Role,
         details: IndividualDetails,
     ) -> Result<(), Error> {
-        if !matches!(role, Role::ClientIndividual | Role::ContractorIndividual) {
+        if !matches!(
+            role,
+            Role::ClientIndividual | Role::ContractorIndividual | Role::EorAdmin
+        ) {
             return Err(Error::Forbidden);
         }
         if self.user(ulid, Some(role)).await?.is_none() {
@@ -196,7 +198,7 @@ impl Database {
         sqlx::query(&format!(
             "UPDATE {}
             SET first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
-            country = $6, address = $7, city = $8, postal_code = $9, tax_id = $10,
+            country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
             time_zone = $11, profile_picture = $12
             WHERE ulid = $13",
             Self::user_table_name(role)
@@ -207,8 +209,8 @@ impl Database {
         .bind(details.dial_code)
         .bind(details.phone_number)
         .bind(details.country)
-        .bind(details.address)
         .bind(details.city)
+        .bind(details.address)
         .bind(details.postal_code)
         .bind(details.tax_id)
         .bind(details.time_zone)
@@ -294,42 +296,6 @@ impl Database {
         Ok(())
     }
 
-    pub async fn onboard_eor_details(
-        &self,
-        ulid: Ulid,
-        role: Role,
-        details: EorDetails,
-    ) -> Result<(), Error> {
-        if !matches!(role, Role::EorAdmin) {
-            return Err(Error::Forbidden);
-        }
-        if self.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::Forbidden);
-        }
-
-        sqlx::query(&format!(
-            "UPDATE {}
-            SET first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
-            country = $6, time_zone = $7, profile_picture = $8
-            WHERE ulid = $9",
-            Self::user_table_name(role)
-        ))
-        .bind(details.first_name)
-        .bind(details.last_name)
-        .bind(details.dob)
-        .bind(details.dial_code)
-        .bind(details.phone_number)
-        .bind(details.country)
-        .bind(details.time_zone)
-        .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
-        .bind(ulid_to_sql_uuid(ulid))
-        .execute(&self.0)
-        .await
-        .map_err(|e| Error::Database(e.to_string()))?;
-
-        Ok(())
-    }
-
     pub async fn onboard_bank_details(
         &self,
         ulid: Ulid,
@@ -352,39 +318,6 @@ impl Database {
         .bind(details.bank_name)
         .bind(details.account_name)
         .bind(details.account_number)
-        .bind(ulid_to_sql_uuid(ulid))
-        .execute(&self.0)
-        .await
-        .map_err(|e| Error::Database(e.to_string()))?;
-
-        Ok(())
-    }
-
-    pub async fn onboard_eor_bank_details(
-        &self,
-        ulid: Ulid,
-        role: Role,
-        details: EorBankDetails,
-    ) -> Result<(), Error> {
-        if !matches!(role, Role::EorAdmin) {
-            return Err(Error::Forbidden);
-        }
-        if self.user(ulid, Some(role)).await?.is_none() {
-            return Err(Error::Forbidden);
-        }
-
-        sqlx::query(&format!(
-            "UPDATE {}
-            SET bank_name = $1, bank_account_number = $2, city_address = $3, postal_code = $4,
-            tax_id = $5
-            WHERE ulid = $6",
-            Self::user_table_name(role)
-        ))
-        .bind(details.bank_name)
-        .bind(details.account_number)
-        .bind(details.city_address)
-        .bind(details.postal_code)
-        .bind(details.tax_id)
         .bind(ulid_to_sql_uuid(ulid))
         .execute(&self.0)
         .await

@@ -32,7 +32,7 @@ where
         if name.is_image() {
             let data = validate_image_field(field).await?;
             if text_fields.contains_key(&name) || byte_fields.insert(name, data).is_some() {
-                return Err(Error::BadRequest("Bad request"));
+                return Err(Error::BadRequest("Duplicate field"));
             }
         } else {
             let data = field
@@ -40,7 +40,7 @@ where
                 .await
                 .map_err(|_| Error::BadRequest("Bad request"))?;
             if byte_fields.contains_key(&name) || text_fields.insert(name, data).is_some() {
-                return Err(Error::BadRequest("Bad request"));
+                return Err(Error::BadRequest("Duplicate field"));
             }
         }
     }
@@ -52,7 +52,7 @@ where
         .collect();
     for field in T::iter().filter(|f| f.is_required()) {
         if !fields_found.contains(&field) {
-            return Err(Error::BadRequest("Bad request"));
+            return Err(Error::BadRequest("Missing required field"));
         }
     }
 

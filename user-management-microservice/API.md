@@ -13,8 +13,9 @@ contractor_entity
 eor_admin
 ```
 
-For any error responses not listed here, the response body is not consistent.
-Assume that the body is either `text/plain` or nonexistent.
+Optional form fields will be marked `(optional)`.
+
+For any error responses not listed here, assume that the body is either `text/plain` or nonexistent.
 
 [[_TOC_]]
 
@@ -41,15 +42,6 @@ confirm_password
 Success: `200 OK` - `text/plain`
 ```
 <refresh token>
-```
-
-All fields present in request, but fields are invalid: `400 Bad Request` - `application/json`
-```json
-{
-    "is_valid_email": <boolean>,
-    "is_password_at_least_8_chars": <boolean>,
-    "passwords_match": <boolean>
-}
 ```
 
 Email is unavailable: `422 Unprocessable Entity` - `text/plain`
@@ -116,7 +108,7 @@ Success: `200 OK` - `text/plain`
 
 **Request**
 
-`POST` the refresh token in the `Authorization` header using the Bearer authentication scheme.
+`POST` a refresh token via the bearer authentication scheme.
 
 **Response**
 
@@ -144,29 +136,109 @@ Success: `200 OK` - `text/plain`
 ```
 
 ## Onboarding
-**Endpoints**
 
-Prefix all endpoints with `<domain>/onboarding/`.
+### Individual account details
+**Endpoint**
 
-| Endpoints              | Content Type                         | Prototype contains errors? |
-|------------------------|--------------------------------------|----------------------------|
-| `individual_details`   | `multipart/form-data`                |  **Yes**[^1]               |
-| `entity_details`       | `multipart/form-data`                |  No                        |
-| `pic_details`          | `multipart/form-data`                |  No                        |
-| `eor_details`          | `multipart/form-data`                |  No                        |
-| `bank_details`         | `application/x-www-form-urlencoded`  |  **Yes**[^2]               |
-| `eor_bank_details`     | `application/x-www-form-urlencoded`  |  **Yes**[^2]               |
-
-[^1]: The account details for individual contractors are wrong. They should match the form
-for individual clients (see Asana ticket).
-[^2]: The EOR forms contain errors, but we need confirmation for what the correct fields
-should be (there is no Asana ticket). For now, the API mirrors the prototype fields
-(except for the profile picture, which is optional).
+```
+<domain>/onboarding/individual_details
+```
 
 **Request**
 
-`POST` the form data as the appropriate content type. Put the access token in the
-`Authorization` header using the Bearer authentication scheme.
+`POST`
+- an access token via the bearer authentication scheme
+- these fields as `multipart/form-data`:
+```
+first_name
+last_name
+dob
+dial_code
+phone_number
+country
+city
+address
+postal_code
+tax_id (optional)
+time_zone
+profile_picture (optional)
+```
+
+**Response**
+
+Success: `200 OK`
+
+### Entity account details
+**Endpoint**
+
+```
+<domain>/onboarding/entity_details
+```
+
+**Request**
+
+`POST`
+- an access token via the bearer authentication scheme
+- these fields as `multipart/form-data`:
+```
+company_name
+country
+entity_type
+registration_number (optional)
+tax_id (optional)
+company_address
+city
+postal_code
+time_zone
+logo (optional)
+```
+
+**Response**
+
+Success: `200 OK`
+
+### PIC details
+**Endpoint**
+
+```
+<domain>/onboarding/pic_details
+```
+
+**Request**
+
+`POST`
+- an access token via the bearer authentication scheme
+- these fields as `multipart/form-data`:
+```
+first_name
+last_name
+dob
+dial_code
+phone_number
+profile_picture (optional)
+```
+
+**Response**
+
+Success: `200 OK`
+
+### Bank details
+**Endpoint**
+
+```
+<domain>/onboarding/bank_details
+```
+
+**Request**
+
+`POST`
+- an access token via the bearer authentication scheme
+- these fields as `multipart/form-data`:
+```
+bank_name
+account_name
+account_number
+```
 
 **Response**
 
@@ -174,5 +246,3 @@ Success: `200 OK`
 
 ## Password reset
 Work in progress.
-
-## Notes

@@ -17,7 +17,10 @@ pub async fn account_details(
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
     let role: Role = claims.role.parse().unwrap();
-    if !matches!(role, Role::ClientIndividual | Role::ContractorIndividual) {
+    if !matches!(
+        role,
+        Role::ClientIndividual | Role::ContractorIndividual | Role::EorAdmin
+    ) {
         return Err(Error::Forbidden);
     }
 
@@ -72,8 +75,8 @@ pub struct IndividualDetails {
     pub dial_code: String,
     pub phone_number: String,
     pub country: String,
-    pub address: String,
     pub city: String,
+    pub address: String,
     pub postal_code: String,
     pub tax_id: Option<String>,
     pub time_zone: String,
@@ -89,8 +92,8 @@ enum IndividualDetailNames {
     DialCode,
     PhoneNumber,
     Country,
-    Address,
     City,
+    Address,
     PostalCode,
     TaxId,
     TimeZone,
