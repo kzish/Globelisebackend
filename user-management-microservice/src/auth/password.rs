@@ -37,7 +37,7 @@ pub async fn lost_password(
     let email_address: EmailAddress = request
         .email
         .parse()
-        .map_err(|_| Error::BadRequest("Bad request"))?;
+        .map_err(|_| Error::BadRequest("Not a valid email address"))?;
 
     // TODO: Do not reveal correct email and role.
     let database = database.lock().await;
@@ -134,7 +134,7 @@ pub async fn change_password(
     let role: Role = claims.role.parse().unwrap();
 
     if request.password != request.confirm_password {
-        return Err(Error::BadRequest("Bad request"));
+        return Err(Error::BadRequest("Passwords do not match"));
     }
 
     let database = database.lock().await;
