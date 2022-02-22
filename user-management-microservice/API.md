@@ -20,6 +20,8 @@ For any error responses not listed here, assume that the body is either `text/pl
 
 [[_TOC_]]
 
+# Authentication
+
 ## Getting refresh tokens
 
 ### Email sign up
@@ -97,11 +99,7 @@ handler.
 
 **Request**
 
-`POST` Google's ID token as `application/x-www-form-urlencoded`:
-
-```
-credentials
-```
+`POST` Google's ID token as `application/x-www-form-urlencoded`.
 
 **Response**
 
@@ -133,6 +131,8 @@ Success: `200 OK` - `text/plain`
 
 ## Getting the public key for verifying tokens
 
+This endpoint is intended for backend use.
+
 **Endpoint**
 
 ```
@@ -151,9 +151,9 @@ Success: `200 OK` - `text/plain`
 <public key>
 ```
 
-## Onboarding
+# Onboarding
 
-### Individual account details
+## Individual account details
 
 **Endpoint**
 
@@ -187,7 +187,7 @@ profile_picture (optional)
 
 Success: `200 OK`
 
-### Entity account details
+## Entity account details
 
 **Endpoint**
 
@@ -219,7 +219,7 @@ logo (optional)
 
 Success: `200 OK`
 
-### PIC details
+## PIC details
 
 **Endpoint**
 
@@ -247,7 +247,7 @@ profile_picture (optional)
 
 Success: `200 OK`
 
-### Bank details
+## Bank details
 
 **Endpoint**
 
@@ -274,7 +274,7 @@ Success: `200 OK`
 
 # Password reset
 
-## Request to email the reset password link
+## Emailing the password reset link
 
 **Endpoint**
 
@@ -284,9 +284,7 @@ Success: `200 OK`
 
 **Request**
 
-`POST`
-
-- these fields as `application/x-www-form-urlencoded`:
+`POST` these fields as `application/x-www-form-urlencoded`:
 
 ```
 user_email
@@ -294,63 +292,51 @@ user_email
 
 **Response**
 
-Empty and the submitted email address should receive an email with a link to the reset password page.
+Success: `200 OK`
 
-**Request as CURL**
+The submitted email address should receive an email with a link to reset their password.
 
-```shell
-curl --request POST \
-  --url <domain>/lostpassword/<role> \
-  --header 'Content-Type: application/x-www-form-urlencoded' \
-  --data user_email=<example@email.com>
-```
+## Accessing the password reset page
 
-## Consume lost password token and redirect to the change password page
+This endpoint should only be accessed via the link in password reset emails.
 
 **Endpoint**
 
 ```
-<domain>/changepasswordredirect/<role>
+<domain>/changepasswordredirect
 ```
 
 **Request**
 
-`GET`
-
-- these fields as query:
+`GET` with these query params:
 
 ```
-user_email
+token
 ```
 
 **Response**
 
-Redirects user to the page at with a new change password token in its query,
+Success: `303 See Other`
+
+Redirects user to the frontend password reset page with a new one-time token in the query params. 
 
 ```
-<role>/changepasswordpage/<role>?token=<change_password_token>
+<password reset page>?token=<new token>
 ```
 
-**Request as CURL**
-
-```shell
- curl --request GET \
-  --url '<domain>/changepasswordredirect/<role>?token=<token>'
-```
-
-## Change user password with the given passwords
+## Executing the password reset
 
 **Endpoint**
 
 ```
-<domain>/changepasswordredirect/<role>
+<domain>/changepassword
 ```
 
 **Request**
 
 `POST`
 
-- an access token via the bearer authentication scheme
+- the provided one-time token via the bearer authentication scheme
 - these fields as `application/x-www-form-urlencoded`:
 
 ```
@@ -360,17 +346,4 @@ confirm_new_password
 
 **Response**
 
-Empty.
-
-**Request as CURL**
-
-```shell
-curl --request POST \
-  --url <token>/changepassword/<role> \
-  --header 'Authorization: Bearer <token>' \
-  --header 'Content-Type: application/x-www-form-urlencoded' \
-  --data new_password=<new_password> \
-  --data confirm_new_password=<confirm_new_password>
-```
-
-## Notes
+Success: `200 OK`

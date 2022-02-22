@@ -37,7 +37,7 @@ pub async fn lost_password(
     let email_address: EmailAddress = request
         .email
         .parse()
-        .map_err(|_| Error::BadRequest("Bad request"))?;
+        .map_err(|_| Error::BadRequest("Not a valid email address"))?;
 
     // TODO: Do not reveal correct email and role.
     let database = database.lock().await;
@@ -101,17 +101,15 @@ pub async fn lost_password(
 
 // Respond to user clicking the reset password link in their email.
 pub async fn change_password_redirect(
-    Path(role): Path<Role>,
     OneTimeTokenParam(claims): OneTimeTokenParam<OneTimeToken<LostPasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<Redirect, Error> {
     let ulid: Ulid = claims.sub.parse().unwrap();
+    let role: Role = claims.role.parse().unwrap();
 
-    // Make sure the user actually exists.
     let mut shared_state = shared_state.lock().await;
     let database = database.lock().await;
-
     let change_password_token = shared_state
         .open_one_time_session::<ChangePasswordToken>(&database, ulid, role)
         .await?;
@@ -129,14 +127,14 @@ pub async fn change_password_redirect(
 /// Replace the password for a user with the requested one.
 pub async fn change_password(
     Form(request): Form<ChangePasswordRequest>,
-    Path(role): Path<Role>,
     OneTimeTokenBearer(claims): OneTimeTokenBearer<OneTimeToken<ChangePasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
     let ulid: Ulid = claims.sub.parse().unwrap();
+    let role: Role = claims.role.parse().unwrap();
 
     if request.password != request.confirm_password {
-        return Err(Error::BadRequest("Bad request"));
+        return Err(Error::BadRequest("Passwords do not match"));
     }
 
     let database = database.lock().await;

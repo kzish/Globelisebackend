@@ -31,13 +31,10 @@ async fn main() {
         .route("/login/:role", post(auth::login))
         .route("/lostpassword/:role", post(auth::password::lost_password))
         .route(
-            "/changepasswordredirect/:role",
+            "/changepasswordredirect",
             get(auth::password::change_password_redirect),
         )
-        .route(
-            "/changepassword/:role",
-            post(auth::password::change_password),
-        )
+        .route("/changepassword", post(auth::password::change_password))
         .route("/google/login/:role", post(auth::google::login))
         .route("/auth/refresh", post(auth::renew_access_token))
         .route("/auth/keys", get(auth::public_key))
