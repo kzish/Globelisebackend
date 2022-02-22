@@ -176,29 +176,43 @@ where
         let TypedHeader(Authorization(bearer)) =
             TypedHeader::<Authorization<Bearer>>::from_request(req)
                 .await
-                .map_err(|_| Error::Unauthorized("No access token provided"))?;
+                .map_err(|_| Error::Unauthorized("No one-time token provided"))?;
         let Extension(database) = Extension::<SharedDatabase>::from_request(req)
             .await
             .map_err(|_| Error::Internal("Could not extract database from request".into()))?;
-        let claims = OneTimeToken::decode(bearer.token())?;
+        let Extension(shared_state) = Extension::<SharedState>::from_request(req)
+            .await
+            .map_err(|_| Error::Internal("Could not extract state store from request".into()))?;
+        let claims = OneTimeToken::<T>::decode(bearer.token())?;
         let ulid: Ulid = claims
             .sub
             .parse()
-            .map_err(|_| Error::Unauthorized("Access token rejected: invalid ulid"))?;
+            .map_err(|_| Error::Unauthorized("One-time token rejected: invalid ulid"))?;
         let role: Role = claims
             .role
             .parse()
-            .map_err(|_| Error::Unauthorized("Access token rejected: invalid role"))?;
+            .map_err(|_| Error::Unauthorized("One-time token rejected: invalid role"))?;
 
         // Make sure the user actually exists.
         let database = database.lock().await;
         if database.user(ulid, Some(role)).await?.is_none() {
             return Err(Error::Unauthorized(
-                "Access token rejected: user does not exist",
+                "One-time token rejected: user does not exist",
             ));
         }
 
-        Ok(OneTimeTokenBearer(claims))
+        // Do not authorize if the token has already been used.
+        let mut shared_state = shared_state.lock().await;
+        if shared_state
+            .is_one_time_token_valid::<T>(ulid, bearer.token().as_bytes())
+            .await?
+        {
+            Ok(OneTimeTokenBearer(claims))
+        } else {
+            Err(Error::Unauthorized(
+                "One-time token rejected: invalid session",
+            ))
+        }
     }
 }
 
