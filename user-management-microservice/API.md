@@ -4,7 +4,8 @@
 
 Replace `<domain>` with the address that the server listens on.
 
-`<role>` can be one of the following values: 
+`<role>` can be one of the following values:
+
 ```
 client_individual
 client_entity
@@ -22,6 +23,7 @@ For any error responses not listed here, assume that the body is either `text/pl
 ## Getting refresh tokens
 
 ### Email sign up
+
 **Endpoint**
 
 ```
@@ -31,6 +33,7 @@ For any error responses not listed here, assume that the body is either `text/pl
 **Request**
 
 `POST` these fields as `application/x-www-form-urlencoded`:
+
 ```
 email
 password
@@ -40,16 +43,19 @@ confirm_password
 **Response**
 
 Success: `200 OK` - `text/plain`
+
 ```
 <refresh token>
 ```
 
 Email is unavailable: `422 Unprocessable Entity` - `text/plain`
+
 ```
 Email is unavailable
 ```
 
 ### Email login
+
 **Endpoint**
 
 ```
@@ -59,6 +65,7 @@ Email is unavailable
 **Request**
 
 `POST` these fields as `application/x-www-form-urlencoded`:
+
 ```
 email
 password
@@ -67,6 +74,7 @@ password
 **Response**
 
 Success: `200 OK` - `text/plain`
+
 ```
 <refresh token>
 ```
@@ -74,11 +82,13 @@ Success: `200 OK` - `text/plain`
 ### Google
 
 #### Getting the ID token
+
 See Google's [guide](https://developers.google.com/identity/gsi/web/guides/display-button)
 for displaying the Google sign in button. Tell Google to send the ID token to your JavaScript
 handler.
 
 #### Sending the ID token
+
 **Endpoint**
 
 ```
@@ -88,6 +98,7 @@ handler.
 **Request**
 
 `POST` Google's ID token as `application/x-www-form-urlencoded`:
+
 ```
 credentials
 ```
@@ -95,11 +106,13 @@ credentials
 **Response**
 
 Success: `200 OK` - `text/plain`
+
 ```
 <refresh token>
 ```
 
 ## Getting access tokens
+
 **Endpoint**
 
 ```
@@ -113,11 +126,13 @@ Success: `200 OK` - `text/plain`
 **Response**
 
 Success: `200 OK` - `text/plain`
+
 ```
 <access token>
 ```
 
 ## Getting the public key for verifying tokens
+
 **Endpoint**
 
 ```
@@ -131,6 +146,7 @@ Success: `200 OK` - `text/plain`
 **Response**
 
 Success: `200 OK` - `text/plain`
+
 ```
 <public key>
 ```
@@ -138,6 +154,7 @@ Success: `200 OK` - `text/plain`
 ## Onboarding
 
 ### Individual account details
+
 **Endpoint**
 
 ```
@@ -147,8 +164,10 @@ Success: `200 OK` - `text/plain`
 **Request**
 
 `POST`
+
 - an access token via the bearer authentication scheme
 - these fields as `multipart/form-data`:
+
 ```
 first_name
 last_name
@@ -169,6 +188,7 @@ profile_picture (optional)
 Success: `200 OK`
 
 ### Entity account details
+
 **Endpoint**
 
 ```
@@ -178,8 +198,10 @@ Success: `200 OK`
 **Request**
 
 `POST`
+
 - an access token via the bearer authentication scheme
 - these fields as `multipart/form-data`:
+
 ```
 company_name
 country
@@ -198,6 +220,7 @@ logo (optional)
 Success: `200 OK`
 
 ### PIC details
+
 **Endpoint**
 
 ```
@@ -207,8 +230,10 @@ Success: `200 OK`
 **Request**
 
 `POST`
+
 - an access token via the bearer authentication scheme
 - these fields as `multipart/form-data`:
+
 ```
 first_name
 last_name
@@ -223,6 +248,7 @@ profile_picture (optional)
 Success: `200 OK`
 
 ### Bank details
+
 **Endpoint**
 
 ```
@@ -232,8 +258,10 @@ Success: `200 OK`
 **Request**
 
 `POST`
+
 - an access token via the bearer authentication scheme
 - these fields as `multipart/form-data`:
+
 ```
 bank_name
 account_name
@@ -244,5 +272,105 @@ account_number
 
 Success: `200 OK`
 
-## Password reset
-Work in progress.
+# Password reset
+
+## Request to email the reset password link
+
+**Endpoint**
+
+```
+<domain>/lostpassword/<role>
+```
+
+**Request**
+
+`POST`
+
+- these fields as `application/x-www-form-urlencoded`:
+
+```
+user_email
+```
+
+**Response**
+
+Empty and the submitted email address should receive an email with a link to the reset password page.
+
+**Request as CURL**
+
+```shell
+curl --request POST \
+  --url <domain>/lostpassword/<role> \
+  --header 'Content-Type: application/x-www-form-urlencoded' \
+  --data user_email=<example@email.com>
+```
+
+## Consume lost password token and redirect to the change password page
+
+**Endpoint**
+
+```
+<domain>/changepasswordredirect/<role>
+```
+
+**Request**
+
+`GET`
+
+- these fields as query:
+
+```
+user_email
+```
+
+**Response**
+
+Redirects user to the page at with a new change password token in its query,
+
+```
+<role>/changepasswordpage/<role>?token=<change_password_token>
+```
+
+**Request as CURL**
+
+```shell
+ curl --request GET \
+  --url '<domain>/changepasswordredirect/<role>?token=<token>'
+```
+
+## Change user password with the given passwords
+
+**Endpoint**
+
+```
+<domain>/changepasswordredirect/<role>
+```
+
+**Request**
+
+`POST`
+
+- an access token via the bearer authentication scheme
+- these fields as `application/x-www-form-urlencoded`:
+
+```
+new_password
+confirm_new_password
+```
+
+**Response**
+
+Empty.
+
+**Request as CURL**
+
+```shell
+curl --request POST \
+  --url <token>/changepassword/<role> \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/x-www-form-urlencoded' \
+  --data new_password=<new_password> \
+  --data confirm_new_password=<confirm_new_password>
+```
+
+## Notes
