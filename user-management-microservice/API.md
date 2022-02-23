@@ -114,7 +114,7 @@ Success: `200 OK` - `text/plain`
 **Endpoint**
 
 ```
-<domain>/auth/refresh
+<domain>/auth/access-token
 ```
 
 **Request**
@@ -136,7 +136,7 @@ This endpoint is intended for backend use.
 **Endpoint**
 
 ```
-<domain>/auth/keys
+<domain>/auth/public-key
 ```
 
 **Request**
