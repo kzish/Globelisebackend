@@ -6,13 +6,16 @@ use axum::{
     routing::{get, post},
     BoxError, Router,
 };
+use database::Database;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
 use tower_http::add_extension::AddExtensionLayer;
 
 mod auth;
+mod database;
 mod env;
 mod error;
+mod info;
 mod onboard;
 
 use env::LISTENING_ADDRESS;
@@ -24,7 +27,7 @@ async fn main() {
     let shared_state = auth::State::new().await.expect("Could not connect to Dapr");
     let shared_state = Arc::new(Mutex::new(shared_state));
 
-    let database = auth::Database::new().await;
+    let database = Database::new().await;
     let database = Arc::new(Mutex::new(database));
 
     let app = Router::new()
@@ -56,6 +59,7 @@ async fn main() {
         )
         .route("/onboard/pic-details", post(onboard::entity::pic_details))
         .route("/onboard/bank-details", post(onboard::bank::bank_details))
+        .route("/index", get(info::user_index))
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
         .layer(

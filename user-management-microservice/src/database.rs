@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{str::FromStr, sync::Arc, time::Duration};
 
 use email_address::EmailAddress;
 use rusty_ulid::Ulid;
@@ -6,15 +6,17 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
 use strum::IntoEnumIterator;
 use tokio::sync::Mutex;
 
-use crate::onboard::{
-    bank::BankDetails,
-    entity::{EntityDetails, PicDetails},
-    individual::IndividualDetails,
+use crate::{
+    auth::user::{Role, User},
+    info::UserIndex,
+    onboard::{
+        bank::BankDetails,
+        entity::{EntityDetails, PicDetails},
+        individual::IndividualDetails,
+    },
 };
 
 use crate::error::Error;
-
-use super::user::{Role, User};
 
 pub type SharedDatabase = Arc<Mutex<Database>>;
 
@@ -132,6 +134,95 @@ impl Database {
             }
         }
         Ok(None)
+    }
+
+    /// Gets a user's information.
+    ///
+    /// If `role` is specified, this function only searches that role's table.
+    /// Otherwise, it searches all user tables.
+    pub async fn user_index(&self) -> Result<Vec<UserIndex>, Error> {
+        let result = sqlx::query!(
+            r##"
+            WITH client_entities_result AS (
+                SELECT
+                    ulid,
+                    email,
+                    company_name AS name
+                FROM
+                    client_entities
+            ),
+            client_individuals_result AS (
+                SELECT
+                    ulid,
+                    email,
+                    CONCAT(first_name, ' ', last_name) AS name
+                FROM
+                    client_individuals
+            ),
+            contractor_entities_result AS (
+                SELECT
+                    ulid,
+                    email,
+                    company_name AS name
+                FROM
+                    contractor_entities
+            ),
+            contractor_individuals_result AS (
+                SELECT
+                    ulid,
+                    email,
+                    CONCAT(first_name, ' ', last_name) AS name
+                FROM
+                    contractor_individuals
+            ),
+            result AS (
+                SELECT
+                    *,
+                    'client-entity' AS role
+                FROM
+                    client_entities_result
+                UNION
+                SELECT
+                    *,
+                    'client-individual' AS role
+                FROM
+                    client_individuals_result
+                UNION
+                SELECT
+                    *,
+                    'contractor-entity' AS role
+                FROM
+                    contractor_entities_result
+                UNION
+                SELECT
+                    *,
+                    'contractor-individual' AS role
+                FROM
+                    contractor_individuals_result
+            )
+            SELECT
+                ulid,
+                name,
+                email,
+                role
+            FROM
+                result"##,
+        )
+        .fetch_all(&self.0)
+        .await
+        .map_err(|e| Error::Database(e.to_string()))?
+        .into_iter()
+        .map(|r| -> Result<UserIndex, Error> {
+            let role = Role::from_str(r.role.unwrap().as_ref())?;
+            Ok(UserIndex {
+                ulid: ulid_from_sql_uuid(r.ulid.unwrap()),
+                name: r.name.unwrap(),
+                role,
+                email: r.email.unwrap(),
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+        Ok(result)
     }
 
     /// Gets a user's id.

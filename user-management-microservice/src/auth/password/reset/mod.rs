@@ -13,6 +13,7 @@ use rusty_ulid::Ulid;
 use serde::Deserialize;
 
 use crate::{
+    auth::RedirectTo,
     env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL},
     error::Error,
 };
@@ -29,6 +30,7 @@ use token::{ChangePasswordToken, LostPasswordToken};
 
 /// Send email to the user with the steps to recover their password.
 pub async fn send_email(
+    RedirectTo(redirect_uri): RedirectTo,
     Form(request): Form<LostPasswordRequest>,
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
@@ -73,7 +75,7 @@ pub async fn send_email(
             <body>
                 <p>
                 If you requested to change your password, please follow this
-                <a href="{}/changepasswordredirect/{}?token={}">link</a> to reset it.
+                <a href="{}/auth/password/reset/initiate/{}?token={}&redirect_to={}">link</a> to reset it.
                 </p>
                 <p>Otherwise, please report this occurence.</p>
             </body>
@@ -81,7 +83,8 @@ pub async fn send_email(
 "##,
             (*GLOBELISE_DOMAIN_URL),
             role,
-            access_token
+            access_token,
+            redirect_uri
         ))
         .map_err(|_| Error::Internal("Could not create email for changing password".into()))?;
 
@@ -101,6 +104,7 @@ pub async fn send_email(
 
 // Respond to user clicking the reset password link in their email.
 pub async fn initiate(
+    RedirectTo(redirect_uri): RedirectTo,
     OneTimeTokenParam(claims): OneTimeTokenParam<OneTimeToken<LostPasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
@@ -114,12 +118,7 @@ pub async fn initiate(
         .open_one_time_session::<ChangePasswordToken>(&database, ulid, role)
         .await?;
 
-    let redirect_url = format!(
-        "{}/changepasswordpage/{}?token={}",
-        (*GLOBELISE_DOMAIN_URL),
-        role,
-        change_password_token
-    );
+    let redirect_url = format!("{}?token={}", redirect_uri, change_password_token);
     let uri = Uri::from_str(redirect_url.as_str()).unwrap();
     Ok(Redirect::to(uri))
 }
@@ -129,6 +128,7 @@ pub async fn execute(
     Form(request): Form<ChangePasswordRequest>,
     OneTimeTokenBearer(claims): OneTimeTokenBearer<OneTimeToken<ChangePasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
+    Extension(shared_state): Extension<SharedState>,
 ) -> Result<(), Error> {
     let ulid: Ulid = claims.sub.parse().unwrap();
     let role: Role = claims.role.parse().unwrap();
@@ -138,6 +138,7 @@ pub async fn execute(
     }
 
     let database = database.lock().await;
+    let mut shared_state = shared_state.lock().await;
 
     // NOTE: This is not atomic, so this check is quite pointless.
     // Either rely completely on SQL or use some kind of transaction commit.
@@ -146,6 +147,7 @@ pub async fn execute(
         .map_err(|_| Error::Internal("Failed to hash password".into()))?;
 
     database.update_password(ulid, role, Some(hash)).await?;
+    shared_state.revoke_all_sessions(ulid).await?;
 
     Ok(())
 }
