@@ -17,10 +17,10 @@ use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 
-use super::{error::Error, user::Role, SharedDatabase, SharedState};
+use crate::error::Error;
 
-pub mod change_password;
-pub mod lost_password;
+use super::{user::Role, SharedDatabase, SharedState};
+
 pub mod one_time;
 
 /// Creates an access token.

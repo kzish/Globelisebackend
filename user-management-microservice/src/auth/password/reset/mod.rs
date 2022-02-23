@@ -12,20 +12,20 @@ use rand::Rng;
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 
-use crate::env::{
-    GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
+use crate::{
+    env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL},
+    error::Error,
 };
 
-use super::{
-    error::Error,
-    token::{
-        change_password::ChangePasswordToken,
-        lost_password::LostPasswordToken,
-        one_time::{OneTimeToken, OneTimeTokenBearer, OneTimeTokenParam},
-    },
+use crate::auth::{
+    token::one_time::{OneTimeToken, OneTimeTokenBearer, OneTimeTokenParam},
     user::Role,
     SharedDatabase, SharedState, HASH_CONFIG,
 };
+
+mod token;
+
+use token::{ChangePasswordToken, LostPasswordToken};
 
 /// Send email to the user with the steps to recover their password.
 pub async fn send_email(

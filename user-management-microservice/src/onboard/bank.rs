@@ -2,7 +2,10 @@ use axum::extract::{Extension, Form};
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 
-use crate::auth::{error::Error, token::AccessToken, user::Role, SharedDatabase};
+use crate::{
+    auth::{token::AccessToken, user::Role, SharedDatabase},
+    error::Error,
+};
 
 pub async fn bank_details(
     claims: AccessToken,

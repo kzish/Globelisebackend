@@ -7,8 +7,9 @@ use once_cell::sync::Lazy;
 
 use serde::Deserialize;
 
+use crate::error::Error;
+
 use super::{
-    error::Error,
     user::{Role, User},
     SharedDatabase, SharedState,
 };

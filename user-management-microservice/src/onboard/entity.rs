@@ -7,7 +7,10 @@ use axum::{
 use rusty_ulid::Ulid;
 use strum::{EnumIter, EnumString};
 
-use crate::auth::{error::Error, token::AccessToken, user::Role, SharedDatabase};
+use crate::{
+    auth::{token::AccessToken, user::Role, SharedDatabase},
+    error::Error,
+};
 
 use super::multipart::{extract_multipart_form_data, MultipartFormFields, FORM_DATA_LENGTH_LIMIT};
 

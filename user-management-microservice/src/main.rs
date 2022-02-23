@@ -12,6 +12,8 @@ use tower_http::add_extension::AddExtensionLayer;
 
 mod auth;
 mod env;
+mod error;
+mod onboard;
 
 use env::LISTENING_ADDRESS;
 
@@ -32,34 +34,28 @@ async fn main() {
         .route("/auth/google/login/:role", post(auth::google::login))
         .route(
             "/auth/password/reset/email/:role",
-            post(auth::password_reset::send_email),
+            post(auth::password::reset::send_email),
         )
         .route(
             "/auth/password/reset/initiate",
-            get(auth::password_reset::initiate),
+            get(auth::password::reset::initiate),
         )
         .route(
             "/auth/password/reset/execute",
-            post(auth::password_reset::execute),
+            post(auth::password::reset::execute),
         )
         .route("/auth/access-token", post(auth::access_token))
         .route("/auth/public-key", get(auth::public_key))
         .route(
             "/onboard/individual-details",
-            post(auth::onboarding::individual::account_details),
+            post(onboard::individual::account_details),
         )
         .route(
             "/onboard/entity-details",
-            post(auth::onboarding::entity::account_details),
+            post(onboard::entity::account_details),
         )
-        .route(
-            "/onboard/pic-details",
-            post(auth::onboarding::entity::pic_details),
-        )
-        .route(
-            "/onboard/bank-details",
-            post(auth::onboarding::bank::bank_details),
-        )
+        .route("/onboard/pic-details", post(onboard::entity::pic_details))
+        .route("/onboard/bank-details", post(onboard::bank::bank_details))
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
         .layer(

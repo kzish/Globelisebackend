@@ -7,7 +7,7 @@ use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 
-use super::error::Error;
+use crate::error::Error;
 
 /// Stores information associated with a user id.
 #[derive(Debug, Deserialize, Serialize)]

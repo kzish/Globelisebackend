@@ -9,20 +9,19 @@ use rusty_ulid::Ulid;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 
-mod database;
-mod error;
-pub mod google;
-pub mod onboarding;
-pub mod password_reset;
-mod state;
-mod token;
-mod user;
+use crate::error::Error;
 
-pub use database::{Database, SharedDatabase};
-use error::Error;
+mod database;
+pub mod google;
+pub mod password;
+mod state;
+pub mod token;
+pub mod user;
+
 use token::{create_access_token, RefreshToken};
 use user::{Role, User};
 
+pub use database::{Database, SharedDatabase};
 pub use state::{SharedState, State};
 
 /// Creates an account.

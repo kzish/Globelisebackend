@@ -12,8 +12,9 @@ use time::OffsetDateTime;
 use tokio::sync::Mutex;
 use tonic::transport::Channel;
 
+use crate::error::Error;
+
 use super::{
-    error::Error,
     token::{
         create_refresh_token,
         one_time::{create_one_time_token, OneTimeTokenAudience},
