@@ -1,17 +1,12 @@
 //! Endpoints for user authentication and authorization.
 
-use std::collections::HashMap;
-
 use argon2::{self, hash_encoded, verify_encoded, Config};
-use axum::{
-    async_trait,
-    extract::{Extension, Form, FromRequest, Path, Query, RequestParts},
-};
+use axum::extract::{Extension, Form, Path};
 use email_address::EmailAddress;
 use once_cell::sync::Lazy;
 use rand::Rng;
 use rusty_ulid::Ulid;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 
 use crate::{database::SharedDatabase, error::Error};
@@ -154,25 +149,3 @@ pub static HASH_CONFIG: Lazy<Config> = Lazy::new(|| Config {
     variant: argon2::Variant::Argon2id,
     ..Default::default()
 });
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct RedirectTo(pub String);
-
-#[async_trait]
-impl<B> FromRequest<B> for RedirectTo
-where
-    B: Send,
-{
-    type Rejection = Error;
-
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let Query(params) = Query::<HashMap<String, String>>::from_request(req)
-            .await
-            .map_err(|_| Error::Unauthorized("No one-time token provided"))?;
-        if let Some(redirect_url) = params.get("redirect_to") {
-            Ok(RedirectTo(redirect_url.clone()))
-        } else {
-            Err(Error::BadRequest("Must specify a redirect URI"))
-        }
-    }
-}

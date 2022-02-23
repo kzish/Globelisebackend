@@ -1,9 +1,12 @@
-use axum::extract::Extension;
+use axum::extract::{Extension, Path};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    auth::{token::AccessToken, user::Role},
+    auth::{
+        token::AccessToken,
+        user::{Role, User},
+    },
     database::SharedDatabase,
     error::Error,
 };
