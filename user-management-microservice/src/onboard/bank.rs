@@ -3,7 +3,8 @@ use rusty_ulid::Ulid;
 use serde::Deserialize;
 
 use crate::{
-    auth::{token::AccessToken, user::Role, SharedDatabase},
+    auth::{token::AccessToken, user::Role},
+    database::SharedDatabase,
     error::Error,
 };
 

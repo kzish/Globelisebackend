@@ -12,7 +12,7 @@ use time::OffsetDateTime;
 use tokio::sync::Mutex;
 use tonic::transport::Channel;
 
-use crate::error::Error;
+use crate::{database::Database, error::Error};
 
 use super::{
     token::{
@@ -20,7 +20,7 @@ use super::{
         one_time::{create_one_time_token, OneTimeTokenAudience},
     },
     user::Role,
-    Database, HASH_CONFIG,
+    HASH_CONFIG,
 };
 
 pub type SharedState = Arc<Mutex<State>>;
