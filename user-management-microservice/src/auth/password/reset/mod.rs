@@ -129,6 +129,7 @@ pub async fn execute(
     Form(request): Form<ChangePasswordRequest>,
     OneTimeTokenBearer(claims): OneTimeTokenBearer<OneTimeToken<ChangePasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
+    Extension(shared_state): Extension<SharedState>,
 ) -> Result<(), Error> {
     let ulid: Ulid = claims.sub.parse().unwrap();
     let role: Role = claims.role.parse().unwrap();
@@ -138,6 +139,7 @@ pub async fn execute(
     }
 
     let database = database.lock().await;
+    let mut shared_state = shared_state.lock().await;
 
     // NOTE: This is not atomic, so this check is quite pointless.
     // Either rely completely on SQL or use some kind of transaction commit.
@@ -146,6 +148,7 @@ pub async fn execute(
         .map_err(|_| Error::Internal("Failed to hash password".into()))?;
 
     database.update_password(ulid, role, Some(hash)).await?;
+    shared_state.revoke_all_sessions(ulid).await?;
 
     Ok(())
 }
