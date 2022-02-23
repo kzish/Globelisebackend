@@ -9,24 +9,23 @@ use rusty_ulid::Ulid;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 
+use crate::error::Error;
+
 mod database;
-mod error;
 pub mod google;
-pub mod onboarding;
 pub mod password;
 mod state;
-mod token;
-mod user;
+pub mod token;
+pub mod user;
 
-pub use database::{Database, SharedDatabase};
-use error::Error;
 use token::{create_access_token, RefreshToken};
 use user::{Role, User};
 
+pub use database::{Database, SharedDatabase};
 pub use state::{SharedState, State};
 
 /// Creates an account.
-pub async fn create_account(
+pub async fn signup(
     Form(request): Form<CreateAccountRequest>,
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
@@ -109,7 +108,7 @@ pub async fn login(
 }
 
 /// Gets a new access token.
-pub async fn renew_access_token(
+pub async fn access_token(
     claims: RefreshToken,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<String, Error> {
@@ -132,6 +131,7 @@ pub async fn public_key() -> String {
 
 /// Request for creating a user.
 #[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct CreateAccountRequest {
     email: String,
     password: String,

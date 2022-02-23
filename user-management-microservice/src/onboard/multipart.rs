@@ -10,7 +10,7 @@ use axum::{
 };
 use strum::IntoEnumIterator;
 
-use crate::auth::error::Error;
+use crate::error::Error;
 
 pub async fn extract_multipart_form_data<T>(
     mut multipart: Multipart,

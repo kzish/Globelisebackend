@@ -12,6 +12,8 @@ use tower_http::add_extension::AddExtensionLayer;
 
 mod auth;
 mod env;
+mod error;
+mod onboard;
 
 use env::LISTENING_ADDRESS;
 
@@ -27,35 +29,35 @@ async fn main() {
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
-        .route("/signup/:role", post(auth::create_account))
-        .route("/login/:role", post(auth::login))
-        .route("/lostpassword/:role", post(auth::password::lost_password))
+        .route("/auth/signup/:role", post(auth::signup))
+        .route("/auth/login/:role", post(auth::login))
+        .route("/auth/google/login/:role", post(auth::google::login))
         .route(
-            "/changepasswordredirect",
-            get(auth::password::change_password_redirect),
-        )
-        .route("/changepassword", post(auth::password::change_password))
-        .route("/google/login/:role", post(auth::google::login))
-        .route("/auth/refresh", post(auth::renew_access_token))
-        .route("/auth/keys", get(auth::public_key))
-        .route(
-            "/onboard/individual_details",
-            post(auth::onboarding::individual::account_details),
+            "/auth/password/reset/email/:role",
+            post(auth::password::reset::send_email),
         )
         .route(
-            "/onboard/entity_details",
-            post(auth::onboarding::entity::account_details),
+            "/auth/password/reset/initiate",
+            get(auth::password::reset::initiate),
         )
         .route(
-            "/onboard/pic_details",
-            post(auth::onboarding::entity::pic_details),
+            "/auth/password/reset/execute",
+            post(auth::password::reset::execute),
+        )
+        .route("/auth/access-token", post(auth::access_token))
+        .route("/auth/public-key", get(auth::public_key))
+        .route(
+            "/onboard/individual-details",
+            post(onboard::individual::account_details),
         )
         .route(
-            "/onboard/bank_details",
-            post(auth::onboarding::bank::bank_details),
+            "/onboard/entity-details",
+            post(onboard::entity::account_details),
         )
+        .route("/onboard/pic-details", post(onboard::entity::pic_details))
+        .route("/onboard/bank-details", post(onboard::bank::bank_details))
         // ========== DEBUG PAGES ==========
-        .route("/google/loginpage", get(auth::google::login_page))
+        .route("/debug/google/login", get(auth::google::login_page))
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))

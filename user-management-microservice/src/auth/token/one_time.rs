@@ -10,7 +10,10 @@ use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 
-use crate::auth::{error::Error, user::Role, SharedDatabase, SharedState};
+use crate::{
+    auth::{user::Role, SharedDatabase, SharedState},
+    error::Error,
+};
 
 use super::{ISSSUER, KEYS};
 

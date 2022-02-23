@@ -12,23 +12,23 @@ use rand::Rng;
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 
-use crate::env::{
-    GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
+use crate::{
+    env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL},
+    error::Error,
 };
 
-use super::{
-    error::Error,
-    token::{
-        change_password::ChangePasswordToken,
-        lost_password::LostPasswordToken,
-        one_time::{OneTimeToken, OneTimeTokenBearer, OneTimeTokenParam},
-    },
+use crate::auth::{
+    token::one_time::{OneTimeToken, OneTimeTokenBearer, OneTimeTokenParam},
     user::Role,
     SharedDatabase, SharedState, HASH_CONFIG,
 };
 
+mod token;
+
+use token::{ChangePasswordToken, LostPasswordToken};
+
 /// Send email to the user with the steps to recover their password.
-pub async fn lost_password(
+pub async fn send_email(
     Form(request): Form<LostPasswordRequest>,
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
@@ -100,7 +100,7 @@ pub async fn lost_password(
 }
 
 // Respond to user clicking the reset password link in their email.
-pub async fn change_password_redirect(
+pub async fn initiate(
     OneTimeTokenParam(claims): OneTimeTokenParam<OneTimeToken<LostPasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
@@ -125,7 +125,7 @@ pub async fn change_password_redirect(
 }
 
 /// Replace the password for a user with the requested one.
-pub async fn change_password(
+pub async fn execute(
     Form(request): Form<ChangePasswordRequest>,
     OneTimeTokenBearer(claims): OneTimeTokenBearer<OneTimeToken<ChangePasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
@@ -133,7 +133,7 @@ pub async fn change_password(
     let ulid: Ulid = claims.sub.parse().unwrap();
     let role: Role = claims.role.parse().unwrap();
 
-    if request.password != request.confirm_password {
+    if request.new_password != request.confirm_new_password {
         return Err(Error::BadRequest("Passwords do not match"));
     }
 
@@ -142,7 +142,7 @@ pub async fn change_password(
     // NOTE: This is not atomic, so this check is quite pointless.
     // Either rely completely on SQL or use some kind of transaction commit.
     let salt: [u8; 16] = rand::thread_rng().gen();
-    let hash = hash_encoded(request.password.as_bytes(), &salt, &HASH_CONFIG)
+    let hash = hash_encoded(request.new_password.as_bytes(), &salt, &HASH_CONFIG)
         .map_err(|_| Error::Internal("Failed to hash password".into()))?;
 
     database.update_password(ulid, role, Some(hash)).await?;
@@ -153,15 +153,13 @@ pub async fn change_password(
 /// Request for requesting password reset.
 #[derive(Debug, Deserialize)]
 pub struct LostPasswordRequest {
-    #[serde(rename(deserialize = "user_email"))]
     pub email: String,
 }
 
 /// Request to change password.
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ChangePasswordRequest {
-    #[serde(rename(deserialize = "new_password"))]
-    pub password: String,
-    #[serde(rename(deserialize = "confirm_new_password"))]
-    pub confirm_password: String,
+    pub new_password: String,
+    pub confirm_new_password: String,
 }

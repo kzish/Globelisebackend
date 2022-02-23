@@ -6,15 +6,15 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
 use strum::IntoEnumIterator;
 use tokio::sync::Mutex;
 
-use super::{
-    onboarding::{
-        bank::BankDetails,
-        entity::{EntityDetails, PicDetails},
-        individual::IndividualDetails,
-    },
-    user::{Role, User},
-    Error,
+use crate::onboard::{
+    bank::BankDetails,
+    entity::{EntityDetails, PicDetails},
+    individual::IndividualDetails,
 };
+
+use crate::error::Error;
+
+use super::user::{Role, User};
 
 pub type SharedDatabase = Arc<Mutex<Database>>;
 

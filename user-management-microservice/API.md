@@ -7,11 +7,11 @@ Replace `<domain>` with the address that the server listens on.
 `<role>` can be one of the following values:
 
 ```
-client_individual
-client_entity
-contractor_individual
-contractor_entity
-eor_admin
+client-individual
+client-entity
+contractor-individual
+contractor-entity
+eor-admin
 ```
 
 Optional form fields will be marked `(optional)`.
@@ -29,7 +29,7 @@ For any error responses not listed here, assume that the body is either `text/pl
 **Endpoint**
 
 ```
-<domain>/signup/<role>
+<domain>/auth/signup/<role>
 ```
 
 **Request**
@@ -39,7 +39,7 @@ For any error responses not listed here, assume that the body is either `text/pl
 ```
 email
 password
-confirm_password
+confirm-password
 ```
 
 **Response**
@@ -61,7 +61,7 @@ Email is unavailable
 **Endpoint**
 
 ```
-<domain>/login/<role>
+<domain>/auth/login/<role>
 ```
 
 **Request**
@@ -94,7 +94,7 @@ handler.
 **Endpoint**
 
 ```
-<domain>/google/login/<role>
+<domain>/auth/google/login/<role>
 ```
 
 **Request**
@@ -158,7 +158,7 @@ Success: `200 OK` - `text/plain`
 **Endpoint**
 
 ```
-<domain>/onboarding/individual_details
+<domain>/onboard/individual-details
 ```
 
 **Request**
@@ -169,18 +169,18 @@ Success: `200 OK` - `text/plain`
 - these fields as `multipart/form-data`:
 
 ```
-first_name
-last_name
+first-name
+last-name
 dob
-dial_code
-phone_number
+dial-code
+phone-number
 country
 city
 address
-postal_code
-tax_id (optional)
-time_zone
-profile_picture (optional)
+postal-code
+tax-id (optional)
+time-zone
+profile-picture (optional)
 ```
 
 **Response**
@@ -192,7 +192,7 @@ Success: `200 OK`
 **Endpoint**
 
 ```
-<domain>/onboarding/entity_details
+<domain>/onboard/entity-details
 ```
 
 **Request**
@@ -203,15 +203,15 @@ Success: `200 OK`
 - these fields as `multipart/form-data`:
 
 ```
-company_name
+company-name
 country
-entity_type
-registration_number (optional)
-tax_id (optional)
-company_address
+entity-type
+registration-number (optional)
+tax-id (optional)
+company-address
 city
-postal_code
-time_zone
+postal-code
+time-zone
 logo (optional)
 ```
 
@@ -224,7 +224,7 @@ Success: `200 OK`
 **Endpoint**
 
 ```
-<domain>/onboarding/pic_details
+<domain>/onboard/pic-details
 ```
 
 **Request**
@@ -235,12 +235,12 @@ Success: `200 OK`
 - these fields as `multipart/form-data`:
 
 ```
-first_name
-last_name
+first-name
+last-name
 dob
-dial_code
-phone_number
-profile_picture (optional)
+dial-code
+phone-number
+profile-picture (optional)
 ```
 
 **Response**
@@ -252,7 +252,7 @@ Success: `200 OK`
 **Endpoint**
 
 ```
-<domain>/onboarding/bank_details
+<domain>/onboard/bank-details
 ```
 
 **Request**
@@ -263,9 +263,9 @@ Success: `200 OK`
 - these fields as `multipart/form-data`:
 
 ```
-bank_name
-account_name
-account_number
+bank-name
+account-name
+account-number
 ```
 
 **Response**
@@ -279,7 +279,7 @@ Success: `200 OK`
 **Endpoint**
 
 ```
-<domain>/lostpassword/<role>
+<domain>/password/reset/email/<role>
 ```
 
 **Request**
@@ -287,7 +287,7 @@ Success: `200 OK`
 `POST` these fields as `application/x-www-form-urlencoded`:
 
 ```
-user_email
+user-email
 ```
 
 **Response**
@@ -303,7 +303,7 @@ This endpoint should only be accessed via the link in password reset emails.
 **Endpoint**
 
 ```
-<domain>/changepasswordredirect
+<domain>/password/reset/initiate
 ```
 
 **Request**
@@ -329,7 +329,7 @@ Redirects user to the frontend password reset page with a new one-time token in 
 **Endpoint**
 
 ```
-<domain>/changepassword
+<domain>/password/reset/execute
 ```
 
 **Request**
@@ -340,8 +340,8 @@ Redirects user to the frontend password reset page with a new one-time token in 
 - these fields as `application/x-www-form-urlencoded`:
 
 ```
-new_password
-confirm_new_password
+new-password
+confirm-new-password
 ```
 
 **Response**

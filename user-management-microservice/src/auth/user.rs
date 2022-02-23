@@ -7,7 +7,7 @@ use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 
-use super::error::Error;
+use crate::error::Error;
 
 /// Stores information associated with a user id.
 #[derive(Debug, Deserialize, Serialize)]
@@ -26,7 +26,7 @@ impl User {
 
 /// Type representing which role a user has.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "kebab-case")]
 pub enum Role {
     ClientIndividual,
     ClientEntity,
