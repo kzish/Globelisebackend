@@ -279,7 +279,7 @@ Success: `200 OK`
 **Endpoint**
 
 ```
-<domain>/password/reset/email/<role>
+<domain>/auth/password/reset/email/<role>
 ```
 
 **Request**
@@ -287,7 +287,7 @@ Success: `200 OK`
 `POST` these fields as `application/x-www-form-urlencoded`:
 
 ```
-user-email
+email
 ```
 
 **Response**
@@ -303,7 +303,7 @@ This endpoint should only be accessed via the link in password reset emails.
 **Endpoint**
 
 ```
-<domain>/password/reset/initiate
+<domain>/auth/password/reset/initiate
 ```
 
 **Request**
@@ -329,7 +329,7 @@ Redirects user to the frontend password reset page with a new one-time token in 
 **Endpoint**
 
 ```
-<domain>/password/reset/execute
+<domain>/auth/password/reset/execute
 ```
 
 **Request**
