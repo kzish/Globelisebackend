@@ -25,7 +25,7 @@ impl User {
 }
 
 /// Type representing which role a user has.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Role {
     ClientIndividual,
@@ -40,11 +40,11 @@ impl FromStr for Role {
 
     fn from_str(role: &str) -> Result<Self, Self::Err> {
         match role {
-            "client_individual" => Ok(Role::ClientIndividual),
-            "client_entity" => Ok(Role::ClientEntity),
-            "contractor_individual" => Ok(Role::ContractorIndividual),
-            "contractor_entity" => Ok(Role::ContractorEntity),
-            "eor_admin" => Ok(Role::EorAdmin),
+            "client-individual" => Ok(Role::ClientIndividual),
+            "client-entity" => Ok(Role::ClientEntity),
+            "contractor-individual" => Ok(Role::ContractorIndividual),
+            "contractor-entity" => Ok(Role::ContractorEntity),
+            "eor-admin" => Ok(Role::EorAdmin),
             _ => Err(Error::Unauthorized("Invalid role")),
         }
     }
@@ -53,11 +53,11 @@ impl FromStr for Role {
 impl fmt::Display for Role {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Role::ClientIndividual => write!(f, "client_individual"),
-            Role::ClientEntity => write!(f, "client_entity"),
-            Role::ContractorIndividual => write!(f, "contractor_individual"),
-            Role::ContractorEntity => write!(f, "contractor_entity"),
-            Role::EorAdmin => write!(f, "eor_admin"),
+            Role::ClientIndividual => write!(f, "client-individual"),
+            Role::ClientEntity => write!(f, "client-entity"),
+            Role::ContractorIndividual => write!(f, "contractor-individual"),
+            Role::ContractorEntity => write!(f, "contractor-entity"),
+            Role::EorAdmin => write!(f, "eor-admin"),
         }
     }
 }

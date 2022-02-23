@@ -15,6 +15,7 @@ mod auth;
 mod database;
 mod env;
 mod error;
+mod info;
 mod onboard;
 
 use env::LISTENING_ADDRESS;
@@ -58,16 +59,7 @@ async fn main() {
         )
         .route("/onboard/pic-details", post(onboard::entity::pic_details))
         .route("/onboard/bank-details", post(onboard::bank::bank_details))
-        .route(
-            "/info/individual-details",
-            get(onboard::individual::account_details),
-        )
-        .route(
-            "/info/entity-details",
-            get(onboard::entity::account_details),
-        )
-        .route("/info/pic-details", post(onboard::entity::pic_details))
-        .route("/info/bank-details", post(onboard::bank::bank_details))
+        .route("/index", get(info::user_index))
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
         .layer(
