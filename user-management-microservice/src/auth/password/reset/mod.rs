@@ -133,7 +133,7 @@ pub async fn execute(
     let ulid: Ulid = claims.sub.parse().unwrap();
     let role: Role = claims.role.parse().unwrap();
 
-    if request.password != request.confirm_password {
+    if request.new_password != request.confirm_new_password {
         return Err(Error::BadRequest("Passwords do not match"));
     }
 
@@ -142,7 +142,7 @@ pub async fn execute(
     // NOTE: This is not atomic, so this check is quite pointless.
     // Either rely completely on SQL or use some kind of transaction commit.
     let salt: [u8; 16] = rand::thread_rng().gen();
-    let hash = hash_encoded(request.password.as_bytes(), &salt, &HASH_CONFIG)
+    let hash = hash_encoded(request.new_password.as_bytes(), &salt, &HASH_CONFIG)
         .map_err(|_| Error::Internal("Failed to hash password".into()))?;
 
     database.update_password(ulid, role, Some(hash)).await?;
@@ -153,15 +153,13 @@ pub async fn execute(
 /// Request for requesting password reset.
 #[derive(Debug, Deserialize)]
 pub struct LostPasswordRequest {
-    #[serde(rename(deserialize = "user_email"))]
     pub email: String,
 }
 
 /// Request to change password.
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ChangePasswordRequest {
-    #[serde(rename(deserialize = "new_password"))]
-    pub password: String,
-    #[serde(rename(deserialize = "confirm_new_password"))]
-    pub confirm_password: String,
+    pub new_password: String,
+    pub confirm_new_password: String,
 }

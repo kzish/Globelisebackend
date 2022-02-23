@@ -26,7 +26,7 @@ impl User {
 
 /// Type representing which role a user has.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "kebab-case")]
 pub enum Role {
     ClientIndividual,
     ClientEntity,

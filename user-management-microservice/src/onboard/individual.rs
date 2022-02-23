@@ -87,7 +87,7 @@ pub struct IndividualDetails {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, EnumString)]
-#[strum(serialize_all = "snake_case")]
+#[strum(serialize_all = "kebab-case")]
 enum IndividualDetailNames {
     FirstName,
     LastName,

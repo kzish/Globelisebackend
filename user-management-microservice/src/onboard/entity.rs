@@ -91,7 +91,7 @@ pub struct EntityDetails {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, EnumString)]
-#[strum(serialize_all = "snake_case")]
+#[strum(serialize_all = "kebab-case")]
 enum EntityDetailNames {
     CompanyName,
     Country,
@@ -130,7 +130,7 @@ pub struct PicDetails {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, EnumString)]
-#[strum(serialize_all = "snake_case")]
+#[strum(serialize_all = "kebab-case")]
 enum PicDetailNames {
     FirstName,
     LastName,
