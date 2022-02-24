@@ -73,7 +73,7 @@ pub async fn send_email(
             <body>
                 <p>
                 If you requested to change your password, please follow this
-                <a href="{}/changepasswordredirect/{}?token={}">link</a> to reset it.
+                <a href="{}/auth/password/reset/initiate/{}?token={}">link</a> to reset it.
                 </p>
                 <p>Otherwise, please report this occurence.</p>
             </body>
