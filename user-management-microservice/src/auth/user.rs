@@ -35,6 +35,28 @@ pub enum Role {
     EorAdmin,
 }
 
+impl Role {
+    pub fn as_db_name(&self) -> &'static str {
+        match self {
+            Role::ClientIndividual => "client_individuals",
+            Role::ClientEntity => "client_entities",
+            Role::ContractorIndividual => "contractor_individuals",
+            Role::ContractorEntity => "contractor_entities",
+            Role::EorAdmin => "eor_admins",
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Role::ClientIndividual => "client-individual",
+            Role::ClientEntity => "client-entity",
+            Role::ContractorIndividual => "contractor-individual",
+            Role::ContractorEntity => "contractor-entity",
+            Role::EorAdmin => "eor-admin",
+        }
+    }
+}
+
 impl FromStr for Role {
     type Err = Error;
 
@@ -52,12 +74,6 @@ impl FromStr for Role {
 
 impl fmt::Display for Role {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Role::ClientIndividual => write!(f, "client-individual"),
-            Role::ClientEntity => write!(f, "client-entity"),
-            Role::ContractorIndividual => write!(f, "contractor-individual"),
-            Role::ContractorEntity => write!(f, "contractor-entity"),
-            Role::EorAdmin => write!(f, "eor-admin"),
-        }
+        write!(f, "{}", self.as_str())
     }
 }
