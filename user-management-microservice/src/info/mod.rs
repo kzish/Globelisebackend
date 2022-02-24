@@ -14,7 +14,7 @@ pub struct UserIndex {
     pub ulid: Ulid,
     pub name: String,
     pub role: Role,
-    pub dob: Option<String>,
+    pub created_at: Option<String>,
     pub email: String,
 }
 

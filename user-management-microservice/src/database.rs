@@ -226,7 +226,9 @@ impl Database {
                 name: r.name.unwrap(),
                 role,
                 email: r.email.unwrap(),
-                dob: r.dob.map(|v| v.to_string()),
+                // This should be something like `created_at` from the DB,
+                // but we don't have that so just use this ATM.
+                created_at: r.dob.map(|v| v.to_string()),
             })
         })
         .collect::<Result<Vec<_>, _>>()?;
