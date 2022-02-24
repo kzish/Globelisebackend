@@ -26,6 +26,7 @@ See [API](API.md).
     - `GLOBELISE_SMTP_USERNAME`: SMTP username
     - `GLOBELISE_SMTP_PASSWORD`: SMTP password
     - `GLOBELISE_SMTP_URL`: SMTP server URL
+    - `PASSWORD_RESET_URL`: URL of frontend password reset page
 
 ## Build
 ```

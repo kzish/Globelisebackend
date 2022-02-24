@@ -13,7 +13,10 @@ use rusty_ulid::Ulid;
 use serde::Deserialize;
 
 use crate::{
-    env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL},
+    env::{
+        GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, PASSWORD_RESET_URL,
+        SMTP_CREDENTIAL,
+    },
     error::Error,
 };
 
@@ -114,12 +117,7 @@ pub async fn initiate(
         .open_one_time_session::<ChangePasswordToken>(&database, ulid, role)
         .await?;
 
-    let redirect_url = format!(
-        "{}/changepasswordpage/{}?token={}",
-        (*GLOBELISE_DOMAIN_URL),
-        role,
-        change_password_token
-    );
+    let redirect_url = format!("{}?token={}", (*PASSWORD_RESET_URL), change_password_token);
     let uri = Uri::from_str(redirect_url.as_str()).unwrap();
     Ok(Redirect::to(uri))
 }
