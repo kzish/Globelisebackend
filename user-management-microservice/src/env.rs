@@ -13,6 +13,7 @@ macro_rules! init_global_static {
 init_global_static!(LISTENING_ADDRESS);
 init_global_static!(GLOBELISE_DOMAIN_URL);
 init_global_static!(GLOBELISE_SMTP_URL);
+init_global_static!(PASSWORD_RESET_URL);
 
 pub static GLOBELISE_SENDER_EMAIL: Lazy<Mailbox> = Lazy::new(|| {
     std::env::var("GLOBELISE_SENDER_EMAIL")
