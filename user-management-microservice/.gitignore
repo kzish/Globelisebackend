@@ -17,3 +17,6 @@ target/
 .tmuxp.yaml
 
 .env
+
+# Ignore Intellij workspace folder
+.idea/
