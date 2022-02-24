@@ -147,7 +147,8 @@ impl Database {
                 SELECT
                     ulid,
                     email,
-                    company_name AS name
+                    company_name AS name,
+                    dob
                 FROM
                     client_entities
             ),
@@ -155,7 +156,8 @@ impl Database {
                 SELECT
                     ulid,
                     email,
-                    CONCAT(first_name, ' ', last_name) AS name
+                    CONCAT(first_name, ' ', last_name) AS name,
+                    dob
                 FROM
                     client_individuals
             ),
@@ -163,7 +165,8 @@ impl Database {
                 SELECT
                     ulid,
                     email,
-                    company_name AS name
+                    company_name AS name,
+                    dob
                 FROM
                     contractor_entities
             ),
@@ -171,7 +174,8 @@ impl Database {
                 SELECT
                     ulid,
                     email,
-                    CONCAT(first_name, ' ', last_name) AS name
+                    CONCAT(first_name, ' ', last_name) AS name,
+                    dob
                 FROM
                     contractor_individuals
             ),
@@ -204,7 +208,8 @@ impl Database {
                 ulid,
                 name,
                 email,
-                role
+                role,
+                dob
             FROM
                 result"##,
         )
@@ -213,12 +218,15 @@ impl Database {
         .map_err(|e| Error::Database(e.to_string()))?
         .into_iter()
         .map(|r| -> Result<UserIndex, Error> {
+            // NOTE: The unwraps below should be safe because all of these values
+            // are required in the database
             let role = Role::from_str(r.role.unwrap().as_ref())?;
             Ok(UserIndex {
                 ulid: ulid_from_sql_uuid(r.ulid.unwrap()),
                 name: r.name.unwrap(),
                 role,
                 email: r.email.unwrap(),
+                dob: r.dob.map(|v| v.to_string()),
             })
         })
         .collect::<Result<Vec<_>, _>>()?;

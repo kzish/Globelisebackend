@@ -1,11 +1,11 @@
 //! Functions and types for handling authorization tokens.
 
-use std::{fs::File, io::Read};
+use std::{collections::HashMap, fs::File, io::Read, sync::Arc};
 
 use argon2::verify_encoded;
 use axum::{
     async_trait,
-    extract::{Extension, FromRequest, RequestParts, TypedHeader},
+    extract::{Extension, FromRequest, Query, RequestParts, TypedHeader},
     headers::{authorization::Bearer, Authorization},
 };
 use email_address::EmailAddress;
@@ -16,8 +16,9 @@ use once_cell::sync::Lazy;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
+use tokio::sync::Mutex;
 
-use crate::error::Error;
+use crate::{database::Database, error::Error};
 
 use super::{user::Role, SharedDatabase, SharedState};
 
@@ -82,7 +83,7 @@ pub struct AccessToken {
 }
 
 impl AccessToken {
-    fn decode(input: &str) -> Result<Self, Error> {
+    async fn decode(input: &str, database: Arc<Mutex<Database>>) -> Result<Self, Error> {
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_issuer(&[ISSSUER]);
         validation.set_required_spec_claims(&["iss", "exp"]);
@@ -90,26 +91,7 @@ impl AccessToken {
 
         let TokenData { claims, .. } = decode::<AccessToken>(input, &KEYS.decoding, &validation)
             .map_err(|_| Error::Unauthorized("Failed to decode access token"))?;
-        Ok(claims)
-    }
-}
 
-#[async_trait]
-impl<B> FromRequest<B> for AccessToken
-where
-    B: Send,
-{
-    type Rejection = Error;
-
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let TypedHeader(Authorization(bearer)) =
-            TypedHeader::<Authorization<Bearer>>::from_request(req)
-                .await
-                .map_err(|_| Error::Unauthorized("No access token provided"))?;
-        let Extension(database) = Extension::<SharedDatabase>::from_request(req)
-            .await
-            .map_err(|_| Error::Internal("Could not extract database from request".into()))?;
-        let claims = AccessToken::decode(bearer.token())?;
         let ulid: Ulid = claims
             .sub
             .parse()
@@ -128,6 +110,32 @@ where
         }
 
         Ok(claims)
+    }
+}
+
+#[async_trait]
+impl<B> FromRequest<B> for AccessToken
+where
+    B: Send,
+{
+    type Rejection = Error;
+
+    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        let Extension(database) = Extension::<SharedDatabase>::from_request(req)
+            .await
+            .map_err(|_| Error::Internal("Could not extract database from request".into()))?;
+        if let Ok(TypedHeader(Authorization(bearer))) =
+            TypedHeader::<Authorization<Bearer>>::from_request(req).await
+        {
+            Ok(AccessToken::decode(bearer.token(), database).await?)
+        } else if let Ok(Query(param)) = Query::<HashMap<String, String>>::from_request(req).await {
+            let token = param.get("token").ok_or(Error::Unauthorized(
+                "Please provide access token in the query param",
+            ))?;
+            Ok(AccessToken::decode(token.as_str(), database).await?)
+        } else {
+            Err(Error::Unauthorized("No valid access token provided"))
+        }
     }
 }
 
