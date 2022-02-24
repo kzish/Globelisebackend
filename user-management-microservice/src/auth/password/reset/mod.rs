@@ -13,6 +13,7 @@ use rusty_ulid::Ulid;
 use serde::Deserialize;
 
 use crate::{
+    auth::token::one_time::create_one_time_token,
     env::{
         GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, PASSWORD_RESET_URL,
         SMTP_CREDENTIAL,
@@ -42,17 +43,23 @@ pub async fn send_email(
         .parse()
         .map_err(|_| Error::BadRequest("Not a valid email address"))?;
 
-    // TODO: Do not reveal correct email and role.
     let database = database.lock().await;
-    let user_ulid = database
-        .user_id(&email_address, role)
-        .await?
-        .ok_or(Error::BadRequest("Bad request"))?;
+    let (user_ulid, is_valid_attempt) = match database.user_id(&email_address, role).await {
+        Ok(Some(ulid)) => (ulid, true),
+        _ => (Ulid::generate(), false),
+    };
 
     let mut shared_state = shared_state.lock().await;
-    let access_token = shared_state
+    let (one_time_token, created_valid_token) = match shared_state
         .open_one_time_session::<LostPasswordToken>(&database, user_ulid, role)
-        .await?;
+        .await
+    {
+        Ok(token) => (token, true),
+        Err(_) => {
+            let (fake_token, _) = create_one_time_token::<LostPasswordToken>(user_ulid, role)?;
+            (fake_token, false)
+        }
+    };
 
     let receiver_email = email_address
         // TODO: Get the name of the person associated to this email address
@@ -81,10 +88,10 @@ pub async fn send_email(
                 <p>Otherwise, please report this occurence.</p>
             </body>
             </html>
-"##,
+            "##,
             (*GLOBELISE_DOMAIN_URL),
             role,
-            access_token
+            one_time_token
         ))
         .map_err(|_| Error::Internal("Could not create email for changing password".into()))?;
 
@@ -95,14 +102,16 @@ pub async fn send_email(
         .build();
 
     // Send the email
-    mailer
-        .send(&email)
-        .map_err(|e| Error::Internal(e.to_string()))?;
+    if is_valid_attempt && created_valid_token {
+        mailer
+            .send(&email)
+            .map_err(|e| Error::Internal(e.to_string()))?;
+    }
 
     Ok(())
 }
 
-// Respond to user clicking the reset password link in their email.
+/// Respond to user clicking the reset password link in their email.
 pub async fn initiate(
     OneTimeTokenParam(claims): OneTimeTokenParam<OneTimeToken<LostPasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
