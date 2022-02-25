@@ -20,12 +20,16 @@ use tokio::sync::Mutex;
 
 use crate::{database::Database, error::Error};
 
-use super::{user::Role, SharedDatabase, SharedState};
+use super::{user::UserType, SharedDatabase, SharedState};
 
 pub mod one_time;
 
 /// Creates an access token.
-pub fn create_access_token(ulid: Ulid, email: EmailAddress, role: Role) -> Result<String, Error> {
+pub fn create_access_token(
+    ulid: Ulid,
+    email: EmailAddress,
+    user_type: UserType,
+) -> Result<String, Error> {
     let expiration = match OffsetDateTime::now_utc().checked_add(ACCESS_LIFETIME) {
         Some(datetime) => datetime.unix_timestamp(),
         None => {
@@ -38,7 +42,7 @@ pub fn create_access_token(ulid: Ulid, email: EmailAddress, role: Role) -> Resul
     let claims = AccessToken {
         sub: ulid.to_string(),
         email: email.into(),
-        role: role.to_string(),
+        user_type: user_type.to_string(),
         iss: ISSSUER.into(),
         exp: expiration as usize,
     };
@@ -47,7 +51,7 @@ pub fn create_access_token(ulid: Ulid, email: EmailAddress, role: Role) -> Resul
 }
 
 /// Creates a refresh token.
-pub fn create_refresh_token(ulid: Ulid, role: Role) -> Result<(String, i64), Error> {
+pub fn create_refresh_token(ulid: Ulid, user_type: UserType) -> Result<(String, i64), Error> {
     let expiration = match OffsetDateTime::now_utc().checked_add(REFRESH_LIFETIME) {
         Some(datetime) => datetime.unix_timestamp(),
         None => {
@@ -59,7 +63,7 @@ pub fn create_refresh_token(ulid: Ulid, role: Role) -> Result<(String, i64), Err
 
     let claims = RefreshToken {
         sub: ulid.to_string(),
-        role: role.to_string(),
+        user_type: user_type.to_string(),
         aud: "refresh_token".into(),
         iss: ISSSUER.into(),
         exp: expiration as usize,
@@ -77,7 +81,7 @@ pub fn create_refresh_token(ulid: Ulid, role: Role) -> Result<(String, i64), Err
 pub struct AccessToken {
     pub sub: String,
     pub email: String,
-    pub role: String,
+    pub user_type: String,
     iss: String,
     exp: usize,
 }
@@ -96,14 +100,14 @@ impl AccessToken {
             .sub
             .parse()
             .map_err(|_| Error::Unauthorized("Access token rejected: invalid ulid"))?;
-        let role: Role = claims
-            .role
+        let user_type: UserType = claims
+            .user_type
             .parse()
             .map_err(|_| Error::Unauthorized("Access token rejected: invalid role"))?;
 
         // Make sure the user actually exists.
         let database = database.lock().await;
-        if database.user(ulid, Some(role)).await?.is_none() {
+        if database.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Unauthorized(
                 "Access token rejected: user does not exist",
             ));
@@ -143,7 +147,7 @@ where
 #[derive(Deserialize, Serialize)]
 pub struct RefreshToken {
     pub sub: String,
-    pub role: String,
+    pub user_type: String,
     aud: String,
     iss: String,
     exp: usize,
@@ -187,14 +191,14 @@ where
             .sub
             .parse()
             .map_err(|_| Error::Unauthorized("Refresh token rejected: invalid ulid"))?;
-        let role: Role = claims
-            .role
+        let user_type: UserType = claims
+            .user_type
             .parse()
             .map_err(|_| Error::Unauthorized("Refresh token rejected: invalid role"))?;
 
         // Make sure the user actually exists.
         let database = database.lock().await;
-        if database.user(ulid, Some(role)).await?.is_none() {
+        if database.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Unauthorized(
                 "Refresh token rejected: user does not exist",
             ));

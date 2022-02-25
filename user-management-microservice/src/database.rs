@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use email_address::EmailAddress;
 use rusty_ulid::Ulid;
@@ -7,7 +7,7 @@ use strum::IntoEnumIterator;
 use tokio::sync::Mutex;
 
 use crate::{
-    auth::user::{Role, User},
+    auth::user::{Role, User, UserType},
     info::UserIndex,
     onboard::{
         bank::BankDetails,
@@ -39,7 +39,7 @@ impl Database {
     }
 
     /// Creates and stores a new user.
-    pub async fn create_user(&self, user: User, role: Role) -> Result<Ulid, Error> {
+    pub async fn create_user(&self, user: User, user_type: UserType) -> Result<Ulid, Error> {
         if !user.has_authentication() {
             return Err(Error::Unauthorized(
                 "Refused to create user: no authentication method provided",
@@ -47,7 +47,7 @@ impl Database {
         }
 
         // Avoid overwriting an existing user.
-        match self.user_id(&user.email, role).await {
+        match self.user_id(&user.email, user_type).await {
             Ok(Some(_)) | Err(Error::WrongUserType) => return Err(Error::UnavailableEmail),
             Ok(None) => (),
             Err(e) => return Err(e),
@@ -58,7 +58,7 @@ impl Database {
         sqlx::query(&format!(
             "INSERT INTO {} (ulid, email, password, is_google, is_outlook)
             VALUES ($1, $2, $3, $4, $5)",
-            role.as_db_name()
+            user_type.db_auth_name()
         ))
         .bind(ulid_to_sql_uuid(ulid))
         .bind(user.email.as_ref())
@@ -76,13 +76,13 @@ impl Database {
     pub async fn update_password(
         &self,
         ulid: Ulid,
-        role: Role,
+        user_type: UserType,
         // TODO: Create a newtype to ensure only hashed password are inserted
         new_password_hash: Option<String>,
     ) -> Result<(), Error> {
         sqlx::query(&format!(
             "UPDATE {} SET password = $1 WHERE ulid = $2",
-            role.as_db_name()
+            user_type.db_auth_name()
         ))
         .bind(new_password_hash)
         .bind(ulid_to_sql_uuid(ulid))
@@ -93,26 +93,26 @@ impl Database {
         Ok(())
     }
 
-    /// Gets a user's information.
+    /// Gets a user's authentication information.
     ///
-    /// If `role` is specified, this function only searches that role's table.
+    /// If `user_type` is specified, this function only searches that type's table.
     /// Otherwise, it searches all user tables.
     pub async fn user(
         &self,
         ulid: Ulid,
-        role: Option<Role>,
-    ) -> Result<Option<(User, Role)>, Error> {
-        let roles_to_check = match role {
-            Some(role) => vec![role],
-            None => Role::iter().collect(),
+        user_type: Option<UserType>,
+    ) -> Result<Option<(User, UserType)>, Error> {
+        let types_to_check = match user_type {
+            Some(t) => vec![t],
+            None => UserType::iter().collect(),
         };
 
-        for r in roles_to_check {
+        for t in types_to_check {
             let user = sqlx::query(&format!(
                 "SELECT email, password, is_google, is_outlook
                 FROM {}
                 WHERE ulid = $1",
-                r.as_db_name()
+                t.db_auth_name()
             ))
             .bind(ulid_to_sql_uuid(ulid))
             .fetch_optional(&self.0)
@@ -129,7 +129,7 @@ impl Database {
                         google: user.get("is_google"),
                         outlook: user.get("is_outlook"),
                     },
-                    r,
+                    t,
                 )));
             }
         }
@@ -137,21 +137,17 @@ impl Database {
     }
 
     /// Gets a user's id.
-    pub async fn user_id(&self, email: &EmailAddress, role: Role) -> Result<Option<Ulid>, Error> {
-        let roles_to_check = match role {
-            Role::IndividualClient | Role::EntityClient => {
-                vec![Role::IndividualClient, Role::EntityClient]
-            }
-            Role::IndividualContractor | Role::EntityContractor => {
-                vec![Role::IndividualContractor, Role::EntityContractor]
-            }
-            Role::EorAdmin => vec![Role::EorAdmin],
-        };
+    pub async fn user_id(
+        &self,
+        email: &EmailAddress,
+        user_type: UserType,
+    ) -> Result<Option<Ulid>, Error> {
+        let mut ulid = None;
 
-        for r in roles_to_check {
+        for t in UserType::iter() {
             let id = sqlx::query(&format!(
                 "SELECT ulid FROM {} WHERE email = $1",
-                r.as_db_name()
+                t.db_auth_name()
             ))
             .bind(email.as_ref())
             .fetch_optional(&self.0)
@@ -159,14 +155,14 @@ impl Database {
             .map_err(|e| Error::Database(e.to_string()))?;
 
             if let Some(id) = id {
-                if r == role {
-                    return Ok(Some(ulid_from_sql_uuid(id.get("ulid"))));
+                if t == user_type {
+                    ulid = Some(ulid_from_sql_uuid(id.get("ulid")));
                 } else {
                     return Err(Error::WrongUserType);
                 }
             }
         }
-        Ok(None)
+        Ok(ulid)
     }
 }
 
@@ -174,16 +170,14 @@ impl Database {
     pub async fn onboard_individual_details(
         &self,
         ulid: Ulid,
+        user_type: UserType,
         role: Role,
         details: IndividualDetails,
     ) -> Result<(), Error> {
-        if !matches!(
-            role,
-            Role::IndividualClient | Role::IndividualContractor | Role::EorAdmin
-        ) {
+        if !matches!(user_type, UserType::Individual | UserType::EorAdmin) {
             return Err(Error::Forbidden);
         }
-        if self.user(ulid, Some(role)).await?.is_none() {
+        if self.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Forbidden);
         }
 
@@ -193,7 +187,7 @@ impl Database {
             country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
             time_zone = $11, profile_picture = $12
             WHERE ulid = $13",
-            role.as_db_name()
+            user_type.db_onboard_name(role)
         ))
         .bind(details.first_name)
         .bind(details.last_name)
@@ -218,13 +212,14 @@ impl Database {
     pub async fn onboard_entity_details(
         &self,
         ulid: Ulid,
+        user_type: UserType,
         role: Role,
         details: EntityDetails,
     ) -> Result<(), Error> {
-        if !matches!(role, Role::EntityClient | Role::EntityContractor) {
+        if !matches!(user_type, UserType::Entity) {
             return Err(Error::Forbidden);
         }
-        if self.user(ulid, Some(role)).await?.is_none() {
+        if self.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Forbidden);
         }
 
@@ -234,7 +229,7 @@ impl Database {
             tax_id = $5, company_address = $6, city = $7, postal_code = $8, time_zone = $9,
             logo = $10
             WHERE ulid = $11",
-            role.as_db_name()
+            user_type.db_onboard_name(role)
         ))
         .bind(details.company_name)
         .bind(details.country)
@@ -257,13 +252,14 @@ impl Database {
     pub async fn onboard_pic_details(
         &self,
         ulid: Ulid,
+        user_type: UserType,
         role: Role,
         details: PicDetails,
     ) -> Result<(), Error> {
-        if !matches!(role, Role::EntityClient | Role::EntityContractor) {
+        if !matches!(user_type, UserType::Entity) {
             return Err(Error::Forbidden);
         }
-        if self.user(ulid, Some(role)).await?.is_none() {
+        if self.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Forbidden);
         }
 
@@ -272,7 +268,7 @@ impl Database {
             SET first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
             profile_picture = $6
             WHERE ulid = $7",
-            role.as_db_name()
+            user_type.db_onboard_name(role)
         ))
         .bind(details.first_name)
         .bind(details.last_name)
@@ -291,13 +287,13 @@ impl Database {
     pub async fn onboard_bank_details(
         &self,
         ulid: Ulid,
-        role: Role,
+        user_type: UserType,
         details: BankDetails,
     ) -> Result<(), Error> {
-        if !matches!(role, Role::IndividualContractor | Role::EntityContractor) {
+        if !matches!(user_type, UserType::Individual | UserType::Entity) {
             return Err(Error::Forbidden);
         }
-        if self.user(ulid, Some(role)).await?.is_none() {
+        if self.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Forbidden);
         }
 
@@ -305,7 +301,7 @@ impl Database {
             "UPDATE {}
             SET bank_name = $1, bank_account_name = $2, bank_account_number = $3
             WHERE ulid = $4",
-            role.as_db_name()
+            user_type.db_onboard_name(Role::Contractor)
         ))
         .bind(details.bank_name)
         .bind(details.account_name)

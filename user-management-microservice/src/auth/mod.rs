@@ -18,14 +18,14 @@ pub mod token;
 pub mod user;
 
 use token::{create_access_token, RefreshToken};
-use user::{Role, User};
+use user::{User, UserType};
 
 pub use state::{SharedState, State};
 
 /// Creates an account.
 pub async fn signup(
     Form(request): Form<CreateAccountRequest>,
-    Path(role): Path<Role>,
+    Path(user_type): Path<UserType>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<String, Error> {
@@ -59,17 +59,19 @@ pub async fn signup(
         outlook: false,
     };
     let database = database.lock().await;
-    let ulid = database.create_user(user, role).await?;
+    let ulid = database.create_user(user, user_type).await?;
 
     let mut shared_state = shared_state.lock().await;
-    let refresh_token = shared_state.open_session(&database, ulid, role).await?;
+    let refresh_token = shared_state
+        .open_session(&database, ulid, user_type)
+        .await?;
     Ok(refresh_token)
 }
 
 /// Logs a user in.
 pub async fn login(
     Form(request): Form<LoginRequest>,
-    Path(role): Path<Role>,
+    Path(user_type): Path<UserType>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<String, Error> {
@@ -85,18 +87,20 @@ pub async fn login(
     // Mitigating this is not strictly necessary, as attackers can still find out
     // if an email is registered by using the sign-up page.
     let database = database.lock().await;
-    if let Some(ulid) = database.user_id(&email, role).await? {
+    if let Some(ulid) = database.user_id(&email, user_type).await? {
         if let Some((
             User {
                 password_hash: Some(hash),
                 ..
             },
             _,
-        )) = database.user(ulid, Some(role)).await?
+        )) = database.user(ulid, Some(user_type)).await?
         {
             if let Ok(true) = verify_encoded(&hash, password.as_bytes()) {
                 let mut shared_state = shared_state.lock().await;
-                let refresh_token = shared_state.open_session(&database, ulid, role).await?;
+                let refresh_token = shared_state
+                    .open_session(&database, ulid, user_type)
+                    .await?;
                 return Ok(refresh_token);
             }
         }
@@ -111,11 +115,11 @@ pub async fn access_token(
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<String, Error> {
     let ulid: Ulid = claims.sub.parse().unwrap();
-    let role: Role = claims.role.parse().unwrap();
+    let user_type: UserType = claims.user_type.parse().unwrap();
 
     let database = database.lock().await;
-    if let Some((User { email, .. }, _)) = database.user(ulid, Some(role)).await? {
-        let access_token = create_access_token(ulid, email, role)?;
+    if let Some((User { email, .. }, _)) = database.user(ulid, Some(user_type)).await? {
+        let access_token = create_access_token(ulid, email, user_type)?;
         Ok(access_token)
     } else {
         Err(Error::Unauthorized("Invalid refresh token"))

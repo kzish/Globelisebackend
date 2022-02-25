@@ -1,13 +1,9 @@
 //! Types for user data.
 
-use std::{fmt, str::FromStr};
-
 use email_address::EmailAddress;
 
 use serde::{Deserialize, Serialize};
-use strum::EnumIter;
-
-use crate::error::Error;
+use strum::{Display, EnumIter, EnumString};
 
 /// Stores information associated with a user id.
 #[derive(Debug, Deserialize, Serialize)]
@@ -24,56 +20,40 @@ impl User {
     }
 }
 
-/// Type representing which role a user has.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, EnumIter, EnumString, Display, Deserialize, Serialize,
+)]
 #[serde(rename_all = "kebab-case")]
-pub enum Role {
-    IndividualClient,
-    EntityClient,
-    IndividualContractor,
-    EntityContractor,
+#[strum(serialize_all = "kebab-case")]
+pub enum UserType {
+    Individual,
+    Entity,
     EorAdmin,
 }
 
-impl Role {
-    pub fn as_db_name(&self) -> &'static str {
+impl UserType {
+    pub fn db_auth_name(&self) -> &'static str {
         match self {
-            Role::IndividualClient => "client_individuals",
-            Role::EntityClient => "client_entities",
-            Role::IndividualContractor => "contractor_individuals",
-            Role::EntityContractor => "contractor_entities",
-            Role::EorAdmin => "eor_admins",
+            UserType::Individual => "auth_individuals",
+            UserType::Entity => "auth_entities",
+            UserType::EorAdmin => "auth_eor_admins",
         }
     }
 
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Role::IndividualClient => "client-individual",
-            Role::EntityClient => "client-entity",
-            Role::IndividualContractor => "contractor-individual",
-            Role::EntityContractor => "contractor-entity",
-            Role::EorAdmin => "eor-admin",
+    pub fn db_onboard_name(&self, role: Role) -> &'static str {
+        match (self, role) {
+            (UserType::Individual, Role::Client) => "onboard_individual_clients",
+            (UserType::Individual, Role::Contractor) => "onboard_individual_contractors",
+            (UserType::Entity, Role::Client) => "onboard_entity_clients",
+            (UserType::Entity, Role::Contractor) => "onboard_entity_contractors",
+            (UserType::EorAdmin, _) => "onboard_eor_admins",
         }
     }
 }
 
-impl FromStr for Role {
-    type Err = Error;
-
-    fn from_str(role: &str) -> Result<Self, Self::Err> {
-        match role {
-            "client-individual" => Ok(Role::IndividualClient),
-            "client-entity" => Ok(Role::EntityClient),
-            "contractor-individual" => Ok(Role::IndividualContractor),
-            "contractor-entity" => Ok(Role::EntityContractor),
-            "eor-admin" => Ok(Role::EorAdmin),
-            _ => Err(Error::Unauthorized("Invalid role")),
-        }
-    }
-}
-
-impl fmt::Display for Role {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
+/// Type representing which role a user has.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+pub enum Role {
+    Client,
+    Contractor,
 }
