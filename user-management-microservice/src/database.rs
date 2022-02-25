@@ -139,11 +139,11 @@ impl Database {
     /// Gets a user's id.
     pub async fn user_id(&self, email: &EmailAddress, role: Role) -> Result<Option<Ulid>, Error> {
         let roles_to_check = match role {
-            Role::ClientIndividual | Role::ClientEntity => {
-                vec![Role::ClientIndividual, Role::ClientEntity]
+            Role::IndividualClient | Role::EntityClient => {
+                vec![Role::IndividualClient, Role::EntityClient]
             }
-            Role::ContractorIndividual | Role::ContractorEntity => {
-                vec![Role::ContractorIndividual, Role::ContractorEntity]
+            Role::IndividualContractor | Role::EntityContractor => {
+                vec![Role::IndividualContractor, Role::EntityContractor]
             }
             Role::EorAdmin => vec![Role::EorAdmin],
         };
@@ -179,7 +179,7 @@ impl Database {
     ) -> Result<(), Error> {
         if !matches!(
             role,
-            Role::ClientIndividual | Role::ContractorIndividual | Role::EorAdmin
+            Role::IndividualClient | Role::IndividualContractor | Role::EorAdmin
         ) {
             return Err(Error::Forbidden);
         }
@@ -221,7 +221,7 @@ impl Database {
         role: Role,
         details: EntityDetails,
     ) -> Result<(), Error> {
-        if !matches!(role, Role::ClientEntity | Role::ContractorEntity) {
+        if !matches!(role, Role::EntityClient | Role::EntityContractor) {
             return Err(Error::Forbidden);
         }
         if self.user(ulid, Some(role)).await?.is_none() {
@@ -260,7 +260,7 @@ impl Database {
         role: Role,
         details: PicDetails,
     ) -> Result<(), Error> {
-        if !matches!(role, Role::ClientEntity | Role::ContractorEntity) {
+        if !matches!(role, Role::EntityClient | Role::EntityContractor) {
             return Err(Error::Forbidden);
         }
         if self.user(ulid, Some(role)).await?.is_none() {
@@ -294,7 +294,7 @@ impl Database {
         role: Role,
         details: BankDetails,
     ) -> Result<(), Error> {
-        if !matches!(role, Role::ContractorIndividual | Role::ContractorEntity) {
+        if !matches!(role, Role::IndividualContractor | Role::EntityContractor) {
             return Err(Error::Forbidden);
         }
         if self.user(ulid, Some(role)).await?.is_none() {
@@ -335,7 +335,7 @@ impl Database {
         // NOTE: Fix this horrible monstrosity
         let with_as = role.iter().map(|v| {
 
-           if v == &Role::ClientEntity || v == &Role::ContractorEntity {
+           if v == &Role::EntityClient || v == &Role::EntityContractor {
             format!(
                 "
                 {}_result AS (
@@ -348,7 +348,7 @@ impl Database {
                         {}
                 )",v.as_db_name(),v.as_db_name()
             )
-                       } else if v == &Role::ClientIndividual || v==&Role::ContractorIndividual {
+                       } else if v == &Role::IndividualClient || v==&Role::IndividualContractor {
                         format!(
                             "
                             {}_result AS (

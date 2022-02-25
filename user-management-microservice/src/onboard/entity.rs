@@ -21,7 +21,7 @@ pub async fn account_details(
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
     let role: Role = claims.role.parse().unwrap();
-    if !matches!(role, Role::ClientEntity | Role::ContractorEntity) {
+    if !matches!(role, Role::EntityClient | Role::EntityContractor) {
         return Err(Error::Forbidden);
     }
 
@@ -54,7 +54,7 @@ pub async fn pic_details(
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
     let role: Role = claims.role.parse().unwrap();
-    if !matches!(role, Role::ClientEntity | Role::ContractorEntity) {
+    if !matches!(role, Role::EntityClient | Role::EntityContractor) {
         return Err(Error::Forbidden);
     }
 

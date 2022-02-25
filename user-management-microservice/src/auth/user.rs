@@ -28,30 +28,30 @@ impl User {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Role {
-    ClientIndividual,
-    ClientEntity,
-    ContractorIndividual,
-    ContractorEntity,
+    IndividualClient,
+    EntityClient,
+    IndividualContractor,
+    EntityContractor,
     EorAdmin,
 }
 
 impl Role {
     pub fn as_db_name(&self) -> &'static str {
         match self {
-            Role::ClientIndividual => "client_individuals",
-            Role::ClientEntity => "client_entities",
-            Role::ContractorIndividual => "contractor_individuals",
-            Role::ContractorEntity => "contractor_entities",
+            Role::IndividualClient => "client_individuals",
+            Role::EntityClient => "client_entities",
+            Role::IndividualContractor => "contractor_individuals",
+            Role::EntityContractor => "contractor_entities",
             Role::EorAdmin => "eor_admins",
         }
     }
 
     pub fn as_str(&self) -> &'static str {
         match self {
-            Role::ClientIndividual => "client-individual",
-            Role::ClientEntity => "client-entity",
-            Role::ContractorIndividual => "contractor-individual",
-            Role::ContractorEntity => "contractor-entity",
+            Role::IndividualClient => "client-individual",
+            Role::EntityClient => "client-entity",
+            Role::IndividualContractor => "contractor-individual",
+            Role::EntityContractor => "contractor-entity",
             Role::EorAdmin => "eor-admin",
         }
     }
@@ -62,10 +62,10 @@ impl FromStr for Role {
 
     fn from_str(role: &str) -> Result<Self, Self::Err> {
         match role {
-            "client-individual" => Ok(Role::ClientIndividual),
-            "client-entity" => Ok(Role::ClientEntity),
-            "contractor-individual" => Ok(Role::ContractorIndividual),
-            "contractor-entity" => Ok(Role::ContractorEntity),
+            "client-individual" => Ok(Role::IndividualClient),
+            "client-entity" => Ok(Role::EntityClient),
+            "contractor-individual" => Ok(Role::IndividualContractor),
+            "contractor-entity" => Ok(Role::EntityContractor),
             "eor-admin" => Ok(Role::EorAdmin),
             _ => Err(Error::Unauthorized("Invalid role")),
         }

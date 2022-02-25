@@ -48,28 +48,28 @@ pub async fn user_index(
     let user_type = query.get("user_type").cloned().unwrap_or_default();
     let role = match (user_type.as_ref(), user_role.as_ref()) {
         ("client", "individual") => {
-            vec![Role::ClientIndividual]
+            vec![Role::IndividualClient]
         }
         ("client", "entity") => {
-            vec![Role::ClientEntity]
+            vec![Role::EntityClient]
         }
         ("client", _) => {
-            vec![Role::ClientIndividual, Role::ClientEntity]
+            vec![Role::IndividualClient, Role::EntityClient]
         }
         ("contractor", "individual") => {
-            vec![Role::ContractorIndividual]
+            vec![Role::IndividualContractor]
         }
         ("contractor", "entity") => {
-            vec![Role::ContractorEntity]
+            vec![Role::EntityContractor]
         }
         ("contractor", _) => {
-            vec![Role::ContractorIndividual, Role::ContractorEntity]
+            vec![Role::IndividualContractor, Role::EntityContractor]
         }
         _ => vec![
-            Role::ClientIndividual,
-            Role::ClientEntity,
-            Role::ContractorIndividual,
-            Role::ContractorEntity,
+            Role::IndividualClient,
+            Role::EntityClient,
+            Role::IndividualContractor,
+            Role::EntityContractor,
         ],
     };
     let database = database.lock().await;

@@ -23,7 +23,7 @@ pub async fn account_details(
     let role: Role = claims.role.parse().unwrap();
     if !matches!(
         role,
-        Role::ClientIndividual | Role::ContractorIndividual | Role::EorAdmin
+        Role::IndividualClient | Role::IndividualContractor | Role::EorAdmin
     ) {
         return Err(Error::Forbidden);
     }

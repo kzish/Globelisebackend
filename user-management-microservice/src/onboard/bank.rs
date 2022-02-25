@@ -14,7 +14,7 @@ pub async fn bank_details(
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
     let role: Role = claims.role.parse().unwrap();
-    if !matches!(role, Role::ContractorIndividual | Role::ContractorEntity) {
+    if !matches!(role, Role::IndividualContractor | Role::EntityContractor) {
         return Err(Error::Forbidden);
     }
 
