@@ -136,111 +136,6 @@ impl Database {
         Ok(None)
     }
 
-    /// Index users (client and contractors)
-    ///
-    /// Currently, the search functionality only works on the name.
-    /// For entities, this is the company's name.
-    /// For individuals, this is a concat of their first and last name.
-    pub async fn user_index(
-        &self,
-        page: i64,
-        per_page: i64,
-        search_text: Option<String>,
-        role: Vec<Role>,
-    ) -> Result<Vec<UserIndex>, Error> {
-        // NOTE: Fix this horrible monstrosity
-        let with_as = role.iter().map(|v| {
-
-           if v == &Role::ClientEntity || v == &Role::ContractorEntity {
-            format!(
-                "
-                {}_result AS (
-                    SELECT
-                        ulid,
-                        email,
-                        company_name AS name,
-                        dob
-                    FROM
-                        {}
-                )",v.as_db_name(),v.as_db_name()
-            )
-                       } else if v == &Role::ClientIndividual || v==&Role::ContractorIndividual {
-                        format!(
-                            "
-                            {}_result AS (
-                                SELECT
-                                    ulid,
-                                    email,
-                                    CONCAT(first_name, ' ', last_name) AS name,
-                                    dob
-                                FROM
-                                    {}
-                            )",v.as_db_name(),v.as_db_name()
-                        )
-                       } else {
-                           unreachable!("This should not be possible because we already checked that there are no EOR admins");
-                       }
-        }).collect::<Vec<String>>().join(",");
-        let result_union = role
-            .iter()
-            .map(|v| {
-                format!(
-                    r#"
-                SELECT
-                    *,
-                    '{}' AS role
-                FROM
-                     {}_result"#,
-                    v.as_str(),
-                    v.as_db_name()
-                )
-            })
-            .collect::<Vec<String>>()
-            .join(" UNION ");
-        let query = format!(
-            r##"
-            WITH {},
-            result AS ({})
-            SELECT
-                ulid,
-                name,
-                email,
-                role,
-                dob
-            FROM
-                result
-            WHERE name ~* '{}'
-            LIMIT {}
-            OFFSET {}"##,
-            with_as,
-            result_union,
-            search_text.unwrap_or_default(),
-            per_page,
-            page * per_page
-        );
-        let result = sqlx::query(&query)
-            .fetch_all(&self.0)
-            .await
-            .map_err(|e| Error::Database(e.to_string()))?
-            .into_iter()
-            .map(|r| -> Result<UserIndex, Error> {
-                // NOTE: The unwraps below should be safe because all of these values
-                // are required in the database
-                let role = Role::from_str(r.get("role"))?;
-                Ok(UserIndex {
-                    ulid: ulid_from_sql_uuid(r.get("ulid")),
-                    name: r.get("name"),
-                    role,
-                    email: r.get("email"),
-                    // This should be something like `created_at` from the DB,
-                    // but we don't have that so just use this ATM.
-                    created_at: r.try_get("dob").ok(),
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(result)
-    }
-
     /// Gets a user's id.
     pub async fn user_id(&self, email: &EmailAddress, role: Role) -> Result<Option<Ulid>, Error> {
         let roles_to_check = match role {
@@ -431,6 +326,113 @@ impl Database {
         .map_err(|e| Error::Database(e.to_string()))?;
 
         Ok(())
+    }
+}
+
+impl Database {
+    /// Index users (client and contractors)
+    ///
+    /// Currently, the search functionality only works on the name.
+    /// For entities, this is the company's name.
+    /// For individuals, this is a concat of their first and last name.
+    pub async fn user_index(
+        &self,
+        page: i64,
+        per_page: i64,
+        search_text: Option<String>,
+        role: Vec<Role>,
+    ) -> Result<Vec<UserIndex>, Error> {
+        // NOTE: Fix this horrible monstrosity
+        let with_as = role.iter().map(|v| {
+
+           if v == &Role::ClientEntity || v == &Role::ContractorEntity {
+            format!(
+                "
+                {}_result AS (
+                    SELECT
+                        ulid,
+                        email,
+                        company_name AS name,
+                        dob
+                    FROM
+                        {}
+                )",v.as_db_name(),v.as_db_name()
+            )
+                       } else if v == &Role::ClientIndividual || v==&Role::ContractorIndividual {
+                        format!(
+                            "
+                            {}_result AS (
+                                SELECT
+                                    ulid,
+                                    email,
+                                    CONCAT(first_name, ' ', last_name) AS name,
+                                    dob
+                                FROM
+                                    {}
+                            )",v.as_db_name(),v.as_db_name()
+                        )
+                       } else {
+                           unreachable!("This should not be possible because we already checked that there are no EOR admins");
+                       }
+        }).collect::<Vec<String>>().join(",");
+        let result_union = role
+            .iter()
+            .map(|v| {
+                format!(
+                    r#"
+                SELECT
+                    *,
+                    '{}' AS role
+                FROM
+                     {}_result"#,
+                    v.as_str(),
+                    v.as_db_name()
+                )
+            })
+            .collect::<Vec<String>>()
+            .join(" UNION ");
+        let query = format!(
+            r##"
+            WITH {},
+            result AS ({})
+            SELECT
+                ulid,
+                name,
+                email,
+                role,
+                dob
+            FROM
+                result
+            WHERE name ~* '{}'
+            LIMIT {}
+            OFFSET {}"##,
+            with_as,
+            result_union,
+            search_text.unwrap_or_default(),
+            per_page,
+            page * per_page
+        );
+        let result = sqlx::query(&query)
+            .fetch_all(&self.0)
+            .await
+            .map_err(|e| Error::Database(e.to_string()))?
+            .into_iter()
+            .map(|r| -> Result<UserIndex, Error> {
+                // NOTE: The unwraps below should be safe because all of these values
+                // are required in the database
+                let role = Role::from_str(r.get("role"))?;
+                Ok(UserIndex {
+                    ulid: ulid_from_sql_uuid(r.get("ulid")),
+                    name: r.get("name"),
+                    role,
+                    email: r.get("email"),
+                    // This should be something like `created_at` from the DB,
+                    // but we don't have that so just use this ATM.
+                    created_at: r.try_get("dob").ok(),
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(result)
     }
 }
 
