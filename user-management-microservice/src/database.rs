@@ -58,7 +58,7 @@ impl Database {
         sqlx::query(&format!(
             "INSERT INTO {} (ulid, email, password, is_google, is_outlook)
             VALUES ($1, $2, $3, $4, $5)",
-            Self::user_table_name(role)
+            role.as_db_name()
         ))
         .bind(ulid_to_sql_uuid(ulid))
         .bind(user.email.as_ref())
@@ -82,7 +82,7 @@ impl Database {
     ) -> Result<(), Error> {
         sqlx::query(&format!(
             "UPDATE {} SET password = $1 WHERE ulid = $2",
-            Self::user_table_name(role)
+            role.as_db_name()
         ))
         .bind(new_password_hash)
         .bind(ulid_to_sql_uuid(ulid))
@@ -112,7 +112,7 @@ impl Database {
                 "SELECT email, password, is_google, is_outlook
                 FROM {}
                 WHERE ulid = $1",
-                Self::user_table_name(r)
+                r.as_db_name()
             ))
             .bind(ulid_to_sql_uuid(ulid))
             .fetch_optional(&self.0)
@@ -151,7 +151,7 @@ impl Database {
         for r in roles_to_check {
             let id = sqlx::query(&format!(
                 "SELECT ulid FROM {} WHERE email = $1",
-                Self::user_table_name(r)
+                r.as_db_name()
             ))
             .bind(email.as_ref())
             .fetch_optional(&self.0)
@@ -167,16 +167,6 @@ impl Database {
             }
         }
         Ok(None)
-    }
-
-    fn user_table_name(role: Role) -> &'static str {
-        match role {
-            Role::ClientIndividual => "client_individuals",
-            Role::ClientEntity => "client_entities",
-            Role::ContractorIndividual => "contractor_individuals",
-            Role::ContractorEntity => "contractor_entities",
-            Role::EorAdmin => "eor_admins",
-        }
     }
 }
 
@@ -203,7 +193,7 @@ impl Database {
             country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
             time_zone = $11, profile_picture = $12
             WHERE ulid = $13",
-            Self::user_table_name(role)
+            role.as_db_name()
         ))
         .bind(details.first_name)
         .bind(details.last_name)
@@ -244,7 +234,7 @@ impl Database {
             tax_id = $5, company_address = $6, city = $7, postal_code = $8, time_zone = $9,
             logo = $10
             WHERE ulid = $11",
-            Self::user_table_name(role)
+            role.as_db_name()
         ))
         .bind(details.company_name)
         .bind(details.country)
@@ -282,7 +272,7 @@ impl Database {
             SET first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
             profile_picture = $6
             WHERE ulid = $7",
-            Self::user_table_name(role)
+            role.as_db_name()
         ))
         .bind(details.first_name)
         .bind(details.last_name)
@@ -315,7 +305,7 @@ impl Database {
             "UPDATE {}
             SET bank_name = $1, bank_account_name = $2, bank_account_number = $3
             WHERE ulid = $4",
-            Self::user_table_name(role)
+            role.as_db_name()
         ))
         .bind(details.bank_name)
         .bind(details.account_name)
