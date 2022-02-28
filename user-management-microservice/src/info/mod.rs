@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use axum::extract::{Extension, Json, Query};
 use rusty_ulid::Ulid;
@@ -16,11 +16,11 @@ pub struct UserIndex {
     pub ulid: Ulid,
     pub name: String,
     pub role: Role,
-    pub created_at: Option<String>,
+    pub created_at: String,
     pub email: String,
 }
 
-pub async fn user_index(
+pub async fn eor_admin_user_index(
     // NOTE: Only used to check that _some_ access token is provided
     _: AccessToken,
     Query(query): Query<HashMap<String, String>>,
@@ -74,7 +74,7 @@ pub async fn user_index(
     };
     let database = database.lock().await;
     let result = database
-        .user_index(page, per_page, search_text, role)
+        .eor_admin_user_index(page, per_page, search_text, role)
         .await?;
     Ok(Json(result))
 }

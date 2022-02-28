@@ -59,7 +59,7 @@ async fn main() {
         )
         .route("/onboard/pic-details", post(onboard::entity::pic_details))
         .route("/onboard/bank-details", post(onboard::bank::bank_details))
-        .route("/index", get(info::user_index))
+        .route("/eor_admin/users/index", get(info::eor_admin_user_index))
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
         .layer(

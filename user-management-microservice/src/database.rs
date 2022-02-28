@@ -1,5 +1,6 @@
 use std::{str::FromStr, sync::Arc, time::Duration};
 
+use chrono::prelude::*;
 use email_address::EmailAddress;
 use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
@@ -141,7 +142,7 @@ impl Database {
     /// Currently, the search functionality only works on the name.
     /// For entities, this is the company's name.
     /// For individuals, this is a concat of their first and last name.
-    pub async fn user_index(
+    pub async fn eor_admin_user_index(
         &self,
         page: i64,
         per_page: i64,
@@ -149,39 +150,12 @@ impl Database {
         role: Vec<Role>,
     ) -> Result<Vec<UserIndex>, Error> {
         // NOTE: Fix this horrible monstrosity
-        let with_as = role.iter().map(|v| {
-
-           if v == &Role::ClientEntity || v == &Role::ContractorEntity {
-            format!(
-                "
-                {}_result AS (
-                    SELECT
-                        ulid,
-                        email,
-                        company_name AS name,
-                        dob
-                    FROM
-                        {}
-                )",v.as_db_name(),v.as_db_name()
-            )
-                       } else if v == &Role::ClientIndividual || v==&Role::ContractorIndividual {
-                        format!(
-                            "
-                            {}_result AS (
-                                SELECT
-                                    ulid,
-                                    email,
-                                    CONCAT(first_name, ' ', last_name) AS name,
-                                    dob
-                                FROM
-                                    {}
-                            )",v.as_db_name(),v.as_db_name()
-                        )
-                       } else {
-                           unreachable!("This should not be possible because we already checked that there are no EOR admins");
-                       }
-        }).collect::<Vec<String>>().join(",");
-        let result_union = role
+        let user_info_tables = role
+            .iter()
+            .map(|v| query_select_users_information(*v))
+            .collect::<Result<Vec<String>, _>>()?
+            .join(",");
+        let user_info_union = role
             .iter()
             .map(|v| {
                 format!(
@@ -195,7 +169,7 @@ impl Database {
                     v.as_db_name()
                 )
             })
-            .collect::<Vec<String>>()
+            .collect::<Vec<_>>()
             .join(" UNION ");
         let query = format!(
             r##"
@@ -212,8 +186,8 @@ impl Database {
             WHERE name ~* '{}'
             LIMIT {}
             OFFSET {}"##,
-            with_as,
-            result_union,
+            user_info_tables,
+            user_info_union,
             search_text.unwrap_or_default(),
             per_page,
             page * per_page
@@ -226,15 +200,22 @@ impl Database {
             .map(|r| -> Result<UserIndex, Error> {
                 // NOTE: The unwraps below should be safe because all of these values
                 // are required in the database
+                let ulid = ulid_from_sql_uuid(r.get("ulid"));
                 let role = Role::from_str(r.get("role"))?;
+                let timestamp_msec = ulid.timestamp();
+                let timestamp_sec = (timestamp_msec / 1000)
+                    .try_into()
+                    .expect("Ulid timestamp should not exceed i64 capacity");
+                let naive = NaiveDateTime::from_timestamp(timestamp_sec, 0);
+                let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
                 Ok(UserIndex {
-                    ulid: ulid_from_sql_uuid(r.get("ulid")),
+                    ulid,
                     name: r.get("name"),
                     role,
                     email: r.get("email"),
                     // This should be something like `created_at` from the DB,
                     // but we don't have that so just use this ATM.
-                    created_at: r.try_get("dob").ok(),
+                    created_at: datetime.format("%Y-%m-%d").to_string(),
                 })
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -440,4 +421,31 @@ fn ulid_to_sql_uuid(ulid: Ulid) -> sqlx::types::Uuid {
 
 fn ulid_from_sql_uuid(uuid: sqlx::types::Uuid) -> Ulid {
     Ulid::from(*uuid.as_bytes())
+}
+
+/// Generate a query string to select (ulid, email, name, dob) from:
+/// 1. `client_entities_and_contractor_entities`
+/// 2. `client_entities_and_contractor_individuals`;
+/// 3. `client_individuals_and_contractor_entities`;
+/// 4. `client_individuals_and_contractor_individuals`.
+///
+/// Will return `None` if no such composite table exist for the role i.e. Role::EorAdmin
+fn query_select_users_information(role: Role) -> Result<String, Error> {
+    if role == Role::ClientEntity || role == Role::ContractorEntity {
+        Ok(format!(
+            "{}_result AS (SELECT ulid, email, company_name AS name, dob FROM {})",
+            role.as_db_name(),
+            role.as_db_name()
+        ))
+    } else if role == Role::ClientIndividual || role == Role::ContractorIndividual {
+        Ok(format!(
+            "{}_result AS (SELECT ulid, email, CONCAT(first_name, ' ', last_name) AS name, dob FROM {})",
+            role.as_db_name(),
+            role.as_db_name()
+        ))
+    } else {
+        Err(Error::BadRequest(
+            "EOR Admins does not have contractor information",
+        ))
+    }
 }
