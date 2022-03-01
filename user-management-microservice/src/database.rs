@@ -7,7 +7,7 @@ use strum::IntoEnumIterator;
 use tokio::sync::Mutex;
 
 use crate::{
-    auth::user::{Role, User},
+    auth::user::{Role, User, UserType},
     info::UserIndex,
     onboard::{
         bank::BankDetails,
@@ -39,7 +39,7 @@ impl Database {
     }
 
     /// Creates and stores a new user.
-    pub async fn create_user(&self, user: User, role: Role) -> Result<Ulid, Error> {
+    pub async fn create_user(&self, user: User, user_type: UserType) -> Result<Ulid, Error> {
         if !user.has_authentication() {
             return Err(Error::Unauthorized(
                 "Refused to create user: no authentication method provided",
@@ -47,7 +47,7 @@ impl Database {
         }
 
         // Avoid overwriting an existing user.
-        match self.user_id(&user.email, role).await {
+        match self.user_id(&user.email, user_type).await {
             Ok(Some(_)) | Err(Error::WrongUserType) => return Err(Error::UnavailableEmail),
             Ok(None) => (),
             Err(e) => return Err(e),
@@ -58,7 +58,7 @@ impl Database {
         sqlx::query(&format!(
             "INSERT INTO {} (ulid, email, password, is_google, is_outlook)
             VALUES ($1, $2, $3, $4, $5)",
-            Self::user_table_name(role)
+            user_type.db_auth_name()
         ))
         .bind(ulid_to_sql_uuid(ulid))
         .bind(user.email.as_ref())
@@ -76,13 +76,13 @@ impl Database {
     pub async fn update_password(
         &self,
         ulid: Ulid,
-        role: Role,
+        user_type: UserType,
         // TODO: Create a newtype to ensure only hashed password are inserted
         new_password_hash: Option<String>,
     ) -> Result<(), Error> {
         sqlx::query(&format!(
             "UPDATE {} SET password = $1 WHERE ulid = $2",
-            Self::user_table_name(role)
+            user_type.db_auth_name()
         ))
         .bind(new_password_hash)
         .bind(ulid_to_sql_uuid(ulid))
@@ -93,26 +93,26 @@ impl Database {
         Ok(())
     }
 
-    /// Gets a user's information.
+    /// Gets a user's authentication information.
     ///
-    /// If `role` is specified, this function only searches that role's table.
+    /// If `user_type` is specified, this function only searches that type's table.
     /// Otherwise, it searches all user tables.
     pub async fn user(
         &self,
         ulid: Ulid,
-        role: Option<Role>,
-    ) -> Result<Option<(User, Role)>, Error> {
-        let roles_to_check = match role {
-            Some(role) => vec![role],
-            None => Role::iter().collect(),
+        user_type: Option<UserType>,
+    ) -> Result<Option<(User, UserType)>, Error> {
+        let types_to_check = match user_type {
+            Some(t) => vec![t],
+            None => UserType::iter().collect(),
         };
 
-        for r in roles_to_check {
+        for t in types_to_check {
             let user = sqlx::query(&format!(
                 "SELECT email, password, is_google, is_outlook
                 FROM {}
                 WHERE ulid = $1",
-                Self::user_table_name(r)
+                t.db_auth_name()
             ))
             .bind(ulid_to_sql_uuid(ulid))
             .fetch_optional(&self.0)
@@ -129,7 +129,7 @@ impl Database {
                         google: user.get("is_google"),
                         outlook: user.get("is_outlook"),
                     },
-                    r,
+                    t,
                 )));
             }
         }
@@ -143,80 +143,44 @@ impl Database {
     /// For individuals, this is a concat of their first and last name.
     pub async fn eor_admin_user_index(
         &self,
-        page: i64,
-        per_page: i64,
-        search_text: Option<String>,
-        role: Vec<Role>,
+        m_page: Option<i64>,
+        m_per_page: Option<i64>,
+        m_search_text: Option<String>,
+        m_user_type: Option<UserType>,
+        m_user_role: Option<Role>,
     ) -> Result<Vec<UserIndex>, Error> {
-        // NOTE: Fix this horrible monstrosity
-        let user_info_tables = role
-            .iter()
-            .map(|v| query_select_users_information(*v))
-            .collect::<Result<Vec<String>, _>>()?
-            .join(",");
-        let user_info_union = role
-            .iter()
-            .map(|v| {
-                format!(
-                    r#"
-                SELECT
-                    *,
-                    '{}' AS role
-                FROM
-                     {}_result"#,
-                    v.as_str(),
-                    v.as_db_name()
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(" UNION ");
-        let query = format!(
-            r##"
-            WITH {},
-            result AS ({})
-            SELECT
-                ulid,
-                name,
-                email,
-                role,
-                dob
-            FROM
-                result
-            WHERE name ~* '{}'
-            LIMIT {}
-            OFFSET {}"##,
-            user_info_tables,
-            user_info_union,
-            search_text.unwrap_or_default(),
+        let page = m_page.unwrap_or(0);
+        let per_page = m_per_page.unwrap_or(25);
+        let query = create_eor_admin_user_index_query(
+            page,
             per_page,
-            page * per_page
+            m_search_text,
+            m_user_type,
+            m_user_role,
         );
+        println!("query:\n{}", query);
         let result = sqlx::query(&query)
             .fetch_all(&self.0)
             .await
             .map_err(|e| Error::Database(e.to_string()))?
             .into_iter()
             .map(UserIndex::from_pg_row)
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<UserIndex>, _>>()?;
         Ok(result)
     }
 
     /// Gets a user's id.
-    pub async fn user_id(&self, email: &EmailAddress, role: Role) -> Result<Option<Ulid>, Error> {
-        let roles_to_check = match role {
-            Role::ClientIndividual | Role::ClientEntity => {
-                vec![Role::ClientIndividual, Role::ClientEntity]
-            }
-            Role::ContractorIndividual | Role::ContractorEntity => {
-                vec![Role::ContractorIndividual, Role::ContractorEntity]
-            }
-            Role::EorAdmin => vec![Role::EorAdmin],
-        };
+    pub async fn user_id(
+        &self,
+        email: &EmailAddress,
+        user_type: UserType,
+    ) -> Result<Option<Ulid>, Error> {
+        let mut ulid = None;
 
-        for r in roles_to_check {
+        for t in UserType::iter() {
             let id = sqlx::query(&format!(
                 "SELECT ulid FROM {} WHERE email = $1",
-                Self::user_table_name(r)
+                t.db_auth_name()
             ))
             .bind(email.as_ref())
             .fetch_optional(&self.0)
@@ -224,24 +188,14 @@ impl Database {
             .map_err(|e| Error::Database(e.to_string()))?;
 
             if let Some(id) = id {
-                if r == role {
-                    return Ok(Some(ulid_from_sql_uuid(id.get("ulid"))));
+                if t == user_type {
+                    ulid = Some(ulid_from_sql_uuid(id.get("ulid")));
                 } else {
                     return Err(Error::WrongUserType);
                 }
             }
         }
-        Ok(None)
-    }
-
-    fn user_table_name(role: Role) -> &'static str {
-        match role {
-            Role::ClientIndividual => "client_individuals",
-            Role::ClientEntity => "client_entities",
-            Role::ContractorIndividual => "contractor_individuals",
-            Role::ContractorEntity => "contractor_entities",
-            Role::EorAdmin => "eor_admins",
-        }
+        Ok(ulid)
     }
 }
 
@@ -249,43 +203,46 @@ impl Database {
     pub async fn onboard_individual_details(
         &self,
         ulid: Ulid,
+        user_type: UserType,
         role: Role,
         details: IndividualDetails,
     ) -> Result<(), Error> {
-        if !matches!(
-            role,
-            Role::ClientIndividual | Role::ContractorIndividual | Role::EorAdmin
-        ) {
+        if !matches!(user_type, UserType::Individual | UserType::EorAdmin) {
             return Err(Error::Forbidden);
         }
-        if self.user(ulid, Some(role)).await?.is_none() {
+        if self.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Forbidden);
         }
 
-        sqlx::query(&format!(
-            "UPDATE {}
-            SET first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
-            country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
-            time_zone = $11, profile_picture = $12
-            WHERE ulid = $13",
-            Self::user_table_name(role)
-        ))
-        .bind(details.first_name)
-        .bind(details.last_name)
-        .bind(details.dob)
-        .bind(details.dial_code)
-        .bind(details.phone_number)
-        .bind(details.country)
-        .bind(details.city)
-        .bind(details.address)
-        .bind(details.postal_code)
-        .bind(details.tax_id)
-        .bind(details.time_zone)
-        .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
-        .bind(ulid_to_sql_uuid(ulid))
-        .execute(&self.0)
-        .await
-        .map_err(|e| Error::Database(e.to_string()))?;
+        let target_table = user_type.db_onboard_name(role);
+        let query = format!(
+            "
+    INSERT INTO {target_table} 
+    (ulid, first_name, last_name, dob, dial_code, phone_number, country, city, address,
+    postal_code, tax_id, time_zone, profile_picture) 
+    VALUES ($13, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    ON CONFLICT(ulid) DO UPDATE
+    SET first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
+    country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
+    time_zone = $11, profile_picture = $12",
+        );
+        sqlx::query(&query)
+            .bind(details.first_name)
+            .bind(details.last_name)
+            .bind(details.dob)
+            .bind(details.dial_code)
+            .bind(details.phone_number)
+            .bind(details.country)
+            .bind(details.city)
+            .bind(details.address)
+            .bind(details.postal_code)
+            .bind(details.tax_id)
+            .bind(details.time_zone)
+            .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
+            .bind(ulid_to_sql_uuid(ulid))
+            .execute(&self.0)
+            .await
+            .map_err(|e| Error::Database(e.to_string()))?;
 
         Ok(())
     }
@@ -293,13 +250,14 @@ impl Database {
     pub async fn onboard_entity_details(
         &self,
         ulid: Ulid,
+        user_type: UserType,
         role: Role,
         details: EntityDetails,
     ) -> Result<(), Error> {
-        if !matches!(role, Role::ClientEntity | Role::ContractorEntity) {
+        if !matches!(user_type, UserType::Entity) {
             return Err(Error::Forbidden);
         }
-        if self.user(ulid, Some(role)).await?.is_none() {
+        if self.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Forbidden);
         }
 
@@ -309,7 +267,7 @@ impl Database {
             tax_id = $5, company_address = $6, city = $7, postal_code = $8, time_zone = $9,
             logo = $10
             WHERE ulid = $11",
-            Self::user_table_name(role)
+            user_type.db_onboard_name(role)
         ))
         .bind(details.company_name)
         .bind(details.country)
@@ -332,13 +290,14 @@ impl Database {
     pub async fn onboard_pic_details(
         &self,
         ulid: Ulid,
+        user_type: UserType,
         role: Role,
         details: PicDetails,
     ) -> Result<(), Error> {
-        if !matches!(role, Role::ClientEntity | Role::ContractorEntity) {
+        if !matches!(user_type, UserType::Entity) {
             return Err(Error::Forbidden);
         }
-        if self.user(ulid, Some(role)).await?.is_none() {
+        if self.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Forbidden);
         }
 
@@ -347,7 +306,7 @@ impl Database {
             SET first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
             profile_picture = $6
             WHERE ulid = $7",
-            Self::user_table_name(role)
+            user_type.db_onboard_name(role)
         ))
         .bind(details.first_name)
         .bind(details.last_name)
@@ -366,13 +325,13 @@ impl Database {
     pub async fn onboard_bank_details(
         &self,
         ulid: Ulid,
-        role: Role,
+        user_type: UserType,
         details: BankDetails,
     ) -> Result<(), Error> {
-        if !matches!(role, Role::ContractorIndividual | Role::ContractorEntity) {
+        if !matches!(user_type, UserType::Individual | UserType::Entity) {
             return Err(Error::Forbidden);
         }
-        if self.user(ulid, Some(role)).await?.is_none() {
+        if self.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Forbidden);
         }
 
@@ -380,7 +339,7 @@ impl Database {
             "UPDATE {}
             SET bank_name = $1, bank_account_name = $2, bank_account_number = $3
             WHERE ulid = $4",
-            Self::user_table_name(role)
+            user_type.db_onboard_name(Role::Contractor)
         ))
         .bind(details.bank_name)
         .bind(details.account_name)
@@ -402,29 +361,209 @@ pub fn ulid_from_sql_uuid(uuid: sqlx::types::Uuid) -> Ulid {
     Ulid::from(*uuid.as_bytes())
 }
 
-/// Generate a query string to select (ulid, email, name, dob) from:
-/// 1. `client_entities_and_contractor_entities`
-/// 2. `client_entities_and_contractor_individuals`;
-/// 3. `client_individuals_and_contractor_entities`;
-/// 4. `client_individuals_and_contractor_individuals`.
-///
-/// Will return `None` if no such composite table exist for the role i.e. Role::EorAdmin
-fn query_select_users_information(role: Role) -> Result<String, Error> {
-    if role == Role::ClientEntity || role == Role::ContractorEntity {
-        Ok(format!(
-            "{}_result AS (SELECT ulid, email, company_name AS name, dob FROM {})",
-            role.as_db_name(),
-            role.as_db_name()
-        ))
-    } else if role == Role::ClientIndividual || role == Role::ContractorIndividual {
-        Ok(format!(
-            "{}_result AS (SELECT ulid, email, CONCAT(first_name, ' ', last_name) AS name, dob FROM {})",
-            role.as_db_name(),
-            role.as_db_name()
-        ))
-    } else {
-        Err(Error::BadRequest(
-            "EOR Admins does not have contractor information",
-        ))
-    }
+fn create_eor_admin_user_index_query(
+    page: i64,
+    per_page: i64,
+    m_search_text: Option<String>,
+    m_user_type: Option<UserType>,
+    m_user_role: Option<Role>,
+) -> String {
+    let with_as = [
+        (
+            Role::Client,
+            UserType::Individual,
+            "client_individual_info",
+            "auth_individuals",
+            "onboard_individual_clients",
+        ),
+        (
+            Role::Client,
+            UserType::Entity,
+            "client_entity_info",
+            "auth_entities",
+            "onboard_entity_clients",
+        ),
+        (
+            Role::Contractor,
+            UserType::Individual,
+            "contractor_individual_info",
+            "auth_individuals",
+            "onboard_individual_contractors",
+        ),
+        (
+            Role::Contractor,
+            UserType::Entity,
+            "contractor_entity_info",
+            "auth_entities",
+            "onboard_entity_contractors",
+        ),
+    ]
+    .iter()
+    .map(
+        |(user_role, user_type, result_name, auth_table, onboard_table)| {
+            let user_role_str = user_role.as_str();
+            let user_type_str = user_type.as_str();
+            let name_formula = match user_type {
+                UserType::Entity => {
+                    format!("{onboard_table}.company_name")
+                }
+                UserType::Individual => {
+                    format!("CONCAT({onboard_table}.first_name, ' ', {onboard_table}.last_name)")
+                }
+                _ => unreachable!(
+                    "This is not possible because we only mentioned entity and individuals"
+                ),
+            };
+            format!(
+                r##"
+{result_name} AS (
+    SELECT 
+        {auth_table}.ulid, 
+        {auth_table}.email, 
+        {name_formula} AS name,
+        '{user_role_str}' AS user_role,
+        '{user_type_str}' AS user_type
+    FROM  
+    {onboard_table} 
+    LEFT OUTER JOIN 
+    {auth_table}
+    ON 
+    {auth_table}.ulid = {onboard_table}.ulid
+)"##,
+            )
+        },
+    )
+    .collect::<Vec<String>>()
+    .join(",");
+    let join_table = [
+        "client_individual_info",
+        "client_entity_info",
+        "contractor_individual_info",
+        "contractor_entity_info",
+    ]
+    .iter()
+    .map(|s| format!("\tSELECT * FROM {}", s))
+    .collect::<Vec<String>>()
+    .join("\nUNION\n");
+    /*
+    m_page: Option<i64>,
+    m_per_page: Option<i64>,
+    m_search_text: Option<String>,
+    user_type: Option<UserType>,
+    user_role: Option<Role>,
+     */
+    let mut where_clauses_iter = vec![];
+    if let Some(search_text) = m_search_text {
+        where_clauses_iter.push(format!("\tname ~* '{}'", search_text));
+    };
+    if let Some(user_role) = m_user_role {
+        where_clauses_iter.push(format!("\tuser_role = '{}'", user_role.as_str()));
+    };
+    if let Some(user_type) = m_user_type {
+        where_clauses_iter.push(format!("\tuser_type = '{}'", user_type.as_str()));
+    };
+    let where_clauses = where_clauses_iter
+        .into_iter()
+        .collect::<Vec<String>>()
+        .join(" AND\n");
+    let limit = per_page;
+    let offset = page * per_page;
+    let query = format!(
+        "
+
+WITH client_individual_info AS (
+    SELECT
+        auth_individuals.ulid,
+        auth_individuals.email,
+        CONCAT(
+            onboard_individual_clients.first_name,
+            ' ',
+            onboard_individual_clients.last_name
+        ) AS name,
+        'client' AS user_role,
+        'individual' AS user_type
+    FROM
+        onboard_individual_clients
+        LEFT OUTER JOIN auth_individuals ON auth_individuals.ulid = onboard_individual_clients.ulid
+),
+client_entity_info AS (
+    SELECT
+        auth_entities.ulid,
+        auth_entities.email,
+        onboard_entity_clients.company_name AS name,
+        'client' AS user_role,
+        'entity' AS user_type
+    FROM
+        onboard_entity_clients
+        LEFT OUTER JOIN auth_entities ON auth_entities.ulid = onboard_entity_clients.ulid
+),
+contractor_individual_info AS (
+    SELECT
+        auth_individuals.ulid,
+        auth_individuals.email,
+        CONCAT(
+            onboard_individual_contractors.first_name,
+            ' ',
+            onboard_individual_contractors.last_name
+        ) AS name,
+        'contractor' AS user_role,
+        'individual' AS user_type
+    FROM
+        onboard_individual_contractors
+        LEFT OUTER JOIN auth_individuals ON auth_individuals.ulid = onboard_individual_contractors.ulid
+),
+contractor_entity_info AS (
+    SELECT
+        auth_entities.ulid,
+        auth_entities.email,
+        onboard_entity_contractors.company_name AS name,
+        'contractor' AS user_role,
+        'entity' AS user_type
+    FROM
+        onboard_entity_contractors
+        LEFT OUTER JOIN auth_entities ON auth_entities.ulid = onboard_entity_contractors.ulid
+),
+result AS (
+    SELECT
+        *
+    FROM
+        client_individual_info
+    UNION
+    SELECT
+        *
+    FROM
+        client_entity_info
+    UNION
+    SELECT
+        *
+    FROM
+        contractor_individual_info
+    UNION
+    SELECT
+        *
+    FROM
+        contractor_entity_info
+)
+SELECT
+    ulid,
+    name,
+    email,
+    user_role,
+    user_type
+FROM
+    result
+{}
+{where_clauses}
+LIMIT
+    {limit}
+OFFSET
+    {offset}
+",
+        if where_clauses.len() == 0 {
+            ""
+        } else {
+            "WHERE"
+        },
+    );
+    query
 }

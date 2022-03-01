@@ -32,11 +32,11 @@ async fn main() {
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
-        .route("/auth/signup/:role", post(auth::signup))
-        .route("/auth/login/:role", post(auth::login))
-        .route("/auth/google/login/:role", post(auth::google::login))
+        .route("/auth/signup/:user_type", post(auth::signup))
+        .route("/auth/login/:user_type", post(auth::login))
+        .route("/auth/google/login/:user_type", post(auth::google::login))
         .route(
-            "/auth/password/reset/email/:role",
+            "/auth/password/reset/email/:user_type",
             post(auth::password::reset::send_email),
         )
         .route(
@@ -50,15 +50,19 @@ async fn main() {
         .route("/auth/access-token", post(auth::access_token))
         .route("/auth/public-key", get(auth::public_key))
         .route(
-            "/onboard/individual-details",
+            "/onboard/individual-details/:role",
             post(onboard::individual::account_details),
         )
         .route(
-            "/onboard/entity-details",
+            "/onboard/entity-details/:role",
             post(onboard::entity::account_details),
         )
-        .route("/onboard/pic-details", post(onboard::entity::pic_details))
+        .route(
+            "/onboard/pic-details/:role",
+            post(onboard::entity::pic_details),
+        )
         .route("/onboard/bank-details", post(onboard::bank::bank_details))
+        .route("/onboard/eor-details", post(onboard::eor::account_details))
         .route("/eor_admin/users/index", get(info::eor_admin_user_index))
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
@@ -83,7 +87,7 @@ async fn main() {
     .unwrap();
 }
 
-/// Handle errors from fallible services.
+/// Handles errors from fallible services.
 async fn handle_error(error: BoxError) -> (StatusCode, &'static str) {
     if error.is::<tower::timeout::error::Elapsed>() {
         (StatusCode::REQUEST_TIMEOUT, "Request timed out")

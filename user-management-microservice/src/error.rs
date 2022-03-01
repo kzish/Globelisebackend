@@ -41,7 +41,7 @@ impl IntoResponse for Error {
             ),
             Error::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
             Error::Unauthorized(message) => {
-                println!("{message}");
+                eprintln!("{message}");
                 return StatusCode::UNAUTHORIZED.into_response();
             }
             Error::Forbidden => return StatusCode::FORBIDDEN.into_response(),
@@ -56,14 +56,11 @@ impl IntoResponse for Error {
     }
 }
 
-impl From<sqlx::error::Error> for Error {
-    fn from(e: sqlx::error::Error) -> Self {
-        Error::Database(e.to_string())
-    }
-}
-
-impl From<time::error::ComponentRange> for Error {
-    fn from(e: time::error::ComponentRange) -> Self {
+impl<T> From<T> for Error
+where
+    T: std::error::Error,
+{
+    fn from(e: T) -> Self {
         Error::Internal(e.to_string())
     }
 }

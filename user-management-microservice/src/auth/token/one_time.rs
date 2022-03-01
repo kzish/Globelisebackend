@@ -11,14 +11,14 @@ use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 
 use crate::{
-    auth::{user::Role, SharedDatabase, SharedState},
+    auth::{user::UserType, SharedDatabase, SharedState},
     error::Error,
 };
 
 use super::{ISSSUER, KEYS};
 
 /// Creates a one-time token.
-pub fn create_one_time_token<T>(ulid: Ulid, role: Role) -> Result<(String, i64), Error>
+pub fn create_one_time_token<T>(ulid: Ulid, user_type: UserType) -> Result<(String, i64), Error>
 where
     T: OneTimeTokenAudience,
 {
@@ -33,7 +33,7 @@ where
 
     let claims = OneTimeToken::<T> {
         sub: ulid.to_string(),
-        role: role.to_string(),
+        user_type: user_type.to_string(),
         aud: T::name().into(),
         iss: ISSSUER.into(),
         exp: expiration as usize,
@@ -54,7 +54,7 @@ where
     T: OneTimeTokenAudience,
 {
     pub sub: String,
-    pub role: String,
+    pub user_type: String,
     aud: String,
     iss: String,
     exp: usize,
@@ -123,14 +123,14 @@ where
             .sub
             .parse()
             .map_err(|_| Error::Unauthorized("One-time token rejected: invalid ulid"))?;
-        let role: Role = claims
-            .role
+        let user_type: UserType = claims
+            .user_type
             .parse()
             .map_err(|_| Error::Unauthorized("One-time token rejected: invalid role"))?;
 
         // Make sure the user actually exists.
         let database = database.lock().await;
-        if database.user(ulid, Some(role)).await?.is_none() {
+        if database.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Unauthorized(
                 "One-time token rejected: user does not exist",
             ));
@@ -191,14 +191,14 @@ where
             .sub
             .parse()
             .map_err(|_| Error::Unauthorized("One-time token rejected: invalid ulid"))?;
-        let role: Role = claims
-            .role
+        let user_type: UserType = claims
+            .user_type
             .parse()
             .map_err(|_| Error::Unauthorized("One-time token rejected: invalid role"))?;
 
         // Make sure the user actually exists.
         let database = database.lock().await;
-        if database.user(ulid, Some(role)).await?.is_none() {
+        if database.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Unauthorized(
                 "One-time token rejected: user does not exist",
             ));
