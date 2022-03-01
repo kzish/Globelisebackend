@@ -309,8 +309,8 @@ impl Database {
         let query = format!(
             "
             INSERT INTO {target_table}
-            (ulid, first_name, last_name, dob, dial_code, phone_number)
-            VALUES ($7, $1, $2, $3, $4, $5)
+            (ulid, first_name, last_name, dob, dial_code, phone_number, profile_picture)
+            VALUES ($7, $1, $2, $3, $4, $5, $6)
             ON CONFLICT(ulid) DO UPDATE SET 
             first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
             profile_picture = $6",
