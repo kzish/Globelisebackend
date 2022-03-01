@@ -1,6 +1,5 @@
-use std::{str::FromStr, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
-use chrono::prelude::*;
 use email_address::EmailAddress;
 use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
@@ -197,27 +196,7 @@ impl Database {
             .await
             .map_err(|e| Error::Database(e.to_string()))?
             .into_iter()
-            .map(|r| -> Result<UserIndex, Error> {
-                // NOTE: The unwraps below should be safe because all of these values
-                // are required in the database
-                let ulid = ulid_from_sql_uuid(r.get("ulid"));
-                let role = Role::from_str(r.get("role"))?;
-                let timestamp_msec = ulid.timestamp();
-                let timestamp_sec = (timestamp_msec / 1000)
-                    .try_into()
-                    .expect("Ulid timestamp should not exceed i64 capacity");
-                let naive = NaiveDateTime::from_timestamp(timestamp_sec, 0);
-                let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
-                Ok(UserIndex {
-                    ulid,
-                    name: r.get("name"),
-                    role,
-                    email: r.get("email"),
-                    // This should be something like `created_at` from the DB,
-                    // but we don't have that so just use this ATM.
-                    created_at: datetime.format("%Y-%m-%d").to_string(),
-                })
-            })
+            .map(UserIndex::from_pg_row)
             .collect::<Result<Vec<_>, _>>()?;
         Ok(result)
     }
@@ -415,11 +394,11 @@ impl Database {
     }
 }
 
-fn ulid_to_sql_uuid(ulid: Ulid) -> sqlx::types::Uuid {
+pub fn ulid_to_sql_uuid(ulid: Ulid) -> sqlx::types::Uuid {
     sqlx::types::Uuid::from_bytes(ulid.into())
 }
 
-fn ulid_from_sql_uuid(uuid: sqlx::types::Uuid) -> Ulid {
+pub fn ulid_from_sql_uuid(uuid: sqlx::types::Uuid) -> Ulid {
     Ulid::from(*uuid.as_bytes())
 }
 

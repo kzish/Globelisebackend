@@ -55,3 +55,15 @@ impl IntoResponse for Error {
         (status, message).into_response()
     }
 }
+
+impl From<sqlx::error::Error> for Error {
+    fn from(e: sqlx::error::Error) -> Self {
+        Error::Database(e.to_string())
+    }
+}
+
+impl From<time::error::ComponentRange> for Error {
+    fn from(e: time::error::ComponentRange) -> Self {
+        Error::Internal(e.to_string())
+    }
+}
