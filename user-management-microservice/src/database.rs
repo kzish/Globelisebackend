@@ -487,7 +487,7 @@ LIMIT
 OFFSET
     {offset}
 ",
-        if where_clauses.len() == 0 {
+        if where_clauses.is_empty() {
             ""
         } else {
             "WHERE"
