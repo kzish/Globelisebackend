@@ -4,14 +4,21 @@
 
 Replace `<domain>` with the address that the server listens on.
 
+`<user type>` can be one of the following values:
+
+```
+individual
+entity
+eor-admin
+```
+
+**Warning:** `eor-admin` is deprecated.
+
 `<role>` can be one of the following values:
 
 ```
-client-individual
-client-entity
-contractor-individual
-contractor-entity
-eor-admin
+client
+contractor
 ```
 
 Optional form fields will be marked `(optional)`.
@@ -29,7 +36,7 @@ For any error responses not listed here, assume that the body is either `text/pl
 **Endpoint**
 
 ```
-<domain>/auth/signup/<role>
+<domain>/auth/signup/<user type>
 ```
 
 **Request**
@@ -61,7 +68,7 @@ Email is unavailable
 **Endpoint**
 
 ```
-<domain>/auth/login/<role>
+<domain>/auth/login/<user type>
 ```
 
 **Request**
@@ -94,7 +101,7 @@ handler.
 **Endpoint**
 
 ```
-<domain>/auth/google/login/<role>
+<domain>/auth/google/login/<user type>
 ```
 
 **Request**
@@ -158,7 +165,7 @@ Success: `200 OK` - `text/plain`
 **Endpoint**
 
 ```
-<domain>/onboard/individual-details
+<domain>/onboard/individual-details/<role>
 ```
 
 **Request**
@@ -192,7 +199,7 @@ Success: `200 OK`
 **Endpoint**
 
 ```
-<domain>/onboard/entity-details
+<domain>/onboard/entity-details/<role>
 ```
 
 **Request**
@@ -224,7 +231,7 @@ Success: `200 OK`
 **Endpoint**
 
 ```
-<domain>/onboard/pic-details
+<domain>/onboard/pic-details/<role>
 ```
 
 **Request**
@@ -272,6 +279,40 @@ account-number
 
 Success: `200 OK`
 
+## EOR admin account details (deprecated)
+
+**Endpoint**
+
+```
+<domain>/onboard/eor-details
+```
+
+**Request**
+
+`POST`
+
+- an access token via the bearer authentication scheme
+- these fields as `multipart/form-data`:
+
+```
+first-name
+last-name
+dob
+dial-code
+phone-number
+country
+city
+address
+postal-code
+tax-id (optional)
+time-zone
+profile-picture (optional)
+```
+
+**Response**
+
+Success: `200 OK`
+
 # Password reset
 
 ## Emailing the password reset link
@@ -279,7 +320,7 @@ Success: `200 OK`
 **Endpoint**
 
 ```
-<domain>/auth/password/reset/email/<role>
+<domain>/auth/password/reset/email/<user type>
 ```
 
 **Request**
