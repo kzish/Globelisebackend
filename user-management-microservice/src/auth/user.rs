@@ -49,11 +49,32 @@ impl UserType {
             (UserType::EorAdmin, _) => "onboard_eor_admins",
         }
     }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            UserType::Individual => "individual",
+            UserType::Entity => "entity",
+            UserType::EorAdmin => "eor_admin",
+        }
+    }
 }
 
 /// Type representing which role a user has.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, EnumIter, EnumString, Display, Deserialize, Serialize,
+)]
+#[serde(rename_all = "kebab-case")]
+#[strum(serialize_all = "kebab-case")]
 pub enum Role {
     Client,
     Contractor,
+}
+
+impl Role {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Role::Client => "client",
+            Role::Contractor => "contractor",
+        }
+    }
 }

@@ -1,12 +1,17 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use axum::extract::{Extension, Json, Query};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
+use sqlx::{postgres::PgRow, Row};
+use time::{format_description, OffsetDateTime};
 
 use crate::{
-    auth::{token::AccessToken, user::Role},
-    database::SharedDatabase,
+    auth::{
+        token::AccessToken,
+        user::{Role, UserType},
+    },
+    database::{ulid_from_sql_uuid, SharedDatabase},
     error::Error,
 };
 
@@ -15,12 +20,36 @@ use crate::{
 pub struct UserIndex {
     pub ulid: Ulid,
     pub name: String,
-    pub role: Role,
-    pub created_at: Option<String>,
+    pub user_role: Role,
+    pub user_type: UserType,
     pub email: String,
+    pub created_at: String,
 }
 
-pub async fn user_index(
+impl UserIndex {
+    pub fn from_pg_row(row: PgRow) -> Result<Self, Error> {
+        let ulid = ulid_from_sql_uuid(row.try_get("ulid")?);
+        let name = row.try_get("name")?;
+        let role_str: String = row.try_get("user_role")?;
+        let user_role = Role::try_from(role_str.as_str())?;
+        let type_str: String = row.try_get("user_type")?;
+        let user_type = UserType::try_from(type_str.as_str())?;
+        let email = row.try_get("email")?;
+        let timestamp_msec = ulid.timestamp() as i64 / 1000;
+        let format = format_description::parse("[year]-[month]-[day]")?;
+        let created_at = OffsetDateTime::from_unix_timestamp(timestamp_msec)?.format(&format)?;
+        Ok(UserIndex {
+            ulid,
+            name,
+            user_role,
+            user_type,
+            email,
+            created_at,
+        })
+    }
+}
+
+pub async fn eor_admin_user_index(
     // NOTE: Only used to check that _some_ access token is provided
     _: AccessToken,
     Query(query): Query<HashMap<String, String>>,
@@ -28,53 +57,28 @@ pub async fn user_index(
 ) -> Result<Json<Vec<UserIndex>>, Error> {
     let page = query
         .get("page")
-        .map(|v| {
-            v.parse()
-                .map_err(|_| Error::BadRequest("Cannot parse page param as i32"))
-        })
-        .unwrap_or_else(|| Ok(0))?;
+        .map(|v| v.parse::<i64>())
+        .transpose()
+        .map_err(|_| Error::BadRequest("Invalid page param passed"))?;
     let per_page = query
         .get("per_page")
-        .map(|v| {
-            v.parse()
-                .map_err(|_| Error::BadRequest("Cannot parse page param as i32"))
-        })
-        .unwrap_or_else(|| Ok(25))?;
-    let search_text = query
-        .get("search_text")
-        .map(|v| Ok(Some(v.to_owned())))
-        .unwrap_or_else(|| Ok(None))?;
-    let user_role = query.get("user_role").cloned().unwrap_or_default();
-    let user_type = query.get("user_type").cloned().unwrap_or_default();
-    let role = match (user_type.as_ref(), user_role.as_ref()) {
-        ("client", "individual") => {
-            vec![Role::IndividualClient]
-        }
-        ("client", "entity") => {
-            vec![Role::EntityClient]
-        }
-        ("client", _) => {
-            vec![Role::IndividualClient, Role::EntityClient]
-        }
-        ("contractor", "individual") => {
-            vec![Role::IndividualContractor]
-        }
-        ("contractor", "entity") => {
-            vec![Role::EntityContractor]
-        }
-        ("contractor", _) => {
-            vec![Role::IndividualContractor, Role::EntityContractor]
-        }
-        _ => vec![
-            Role::IndividualClient,
-            Role::EntityClient,
-            Role::IndividualContractor,
-            Role::EntityContractor,
-        ],
-    };
+        .map(|v| v.parse::<i64>())
+        .transpose()
+        .map_err(|_| Error::BadRequest("Invalid per_page param passed"))?;
+    let search_text = query.get("search_text").map(|v| v.to_owned());
+    let user_type = query
+        .get("user_type")
+        .map(|r| UserType::from_str(r))
+        .transpose()
+        .map_err(|_| Error::BadRequest("Invalid user_type param passed"))?;
+    let user_role = query
+        .get("user_role")
+        .map(|r| Role::from_str(r))
+        .transpose()
+        .map_err(|_| Error::BadRequest("Invalid user_role param passed"))?;
     let database = database.lock().await;
     let result = database
-        .user_index(page, per_page, search_text, role)
+        .eor_admin_user_index(page, per_page, search_text, user_type, user_role)
         .await?;
     Ok(Json(result))
 }
