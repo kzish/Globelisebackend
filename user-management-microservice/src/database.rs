@@ -217,14 +217,14 @@ impl Database {
         let target_table = user_type.db_onboard_name(role);
         let query = format!(
             "
-    INSERT INTO {target_table} 
-    (ulid, first_name, last_name, dob, dial_code, phone_number, country, city, address,
-    postal_code, tax_id, time_zone, profile_picture) 
-    VALUES ($13, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-    ON CONFLICT(ulid) DO UPDATE
-    SET first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
-    country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
-    time_zone = $11, profile_picture = $12",
+            INSERT INTO {target_table} 
+            (ulid, first_name, last_name, dob, dial_code, phone_number, country, city, address,
+            postal_code, tax_id, time_zone, profile_picture) 
+            VALUES ($13, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ON CONFLICT(ulid) DO UPDATE SET 
+            first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
+            country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
+            time_zone = $11, profile_picture = $12",
         );
         sqlx::query(&query)
             .bind(details.first_name)
@@ -262,11 +262,15 @@ impl Database {
         }
 
         sqlx::query(&format!(
-            "UPDATE {}
-            SET company_name = $1, country = $2, entity_type = $3, registration_number = $4,
+            "
+            INSERT INTO {}
+            (ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
+            city, postal_code, time_zone, logo)
+            VALUES ($11, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            ON CONFLICT(ulid) DO UPDATE SET 
+            company_name = $1, country = $2, entity_type = $3, registration_number = $4,
             tax_id = $5, company_address = $6, city = $7, postal_code = $8, time_zone = $9,
-            logo = $10
-            WHERE ulid = $11",
+            logo = $10",
             user_type.db_onboard_name(role)
         ))
         .bind(details.company_name)
@@ -301,23 +305,28 @@ impl Database {
             return Err(Error::Forbidden);
         }
 
-        sqlx::query(&format!(
-            "UPDATE {}
-            SET first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
-            profile_picture = $6
-            WHERE ulid = $7",
-            user_type.db_onboard_name(role)
-        ))
-        .bind(details.first_name)
-        .bind(details.last_name)
-        .bind(details.dob)
-        .bind(details.dial_code)
-        .bind(details.phone_number)
-        .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
-        .bind(ulid_to_sql_uuid(ulid))
-        .execute(&self.0)
-        .await
-        .map_err(|e| Error::Database(e.to_string()))?;
+        let target_table = user_type.db_onboard_name(role);
+        let query = format!(
+            "
+            INSERT INTO {target_table}
+            (ulid, first_name, last_name, dob, dial_code, phone_number)
+            VALUES ($7, $1, $2, $3, $4, $5)
+            ON CONFLICT(ulid) DO UPDATE SET 
+            first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
+            profile_picture = $6",
+        );
+
+        sqlx::query(&query)
+            .bind(details.first_name)
+            .bind(details.last_name)
+            .bind(details.dob)
+            .bind(details.dial_code)
+            .bind(details.phone_number)
+            .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
+            .bind(ulid_to_sql_uuid(ulid))
+            .execute(&self.0)
+            .await
+            .map_err(|e| Error::Database(e.to_string()))?;
 
         Ok(())
     }
@@ -335,19 +344,23 @@ impl Database {
             return Err(Error::Forbidden);
         }
 
-        sqlx::query(&format!(
-            "UPDATE {}
-            SET bank_name = $1, bank_account_name = $2, bank_account_number = $3
-            WHERE ulid = $4",
-            user_type.db_onboard_name(Role::Contractor)
-        ))
-        .bind(details.bank_name)
-        .bind(details.account_name)
-        .bind(details.account_number)
-        .bind(ulid_to_sql_uuid(ulid))
-        .execute(&self.0)
-        .await
-        .map_err(|e| Error::Database(e.to_string()))?;
+        let target_table = user_type.db_onboard_name(Role::Contractor);
+        let query = format!(
+            "
+            INSERT INTO {target_table}
+            (ulid, bank_name, bank_account_name, bank_account_number)
+            VALUES ($4, $1, $2, $3)
+            ON CONFLICT(ulid) DO UPDATE SET 
+            bank_name = $1, bank_account_name = $2, bank_account_number = $3",
+        );
+        sqlx::query(&query)
+            .bind(details.bank_name)
+            .bind(details.account_name)
+            .bind(details.account_number)
+            .bind(ulid_to_sql_uuid(ulid))
+            .execute(&self.0)
+            .await
+            .map_err(|e| Error::Database(e.to_string()))?;
 
         Ok(())
     }
@@ -368,90 +381,6 @@ fn create_eor_admin_user_index_query(
     m_user_type: Option<UserType>,
     m_user_role: Option<Role>,
 ) -> String {
-    let with_as = [
-        (
-            Role::Client,
-            UserType::Individual,
-            "client_individual_info",
-            "auth_individuals",
-            "onboard_individual_clients",
-        ),
-        (
-            Role::Client,
-            UserType::Entity,
-            "client_entity_info",
-            "auth_entities",
-            "onboard_entity_clients",
-        ),
-        (
-            Role::Contractor,
-            UserType::Individual,
-            "contractor_individual_info",
-            "auth_individuals",
-            "onboard_individual_contractors",
-        ),
-        (
-            Role::Contractor,
-            UserType::Entity,
-            "contractor_entity_info",
-            "auth_entities",
-            "onboard_entity_contractors",
-        ),
-    ]
-    .iter()
-    .map(
-        |(user_role, user_type, result_name, auth_table, onboard_table)| {
-            let user_role_str = user_role.as_str();
-            let user_type_str = user_type.as_str();
-            let name_formula = match user_type {
-                UserType::Entity => {
-                    format!("{onboard_table}.company_name")
-                }
-                UserType::Individual => {
-                    format!("CONCAT({onboard_table}.first_name, ' ', {onboard_table}.last_name)")
-                }
-                _ => unreachable!(
-                    "This is not possible because we only mentioned entity and individuals"
-                ),
-            };
-            format!(
-                r##"
-{result_name} AS (
-    SELECT 
-        {auth_table}.ulid, 
-        {auth_table}.email, 
-        {name_formula} AS name,
-        '{user_role_str}' AS user_role,
-        '{user_type_str}' AS user_type
-    FROM  
-    {onboard_table} 
-    LEFT OUTER JOIN 
-    {auth_table}
-    ON 
-    {auth_table}.ulid = {onboard_table}.ulid
-)"##,
-            )
-        },
-    )
-    .collect::<Vec<String>>()
-    .join(",");
-    let join_table = [
-        "client_individual_info",
-        "client_entity_info",
-        "contractor_individual_info",
-        "contractor_entity_info",
-    ]
-    .iter()
-    .map(|s| format!("\tSELECT * FROM {}", s))
-    .collect::<Vec<String>>()
-    .join("\nUNION\n");
-    /*
-    m_page: Option<i64>,
-    m_per_page: Option<i64>,
-    m_search_text: Option<String>,
-    user_type: Option<UserType>,
-    user_role: Option<Role>,
-     */
     let mut where_clauses_iter = vec![];
     if let Some(search_text) = m_search_text {
         where_clauses_iter.push(format!("\tname ~* '{}'", search_text));
@@ -470,7 +399,6 @@ fn create_eor_admin_user_index_query(
     let offset = page * per_page;
     let query = format!(
         "
-
 WITH client_individual_info AS (
     SELECT
         auth_individuals.ulid,
