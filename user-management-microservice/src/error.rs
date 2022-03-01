@@ -41,7 +41,7 @@ impl IntoResponse for Error {
             ),
             Error::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
             Error::Unauthorized(message) => {
-                println!("{message}");
+                eprintln!("{message}");
                 return StatusCode::UNAUTHORIZED.into_response();
             }
             Error::Forbidden => return StatusCode::FORBIDDEN.into_response(),
@@ -53,5 +53,14 @@ impl IntoResponse for Error {
             }
         };
         (status, message).into_response()
+    }
+}
+
+impl<T> From<T> for Error
+where
+    T: std::error::Error,
+{
+    fn from(e: T) -> Self {
+        Error::Internal(e.to_string())
     }
 }

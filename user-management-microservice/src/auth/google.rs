@@ -10,14 +10,14 @@ use serde::Deserialize;
 use crate::error::Error;
 
 use super::{
-    user::{Role, User},
+    user::{User, UserType},
     SharedDatabase, SharedState,
 };
 
 /// Log in as a Google user.
 pub async fn login(
     Form(id_token): Form<IdToken>,
-    Path(role): Path<Role>,
+    Path(user_type): Path<UserType>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<String, Error> {
@@ -30,9 +30,11 @@ pub async fn login(
 
     let database = database.lock().await;
     let mut shared_state = shared_state.lock().await;
-    if let Some(ulid) = database.user_id(&email, role).await? {
-        if let Some((User { google: true, .. }, _)) = database.user(ulid, Some(role)).await? {
-            let refresh_token = shared_state.open_session(&database, ulid, role).await?;
+    if let Some(ulid) = database.user_id(&email, user_type).await? {
+        if let Some((User { google: true, .. }, _)) = database.user(ulid, Some(user_type)).await? {
+            let refresh_token = shared_state
+                .open_session(&database, ulid, user_type)
+                .await?;
 
             Ok(refresh_token)
         } else {
@@ -48,8 +50,10 @@ pub async fn login(
             google: true,
             outlook: false,
         };
-        let ulid = database.create_user(user, role).await?;
-        let refresh_token = shared_state.open_session(&database, ulid, role).await?;
+        let ulid = database.create_user(user, user_type).await?;
+        let refresh_token = shared_state
+            .open_session(&database, ulid, user_type)
+            .await?;
 
         Ok(refresh_token)
     }

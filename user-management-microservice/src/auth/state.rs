@@ -19,7 +19,7 @@ use super::{
         create_refresh_token,
         one_time::{create_one_time_token, OneTimeTokenAudience},
     },
-    user::Role,
+    user::UserType,
     HASH_CONFIG,
 };
 
@@ -54,10 +54,10 @@ impl State {
         &mut self,
         database: &Database,
         ulid: Ulid,
-        role: Role,
+        user_type: UserType,
     ) -> Result<String, Error> {
         // Validate that the user and role are correct.
-        if database.user(ulid, Some(role)).await?.is_none() {
+        if database.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Unauthorized("Refused to open session: invalid user"));
         }
 
@@ -65,7 +65,7 @@ impl State {
         if let Some(existing_sessions) = self.sessions(ulid).await? {
             sessions = existing_sessions;
         }
-        let refresh_token = sessions.open(ulid, role)?;
+        let refresh_token = sessions.open(ulid, user_type)?;
         self.serialize(Self::SESSION_CATEGORY, &ulid.to_string(), sessions)
             .await?;
         Ok(refresh_token)
@@ -104,13 +104,13 @@ impl State {
         &mut self,
         database: &Database,
         ulid: Ulid,
-        role: Role,
+        user_type: UserType,
     ) -> Result<String, Error>
     where
         T: OneTimeTokenAudience,
     {
         // Validate that the user and role are correct.
-        if database.user(ulid, Some(role)).await?.is_none() {
+        if database.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Unauthorized(
                 "Refused to open one-time session: invalid user",
             ));
@@ -124,7 +124,7 @@ impl State {
         {
             sessions = existing_sessions;
         }
-        let one_time_token = sessions.open::<T>(ulid, role)?;
+        let one_time_token = sessions.open::<T>(ulid, user_type)?;
         self.serialize(&*category, &ulid.to_string(), sessions)
             .await?;
         Ok(one_time_token)
@@ -221,8 +221,8 @@ impl Sessions {
     /// Opens a new session.
     ///
     /// Returns the refresh token for the session.
-    fn open(&mut self, ulid: Ulid, role: Role) -> Result<String, Error> {
-        let (refresh_token, expiration) = create_refresh_token(ulid, role)?;
+    fn open(&mut self, ulid: Ulid, user_type: UserType) -> Result<String, Error> {
+        let (refresh_token, expiration) = create_refresh_token(ulid, user_type)?;
         let salt: [u8; 16] = rand::thread_rng().gen();
         let hash = hash_encoded(refresh_token.as_bytes(), &salt, &HASH_CONFIG)
             .map_err(|_| Error::Internal("Failed to hash session".into()))?;
@@ -257,11 +257,11 @@ impl OneTimeSessions {
     /// Opens a new session.
     ///
     /// Returns the refresh token for the session.
-    fn open<T>(&mut self, ulid: Ulid, role: Role) -> Result<String, Error>
+    fn open<T>(&mut self, ulid: Ulid, user_type: UserType) -> Result<String, Error>
     where
         T: OneTimeTokenAudience,
     {
-        let (one_time_token, expiration) = create_one_time_token::<T>(ulid, role)?;
+        let (one_time_token, expiration) = create_one_time_token::<T>(ulid, user_type)?;
         let salt: [u8; 16] = rand::thread_rng().gen();
         let hash = hash_encoded(one_time_token.as_bytes(), &salt, &HASH_CONFIG)
             .map_err(|_| Error::Internal("Failed to hash one-time session".into()))?;

@@ -23,7 +23,7 @@ use crate::{
 
 use crate::auth::{
     token::one_time::{OneTimeToken, OneTimeTokenBearer, OneTimeTokenParam},
-    user::Role,
+    user::UserType,
     SharedDatabase, SharedState, HASH_CONFIG,
 };
 
@@ -34,7 +34,7 @@ use token::{ChangePasswordToken, LostPasswordToken};
 /// Send email to the user with the steps to recover their password.
 pub async fn send_email(
     Form(request): Form<LostPasswordRequest>,
-    Path(role): Path<Role>,
+    Path(user_type): Path<UserType>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<(), Error> {
@@ -44,19 +44,19 @@ pub async fn send_email(
         .map_err(|_| Error::BadRequest("Not a valid email address"))?;
 
     let database = database.lock().await;
-    let (user_ulid, is_valid_attempt) = match database.user_id(&email_address, role).await {
+    let (user_ulid, is_valid_attempt) = match database.user_id(&email_address, user_type).await {
         Ok(Some(ulid)) => (ulid, true),
         _ => (Ulid::generate(), false),
     };
 
     let mut shared_state = shared_state.lock().await;
     let (one_time_token, created_valid_token) = match shared_state
-        .open_one_time_session::<LostPasswordToken>(&database, user_ulid, role)
+        .open_one_time_session::<LostPasswordToken>(&database, user_ulid, user_type)
         .await
     {
         Ok(token) => (token, true),
         Err(_) => {
-            let (fake_token, _) = create_one_time_token::<LostPasswordToken>(user_ulid, role)?;
+            let (fake_token, _) = create_one_time_token::<LostPasswordToken>(user_ulid, user_type)?;
             (fake_token, false)
         }
     };
@@ -90,7 +90,7 @@ pub async fn send_email(
             </html>
             "##,
             (*GLOBELISE_DOMAIN_URL),
-            role,
+            user_type,
             one_time_token
         ))
         .map_err(|_| Error::Internal("Could not create email for changing password".into()))?;
@@ -118,12 +118,12 @@ pub async fn initiate(
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<Redirect, Error> {
     let ulid: Ulid = claims.sub.parse().unwrap();
-    let role: Role = claims.role.parse().unwrap();
+    let user_type: UserType = claims.user_type.parse().unwrap();
 
     let mut shared_state = shared_state.lock().await;
     let database = database.lock().await;
     let change_password_token = shared_state
-        .open_one_time_session::<ChangePasswordToken>(&database, ulid, role)
+        .open_one_time_session::<ChangePasswordToken>(&database, ulid, user_type)
         .await?;
 
     let redirect_url = format!("{}?token={}", (*PASSWORD_RESET_URL), change_password_token);
@@ -139,7 +139,7 @@ pub async fn execute(
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<(), Error> {
     let ulid: Ulid = claims.sub.parse().unwrap();
-    let role: Role = claims.role.parse().unwrap();
+    let user_type: UserType = claims.user_type.parse().unwrap();
 
     if request.new_password != request.confirm_new_password {
         return Err(Error::BadRequest("Passwords do not match"));
@@ -154,7 +154,9 @@ pub async fn execute(
     let hash = hash_encoded(request.new_password.as_bytes(), &salt, &HASH_CONFIG)
         .map_err(|_| Error::Internal("Failed to hash password".into()))?;
 
-    database.update_password(ulid, role, Some(hash)).await?;
+    database
+        .update_password(ulid, user_type, Some(hash))
+        .await?;
     shared_state.revoke_all_sessions(ulid).await?;
 
     Ok(())
