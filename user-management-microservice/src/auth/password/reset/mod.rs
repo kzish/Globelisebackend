@@ -11,6 +11,7 @@ use lettre::{Message, SmtpTransport, Transport};
 use rand::Rng;
 use rusty_ulid::Ulid;
 use serde::Deserialize;
+use unicode_normalization::UnicodeNormalization;
 
 use crate::{
     auth::token::one_time::create_one_time_token,
@@ -141,7 +142,10 @@ pub async fn execute(
     let ulid: Ulid = claims.sub.parse().unwrap();
     let user_type: UserType = claims.user_type.parse().unwrap();
 
-    if request.new_password != request.confirm_new_password {
+    let new_password: String = request.new_password.nfc().collect();
+    let confirm_new_password: String = request.new_password.nfc().collect();
+
+    if new_password != confirm_new_password {
         return Err(Error::BadRequest("Passwords do not match"));
     }
 
@@ -151,7 +155,7 @@ pub async fn execute(
     // NOTE: This is not atomic, so this check is quite pointless.
     // Either rely completely on SQL or use some kind of transaction commit.
     let salt: [u8; 16] = rand::thread_rng().gen();
-    let hash = hash_encoded(request.new_password.as_bytes(), &salt, &HASH_CONFIG)
+    let hash = hash_encoded(new_password.as_bytes(), &salt, &HASH_CONFIG)
         .map_err(|_| Error::Internal("Failed to hash password".into()))?;
 
     database
