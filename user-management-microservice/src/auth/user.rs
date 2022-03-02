@@ -49,14 +49,6 @@ impl UserType {
             (UserType::EorAdmin, _) => "onboard_eor_admins",
         }
     }
-
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            UserType::Individual => "individual",
-            UserType::Entity => "entity",
-            UserType::EorAdmin => "eor_admin",
-        }
-    }
 }
 
 /// Type representing which role a user has.
@@ -68,13 +60,4 @@ impl UserType {
 pub enum Role {
     Client,
     Contractor,
-}
-
-impl Role {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Role::Client => "client",
-            Role::Contractor => "contractor",
-        }
-    }
 }
