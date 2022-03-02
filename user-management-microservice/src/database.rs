@@ -158,7 +158,6 @@ impl Database {
             m_user_type,
             m_user_role,
         );
-        println!("query:\n{}", query);
         let result = sqlx::query(&query)
             .fetch_all(&self.0)
             .await
@@ -386,10 +385,10 @@ fn create_eor_admin_user_index_query(
         where_clauses_iter.push(format!("\tname ~* '{}'", search_text));
     };
     if let Some(user_role) = m_user_role {
-        where_clauses_iter.push(format!("\tuser_role = '{}'", user_role.as_str()));
+        where_clauses_iter.push(format!("\tuser_role = '{}'", user_role));
     };
     if let Some(user_type) = m_user_type {
-        where_clauses_iter.push(format!("\tuser_type = '{}'", user_type.as_str()));
+        where_clauses_iter.push(format!("\tuser_type = '{}'", user_type));
     };
     let where_clauses = where_clauses_iter
         .into_iter()
