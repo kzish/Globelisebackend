@@ -359,7 +359,7 @@ token
 
 Success: `303 See Other`
 
-Redirects user to the frontend password reset page with a new one-time token in the query params. 
+Redirects user to the frontend password reset page with a new one-time token in the query params.
 
 ```
 <password reset page>?token=<new token>
@@ -388,3 +388,31 @@ confirm-new-password
 **Response**
 
 Success: `200 OK`
+
+# Index users
+
+**Endpoint**
+
+```
+<domain>/users/index
+```
+
+**Request**
+
+`GET` with queries:
+
+| Name          | Description            |
+| ------------- | ---------------------- |
+| `page`        | Integer                |
+| `per_page`    | Integer                |
+| `search_text` | String                 |
+| `user_type`   | `individual`, `entity` |
+| `user_role`   | `contractor`, `client` |
+
+**Response**
+
+Success: `200 OK` - `application/json`
+
+```
+<public key>
+```

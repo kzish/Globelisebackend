@@ -49,8 +49,8 @@ impl UserIndex {
     }
 }
 
-pub async fn eor_admin_user_index(
-    // NOTE: Only used to check that _some_ access token is provided
+pub async fn user_index(
+    // Should require a backend access token
     _: AccessToken,
     Query(query): Query<HashMap<String, String>>,
     Extension(database): Extension<SharedDatabase>,
