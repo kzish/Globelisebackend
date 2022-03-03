@@ -57,8 +57,7 @@ impl Database {
         .bind(admin.google)
         .bind(admin.outlook)
         .execute(&self.0)
-        .await
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .await?;
 
         Ok(ulid)
     }
@@ -76,8 +75,7 @@ impl Database {
         .bind(new_password_hash)
         .bind(ulid_to_sql_uuid(ulid))
         .execute(&self.0)
-        .await
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .await?;
 
         Ok(())
     }

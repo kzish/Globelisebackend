@@ -8,8 +8,6 @@ use axum::{
 /// Error responses.
 #[derive(Debug)]
 pub enum Error {
-    Dapr(String),
-    Database(String),
     UnavailableEmail,
     BadRequest(&'static str),
     Unauthorized(&'static str),
@@ -19,14 +17,6 @@ pub enum Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, message) = match self {
-            Error::Dapr(message) => {
-                eprintln!("{message}");
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-            }
-            Error::Database(message) => {
-                eprintln!("{message}");
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-            }
             Error::UnavailableEmail => (StatusCode::CONFLICT, "Email is unavailable"),
             Error::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
             Error::Unauthorized(message) => {
@@ -42,14 +32,11 @@ impl IntoResponse for Error {
     }
 }
 
-impl From<sqlx::Error> for Error {
-    fn from(e: sqlx::Error) -> Self {
-        Error::Database(e.to_string())
-    }
-}
-
-impl From<email_address::Error> for Error {
-    fn from(e: email_address::Error) -> Self {
+impl<T> From<T> for Error
+where
+    T: std::error::Error,
+{
+    fn from(e: T) -> Self {
         Error::Internal(e.to_string())
     }
 }
