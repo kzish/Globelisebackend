@@ -249,6 +249,7 @@ name = "contractor-management-microservice"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "dapr",
  "dotenv",
  "jsonwebtoken",
  "once_cell",
