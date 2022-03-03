@@ -160,8 +160,7 @@ impl State {
         let value = serde_json::to_vec(&value).map_err(|e| Error::Internal(e.to_string()))?;
         self.dapr_client
             .save_state(Self::STATE_STORE, vec![(&*prefixed_key, value)])
-            .await
-            .map_err(|e| Error::Dapr(e.to_string()))?;
+            .await?;
         Ok(())
     }
 
@@ -174,8 +173,7 @@ impl State {
         let result = self
             .dapr_client
             .get_state(Self::STATE_STORE, &*prefixed_key, None)
-            .await
-            .map_err(|e| Error::Dapr(e.to_string()))?;
+            .await?;
 
         if !result.data.is_empty() {
             let value: T =
