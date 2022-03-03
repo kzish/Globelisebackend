@@ -49,7 +49,7 @@ impl UserIndex {
     }
 }
 
-pub async fn user_index(
+pub async fn eor_admin_user_index(
     // Only for validation
     _: AdminAccessToken,
     Query(query): Query<HashMap<String, String>>,
