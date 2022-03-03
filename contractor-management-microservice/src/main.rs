@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use axum::{error_handling::HandleErrorLayer, http::StatusCode, routing::get, BoxError, Router};
 use database::Database;
-use state::State;
+use reqwest::Client;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
 use tower_http::add_extension::AddExtensionLayer;
@@ -12,17 +12,19 @@ mod contracts;
 mod database;
 mod env;
 mod error;
-mod microservices;
-mod state;
 
 use env::LISTENING_ADDRESS;
+
+static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
 
-    let shared_state = State::new().await.expect("Could not connect to Dapr");
-    let shared_state = Arc::new(Mutex::new(shared_state));
+    let reqwest_client = Client::builder()
+        .user_agent(APP_USER_AGENT)
+        .build()
+        .unwrap();
 
     let database = Database::new().await;
     let database = Arc::new(Mutex::new(database));
@@ -38,7 +40,7 @@ async fn main() {
                 .concurrency_limit(1024)
                 .timeout(Duration::from_secs(10))
                 .layer(AddExtensionLayer::new(database))
-                .layer(AddExtensionLayer::new(shared_state)),
+                .layer(AddExtensionLayer::new(reqwest_client)),
         );
 
     axum::Server::bind(

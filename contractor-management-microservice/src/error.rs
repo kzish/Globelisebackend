@@ -8,9 +8,6 @@ use axum::{
 /// Error responses.
 #[derive(Debug)]
 pub enum Error {
-    Dapr(String),
-    Database(String),
-    BadRequest(&'static str),
     Unauthorized(&'static str),
     #[allow(dead_code)]
     NotFound,
@@ -19,32 +16,25 @@ pub enum Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        let (status, message) = match self {
-            Error::Dapr(message) => {
-                eprintln!("{message}");
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-            }
-            Error::Database(message) => {
-                eprintln!("{message}");
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-            }
-            Error::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
+        match self {
             Error::Unauthorized(message) => {
                 println!("{message}");
-                return StatusCode::UNAUTHORIZED.into_response();
+                StatusCode::UNAUTHORIZED.into_response()
             }
-            Error::NotFound => return StatusCode::NOT_FOUND.into_response(),
+            Error::NotFound => StatusCode::NOT_FOUND.into_response(),
             Error::Internal(message) => {
                 eprintln!("{message}");
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
-        };
-        (status, message).into_response()
+        }
     }
 }
 
-impl From<dapr::error::Error> for Error {
-    fn from(e: dapr::error::Error) -> Self {
-        Error::Dapr(e.to_string())
+impl<T> From<T> for Error
+where
+    T: std::error::Error,
+{
+    fn from(e: T) -> Self {
+        Error::Internal(e.to_string())
     }
 }

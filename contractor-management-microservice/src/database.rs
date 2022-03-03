@@ -3,8 +3,9 @@ use std::{sync::Arc, time::Duration};
 use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
+use user_management_microservice_sdk::Role;
 
-use crate::{error::Error, microservices::user_management::Role};
+use crate::error::Error;
 
 pub type SharedDatabase = Arc<Mutex<Database>>;
 
@@ -31,64 +32,84 @@ impl Database {
     /// Count the number of contracts
     pub async fn count_number_of_contracts(&self, ulid: &Ulid, role: &Role) -> Result<i64, Error> {
         let query = format!(
-            r##"
-            WITH result1 AS (
-                SELECT
-                    *
-                FROM
-                    {}_and_{}
-            ),
-            result2 AS (
-                SELECT
-                    *
-                FROM
-                    {}_and_{}
-            ),
-            results_union AS (
-                SELECT
-                    *
-                FROM
-                    result1
-                UNION
-                SELECT
-                    *
-                FROM
-                    result2
-            )
+            "
+        WITH result1 AS (
             SELECT
-                COUNT(client_ulid) as count
+                client_ulid,
+                contractor_ulid,
+                created_at
             FROM
-                results_union
-            WHERE {} = $1;"##,
-            role.as_db_name(),
+                client_entities_and_contractor_entities
+        ),
+        result2 AS (
+            SELECT
+                client_ulid,
+                contractor_ulid,
+                created_at
+            FROM
+                client_entities_and_contractor_individuals
+        ),
+        result3 AS (
+            SELECT
+                client_ulid,
+                contractor_ulid,
+                created_at
+            FROM
+                client_individuals_and_contractor_entities
+        ),
+        result4 AS (
+            SELECT
+                client_ulid,
+                contractor_ulid,
+                created_at
+            FROM
+                client_individuals_and_contractor_individuals
+        ),
+        results_union AS (
+            SELECT
+                client_ulid,
+                contractor_ulid,
+                created_at
+            FROM
+                result1
+            UNION
+            SELECT
+                client_ulid,
+                contractor_ulid,
+                created_at
+            FROM
+                result2
+            UNION
+            SELECT
+                client_ulid,
+                contractor_ulid,
+                created_at
+            FROM
+                result3
+            UNION
+            SELECT
+                client_ulid,
+                contractor_ulid,
+                created_at
+            FROM
+                result4
+            WHERE
+                {} = $1
+        )
+        SELECT
+            COUNT(client_ulid) as count
+        FROM
+            results_union;",
             match role {
-                Role::ClientIndividual | Role::ClientEntity =>
-                    Role::ContractorIndividual.as_db_name(),
-                Role::ContractorIndividual | Role::ContractorEntity =>
-                    Role::ClientIndividual.as_db_name(),
-                Role::EorAdmin =>
-                    return Err(Error::BadRequest("EOR admins cannot have any contracts")),
-            },
-            role.as_db_name(),
-            match role {
-                Role::ClientIndividual | Role::ClientEntity => Role::ContractorEntity.as_db_name(),
-                Role::ContractorIndividual | Role::ContractorEntity =>
-                    Role::ClientEntity.as_db_name(),
-                Role::EorAdmin =>
-                    return Err(Error::BadRequest("EOR admins cannot have any contracts")),
-            },
-            match role {
-                Role::ClientIndividual | Role::ClientEntity => "client_ulid",
-                Role::ContractorIndividual | Role::ContractorEntity => "contractor_ulid",
-                Role::EorAdmin =>
-                    return Err(Error::BadRequest("EOR admins cannot have any contracts")),
+                Role::Client => "client_ulid",
+                Role::Contractor => "contractor_ulid",
             }
         );
         let result: i64 = sqlx::query_scalar(&query)
             .bind(ulid_to_sql_uuid(*ulid))
             .fetch_one(&self.0)
             .await
-            .map_err(|e| Error::Database(e.to_string()))?;
+            .map_err(|e| Error::Internal(e.to_string()))?;
         Ok(result)
     }
 }
