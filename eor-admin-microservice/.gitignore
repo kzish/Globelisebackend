@@ -18,3 +18,4 @@ target/
 
 # Ignore Intellij workspace folder
 .idea/
+.env
