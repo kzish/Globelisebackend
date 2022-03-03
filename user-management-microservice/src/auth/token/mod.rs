@@ -18,7 +18,9 @@ use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 use tokio::sync::Mutex;
 
-use crate::{database::Database, error::Error};
+use crate::{
+    database::Database, env::GLOBELISE_EOR_ADMIN_MANAGEMENT_MICROSERVICE_PUBLIC_KEY, error::Error,
+};
 
 use super::{user::UserType, SharedDatabase, SharedState};
 
@@ -275,3 +277,55 @@ const ACCESS_LIFETIME: Duration = Duration::hours(1);
 
 /// Lifetime of refresh tokens.
 const REFRESH_LIFETIME: Duration = Duration::hours(2);
+
+/// Claims for access tokens.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AdminAccessToken {
+    pub sub: String,
+    pub email: String,
+    iss: String,
+    exp: usize,
+}
+
+impl AdminAccessToken {
+    async fn decode(input: &str) -> Result<Self, Error> {
+        let mut validation = Validation::new(Algorithm::RS256);
+        validation.set_issuer(&[ISSSUER]);
+        validation.set_required_spec_claims(&["iss", "exp"]);
+        let validation = validation;
+
+        let TokenData { claims, .. } = decode::<AdminAccessToken>(
+            input,
+            &*GLOBELISE_EOR_ADMIN_MANAGEMENT_MICROSERVICE_PUBLIC_KEY,
+            &validation,
+        )
+        .map_err(|_| Error::Unauthorized("Failed to decode access token"))?;
+
+        // TODO: Check that the access token still points to a valid admin?
+
+        Ok(claims)
+    }
+}
+
+#[async_trait]
+impl<B> FromRequest<B> for AdminAccessToken
+where
+    B: Send,
+{
+    type Rejection = Error;
+
+    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        if let Ok(TypedHeader(Authorization(bearer))) =
+            TypedHeader::<Authorization<Bearer>>::from_request(req).await
+        {
+            Ok(AdminAccessToken::decode(bearer.token()).await?)
+        } else if let Ok(Query(param)) = Query::<HashMap<String, String>>::from_request(req).await {
+            let token = param.get("token").ok_or(Error::Unauthorized(
+                "Please provide access token in the query param",
+            ))?;
+            Ok(AdminAccessToken::decode(token.as_str()).await?)
+        } else {
+            Err(Error::Unauthorized("No valid access token provided"))
+        }
+    }
+}

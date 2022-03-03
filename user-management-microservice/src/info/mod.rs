@@ -8,7 +8,7 @@ use time::{format_description, OffsetDateTime};
 
 use crate::{
     auth::{
-        token::AccessToken,
+        token::AdminAccessToken,
         user::{Role, UserType},
     },
     database::{ulid_from_sql_uuid, SharedDatabase},
@@ -50,8 +50,8 @@ impl UserIndex {
 }
 
 pub async fn eor_admin_user_index(
-    // NOTE: Only used to check that _some_ access token is provided
-    _: AccessToken,
+    // Only for validation
+    _: AdminAccessToken,
     Query(query): Query<HashMap<String, String>>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<Json<Vec<UserIndex>>, Error> {
@@ -78,7 +78,7 @@ pub async fn eor_admin_user_index(
         .map_err(|_| Error::BadRequest("Invalid user_role param passed"))?;
     let database = database.lock().await;
     let result = database
-        .eor_admin_user_index(page, per_page, search_text, user_type, user_role)
+        .user_index(page, per_page, search_text, user_type, user_role)
         .await?;
     Ok(Json(result))
 }

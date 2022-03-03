@@ -63,6 +63,7 @@ async fn main() {
         )
         .route("/onboard/bank-details", post(onboard::bank::bank_details))
         .route("/onboard/eor-details", post(onboard::eor::account_details))
+        // ========== BACKEND APIS ==========
         .route("/eor-admin/users/index", get(info::eor_admin_user_index))
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
