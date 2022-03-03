@@ -8,7 +8,7 @@ use time::{format_description, OffsetDateTime};
 
 use crate::{
     auth::{
-        token::AccessToken,
+        token::AdminAccessToken,
         user::{Role, UserType},
     },
     database::{ulid_from_sql_uuid, SharedDatabase},
@@ -50,8 +50,8 @@ impl UserIndex {
 }
 
 pub async fn user_index(
-    // Should require a backend access token
-    _: AccessToken,
+    // Only for validation
+    _: AdminAccessToken,
     Query(query): Query<HashMap<String, String>>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<Json<Vec<UserIndex>>, Error> {

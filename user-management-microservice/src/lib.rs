@@ -9,8 +9,10 @@ mod info;
 mod onboard;
 
 use derive_builder::Builder;
-use env::GLOBELISE_DOMAIN_URL;
-use reqwest::{Client, StatusCode};
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    Client, StatusCode,
+};
 
 pub use crate::{
     auth::user::{Role, UserType},
@@ -34,6 +36,7 @@ pub struct GetUserInfoRequest {
 
 pub async fn get_users_info(
     client: &Client,
+    base_url: &str,
     access_token: String,
     request: GetUserInfoRequest,
 ) -> Result<Vec<UserIndex>, Error> {
@@ -53,15 +56,22 @@ pub async fn get_users_info(
     if let Some(user_role) = request.user_role {
         query.push(("user_role", user_role.to_string()))
     }
-    let body = client
-        .get(format!("{}/users/index", &*GLOBELISE_DOMAIN_URL))
+    let response = client
+        .get(format!("{base_url}/users/index"))
+        .headers({
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                "dapr-app-id",
+                HeaderValue::from_static("user-management-microservice"),
+            );
+            headers
+        })
         .query(&query)
         .bearer_auth(access_token)
         .send()
         .await?;
-    if body.status() != StatusCode::OK {
-        return Err(Error::Internal(body.status().to_string()));
-    } else {
-        return Ok(body.json().await.unwrap());
+    match response.status() {
+        StatusCode::OK => Ok(response.json().await?),
+        _ => Err(Error::Internal(response.status().to_string())),
     }
 }
