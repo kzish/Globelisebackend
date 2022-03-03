@@ -56,22 +56,11 @@ impl IntoResponse for Error {
     }
 }
 
-macro_rules! from_error {
-    // This macro takes an argument of designator `ident` and
-    // creates a function named `$func_name`.
-    // The `ident` designator is used for variable/function names.
-    ($error_name:ty) => {
-        impl From<$error_name> for Error {
-            fn from(e: $error_name) -> Self {
-                Error::Internal(e.to_string())
-            }
-        }
-    };
+impl<T> From<T> for Error
+where
+    T: std::error::Error,
+{
+    fn from(e: T) -> Self {
+        Error::Internal(e.to_string())
+    }
 }
-
-from_error!(reqwest::Error);
-from_error!(time::error::Format);
-from_error!(time::error::ComponentRange);
-from_error!(time::error::InvalidFormatDescription);
-from_error!(sqlx::Error);
-from_error!(strum::ParseError);

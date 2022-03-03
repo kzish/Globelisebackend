@@ -78,7 +78,7 @@ pub async fn user_index(
         .map_err(|_| Error::BadRequest("Invalid user_role param passed"))?;
     let database = database.lock().await;
     let result = database
-        .eor_admin_user_index(page, per_page, search_text, user_type, user_role)
+        .user_index(page, per_page, search_text, user_type, user_role)
         .await?;
     Ok(Json(result))
 }

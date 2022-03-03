@@ -9,6 +9,7 @@ mod info;
 mod onboard;
 
 use derive_builder::Builder;
+use env::GLOBELISE_DOMAIN_URL;
 use reqwest::{Client, StatusCode};
 
 pub use crate::{
@@ -20,20 +21,20 @@ pub use crate::{
 #[derive(Default, Builder, Debug)]
 pub struct GetUserInfoRequest {
     #[builder(setter(strip_option), default)]
-    page: Option<u64>,
+    pub page: Option<u64>,
     #[builder(setter(strip_option), default)]
-    per_page: Option<u64>,
+    pub per_page: Option<u64>,
     #[builder(setter(strip_option), default)]
-    search_text: Option<String>,
+    pub search_text: Option<String>,
     #[builder(setter(strip_option), default)]
-    user_type: Option<UserType>,
+    pub user_type: Option<UserType>,
     #[builder(setter(strip_option), default)]
-    user_role: Option<Role>,
+    pub user_role: Option<Role>,
 }
 
 pub async fn get_users_info(
     client: &Client,
-    domain_url: &str,
+    access_token: String,
     request: GetUserInfoRequest,
 ) -> Result<Vec<UserIndex>, Error> {
     let mut query: Vec<(&'static str, String)> = vec![];
@@ -53,8 +54,9 @@ pub async fn get_users_info(
         query.push(("user_role", user_role.to_string()))
     }
     let body = client
-        .get(format!("{domain_url}/users/index"))
+        .get(format!("{}/users/index", &*GLOBELISE_DOMAIN_URL))
         .query(&query)
+        .bearer_auth(access_token)
         .send()
         .await?;
     if body.status() != StatusCode::OK {

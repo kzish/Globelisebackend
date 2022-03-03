@@ -141,7 +141,7 @@ impl Database {
     /// Currently, the search functionality only works on the name.
     /// For entities, this is the company's name.
     /// For individuals, this is a concat of their first and last name.
-    pub async fn eor_admin_user_index(
+    pub async fn user_index(
         &self,
         m_page: Option<i64>,
         m_per_page: Option<i64>,
