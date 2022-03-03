@@ -10,3 +10,4 @@ macro_rules! init_global_static {
 }
 
 init_global_static!(LISTENING_ADDRESS);
+init_global_static!(GLOBELISE_USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL);
