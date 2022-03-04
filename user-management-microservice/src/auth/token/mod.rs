@@ -13,14 +13,13 @@ use jsonwebtoken::{
     decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
 };
 use once_cell::sync::Lazy;
+use reqwest::Client as ReqwestClient;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 use tokio::sync::Mutex;
 
-use crate::{
-    database::Database, env::GLOBELISE_EOR_ADMIN_MANAGEMENT_MICROSERVICE_PUBLIC_KEY, error::Error,
-};
+use crate::{database::Database, env::GLOBELISE_EOR_ADMIN_MICROSERVICE_DOMAIN_URL, error::Error};
 
 use super::{user::UserType, SharedDatabase, SharedState};
 
@@ -288,18 +287,15 @@ pub struct AdminAccessToken {
 }
 
 impl AdminAccessToken {
-    async fn decode(input: &str) -> Result<Self, Error> {
+    async fn decode(input: &str, public_key: &DecodingKey) -> Result<Self, Error> {
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_issuer(&[ISSSUER]);
         validation.set_required_spec_claims(&["iss", "exp"]);
         let validation = validation;
 
-        let TokenData { claims, .. } = decode::<AdminAccessToken>(
-            input,
-            &*GLOBELISE_EOR_ADMIN_MANAGEMENT_MICROSERVICE_PUBLIC_KEY,
-            &validation,
-        )
-        .map_err(|_| Error::Unauthorized("Failed to decode access token"))?;
+        let TokenData { claims, .. } =
+            decode::<AdminAccessToken>(input, public_key, &validation)
+                .map_err(|_| Error::Unauthorized("Failed to decode access token"))?;
 
         // TODO: Check that the access token still points to a valid admin?
 
@@ -315,15 +311,29 @@ where
     type Rejection = Error;
 
     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        let Extension(client) = Extension::<ReqwestClient>::from_request(req)
+            .await
+            .map_err(|_| Error::Internal("Could not extract database from request".into()))?;
+        let Extension(shared_state) = Extension::<SharedState>::from_request(req)
+            .await
+            .map_err(|_| Error::Internal("Could not extract database from request".into()))?;
+        let mut shared_state = shared_state.lock().await;
+
+        let public_key = shared_state
+            .get_eor_admin_public_key(client, &*GLOBELISE_EOR_ADMIN_MICROSERVICE_DOMAIN_URL)
+            .await?;
+        let decoding_key = DecodingKey::from_rsa_pem(public_key.as_bytes())?;
+
+        // TODO: Add retry the decoding with a new public key if it fails.
         if let Ok(TypedHeader(Authorization(bearer))) =
             TypedHeader::<Authorization<Bearer>>::from_request(req).await
         {
-            Ok(AdminAccessToken::decode(bearer.token()).await?)
+            Ok(AdminAccessToken::decode(bearer.token(), &decoding_key).await?)
         } else if let Ok(Query(param)) = Query::<HashMap<String, String>>::from_request(req).await {
             let token = param.get("token").ok_or(Error::Unauthorized(
                 "Please provide access token in the query param",
             ))?;
-            Ok(AdminAccessToken::decode(token.as_str()).await?)
+            Ok(AdminAccessToken::decode(token.as_str(), &decoding_key).await?)
         } else {
             Err(Error::Unauthorized("No valid access token provided"))
         }

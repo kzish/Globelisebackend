@@ -3,7 +3,11 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use argon2::{hash_encoded, verify_encoded};
-use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
+use dapr::{
+    dapr::dapr::proto::runtime::v1::dapr_client::DaprClient as DaprProtoClient,
+    Client as DaprClient,
+};
+use reqwest::Client as ReqwestClient;
 
 use rand::Rng;
 use rusty_ulid::Ulid;
@@ -27,7 +31,7 @@ pub type SharedState = Arc<Mutex<State>>;
 
 /// Convenience wrapper around the Dapr client.
 pub struct State {
-    dapr_client: Client<DaprClient<Channel>>,
+    dapr_client: DaprClient<DaprProtoClient<Channel>>,
 }
 
 impl State {
@@ -35,6 +39,8 @@ impl State {
     const STATE_STORE: &'static str = "state_store";
     /// The category name for sessions.
     const SESSION_CATEGORY: &'static str = "sessions";
+    /// The category name for public keys.
+    const PUBLUC_KEY_CATEGORY: &'static str = "public_keys";
 
     /// Connects to Dapr.
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
@@ -208,6 +214,39 @@ impl State {
         T: OneTimeTokenAudience,
     {
         "one_time_".to_string() + T::name()
+    }
+
+    async fn refresh_eor_admin_public_key(
+        &mut self,
+        client: ReqwestClient,
+        microservice_domain: &str,
+    ) -> Result<String, Error> {
+        let public_key =
+            eor_admin_microservice_sdk::get_public_key(client, microservice_domain).await?;
+        self.serialize(
+            Self::PUBLUC_KEY_CATEGORY,
+            microservice_domain,
+            public_key.clone(),
+        )
+        .await?;
+        Ok(public_key)
+    }
+
+    pub async fn get_eor_admin_public_key(
+        &mut self,
+        client: ReqwestClient,
+        microservice_domain: &str,
+    ) -> Result<String, Error> {
+        let m_public_key = self
+            .deserialize(Self::PUBLUC_KEY_CATEGORY, microservice_domain)
+            .await?;
+
+        if let Some(public_key) = m_public_key {
+            Ok(public_key)
+        } else {
+            self.refresh_eor_admin_public_key(client, microservice_domain)
+                .await
+        }
     }
 }
 
