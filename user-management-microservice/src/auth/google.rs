@@ -144,7 +144,7 @@ pub async fn login_page() -> axum::response::Html<String> {
             <div
               id="g_id_onload"
               data-client_id="{}"
-              data-login_uri="http://{}/google/login/client_individual"
+              data-login_uri="http://{}/auth/google/login/individual"
               data-auto_prompt="false"
             ></div>
             <div
