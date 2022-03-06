@@ -48,7 +48,7 @@ pub fn create_access_token(
         iss: ISSSUER.into(),
         exp: expiration as usize,
     };
-    encode(&Header::new(Algorithm::RS256), &claims, &KEYS.encoding)
+    encode(&Header::new(Algorithm::EdDSA), &claims, &KEYS.encoding)
         .map_err(|_| Error::Internal("Failed to encode access token".into()))
 }
 
@@ -72,7 +72,7 @@ pub fn create_refresh_token(ulid: Ulid, user_type: UserType) -> Result<(String, 
     };
 
     Ok((
-        encode(&Header::new(Algorithm::RS256), &claims, &KEYS.encoding)
+        encode(&Header::new(Algorithm::EdDSA), &claims, &KEYS.encoding)
             .map_err(|_| Error::Internal("Failed to encode refresh token".into()))?,
         expiration,
     ))
@@ -90,7 +90,7 @@ pub struct AccessToken {
 
 impl AccessToken {
     async fn decode(input: &str, database: Arc<Mutex<Database>>) -> Result<Self, Error> {
-        let mut validation = Validation::new(Algorithm::RS256);
+        let mut validation = Validation::new(Algorithm::EdDSA);
         validation.set_issuer(&[ISSSUER]);
         validation.set_required_spec_claims(&["iss", "exp"]);
         let validation = validation;
@@ -157,7 +157,7 @@ pub struct RefreshToken {
 
 impl RefreshToken {
     fn decode(input: &str) -> Result<Self, Error> {
-        let mut validation = Validation::new(Algorithm::RS256);
+        let mut validation = Validation::new(Algorithm::EdDSA);
         validation.set_audience(&["refresh_token"]);
         validation.set_issuer(&[ISSSUER]);
         validation.set_required_spec_claims(&["aud", "iss", "exp"]);
@@ -237,14 +237,13 @@ pub struct Keys {
 }
 
 impl Keys {
-    /// Creates a new encoding/decoding key pair from an RSA key pair.
+    /// Creates a new encoding/decoding key pair from an Ed25519 key pair.
     ///
-    /// The private key must be in PEM form, and the public key in JWK form.
+    /// The keys must be in PEM form.
     fn new(private_key: &[u8], public_key: &[u8]) -> Self {
         Self {
-            encoding: EncodingKey::from_rsa_pem(private_key)
-                .expect("Could not create encoding key"),
-            decoding: DecodingKey::from_rsa_pem(public_key).expect("Could not create decoding key"),
+            encoding: EncodingKey::from_ed_pem(private_key).expect("Could not create encoding key"),
+            decoding: DecodingKey::from_ed_pem(public_key).expect("Could not create decoding key"),
         }
     }
 }
@@ -289,7 +288,7 @@ pub struct AdminAccessToken {
 
 impl AdminAccessToken {
     async fn decode(input: &str) -> Result<Self, Error> {
-        let mut validation = Validation::new(Algorithm::RS256);
+        let mut validation = Validation::new(Algorithm::EdDSA);
         validation.set_issuer(&[ISSSUER]);
         validation.set_required_spec_claims(&["iss", "exp"]);
         let validation = validation;

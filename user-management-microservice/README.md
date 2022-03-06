@@ -11,11 +11,11 @@ See [API](API.md).
 - [Rust compiler](https://www.rust-lang.org/tools/install)
 - [Dapr](https://docs.dapr.io/getting-started/)
   - Depends on Docker
-- RSA key pair for JWT encoding/decoding, stored in the files `private.pem` and `public.pem`
+- Ed25519 key pair for JWT encoding/decoding, stored in the files `private.pem` and `public.pem`
   - To generate them with OpenSSL, run these commands in the project root:
   ```
-  openssl genrsa -out private.pem 2048
-  openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+  openssl genpkey -algorithm ed25519 -outform PEM -out private.pem
+  openssl pkey -in private.pem -outform PEM -pubout -out public.pem
   ```
 - Environment variables:
   - `LISTENING_ADDRESS`: IP address and port that the server will listen on

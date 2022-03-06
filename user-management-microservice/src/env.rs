@@ -35,5 +35,5 @@ pub static GLOBELISE_EOR_ADMIN_MANAGEMENT_MICROSERVICE_PUBLIC_KEY: Lazy<Decoding
         let base64 = std::env::var("GLOBELISE_EOR_ADMIN_MANAGEMENT_MICROSERVICE_PUBLIC_KEY")
             .expect("GLOBELISE_EOR_ADMIN_MANAGEMENT_MICROSERVICE_PUBLIC_KEY must be set");
         let decoded = decode(base64).unwrap();
-        DecodingKey::from_rsa_pem(&decoded).unwrap()
+        DecodingKey::from_ed_pem(&decoded).unwrap()
     });
