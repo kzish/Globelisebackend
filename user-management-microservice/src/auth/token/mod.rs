@@ -282,7 +282,7 @@ const ACCESS_LIFETIME: Duration = Duration::hours(1);
 /// Lifetime of refresh tokens.
 const REFRESH_LIFETIME: Duration = Duration::hours(2);
 
-/// HTTP client for fetching and caching Google's public keys.
+/// HTTP Cache EOR admin microservice public key
 static EOR_ADMIN_PUBLIC_KEY: Lazy<ClientWithMiddleware> = Lazy::new(|| {
     ClientBuilder::new(ReqwestClient::new())
         .with(Cache(HttpCache {
