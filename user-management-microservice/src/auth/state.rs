@@ -3,7 +3,10 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use argon2::{hash_encoded, verify_encoded};
-use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
+use dapr::{
+    dapr::dapr::proto::runtime::v1::dapr_client::DaprClient as DaprProtoClient,
+    Client as DaprClient,
+};
 
 use rand::Rng;
 use rusty_ulid::Ulid;
@@ -27,7 +30,7 @@ pub type SharedState = Arc<Mutex<State>>;
 
 /// Convenience wrapper around the Dapr client.
 pub struct State {
-    dapr_client: Client<DaprClient<Channel>>,
+    dapr_client: DaprClient<DaprProtoClient<Channel>>,
 }
 
 impl State {

@@ -9,18 +9,22 @@ use axum::{
     headers::{authorization::Bearer, Authorization},
 };
 use email_address::EmailAddress;
+use http_cache_reqwest::{Cache, CacheMode, HttpCache, MokaManager};
 use jsonwebtoken::{
     decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
 };
 use once_cell::sync::Lazy;
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    Client as ReqwestClient,
+};
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 use tokio::sync::Mutex;
 
-use crate::{
-    database::Database, env::GLOBELISE_EOR_ADMIN_MANAGEMENT_MICROSERVICE_PUBLIC_KEY, error::Error,
-};
+use crate::{database::Database, env::GLOBELISE_EOR_ADMIN_MICROSERVICE_DOMAIN_URL, error::Error};
 
 use super::{user::UserType, SharedDatabase, SharedState};
 
@@ -278,6 +282,43 @@ const ACCESS_LIFETIME: Duration = Duration::hours(1);
 /// Lifetime of refresh tokens.
 const REFRESH_LIFETIME: Duration = Duration::hours(2);
 
+/// HTTP client for fetching and caching Google's public keys.
+static EOR_ADMIN_PUBLIC_KEY: Lazy<ClientWithMiddleware> = Lazy::new(|| {
+    ClientBuilder::new(ReqwestClient::new())
+        .with(Cache(HttpCache {
+            mode: CacheMode::Default,
+            manager: Arc::new(MokaManager::default()),
+            options: None,
+        }))
+        .build()
+});
+
+struct PublicKey(DecodingKey);
+
+impl PublicKey {
+    /// Fetch Google's public keys.
+    async fn new() -> Result<Self, Error> {
+        let key = EOR_ADMIN_PUBLIC_KEY
+            .get(&format!(
+                "{}/auth/public-key",
+                &*GLOBELISE_EOR_ADMIN_MICROSERVICE_DOMAIN_URL
+            ))
+            .headers({
+                let mut headers = HeaderMap::default();
+                headers.insert(
+                    "dapr-app-id",
+                    HeaderValue::from_static("eor-admin-microservice"),
+                );
+                headers
+            })
+            .send()
+            .await?
+            .text()
+            .await?;
+        Ok(PublicKey(DecodingKey::from_rsa_pem(key.as_bytes())?))
+    }
+}
+
 /// Claims for access tokens.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AdminAccessToken {
@@ -288,18 +329,15 @@ pub struct AdminAccessToken {
 }
 
 impl AdminAccessToken {
-    async fn decode(input: &str) -> Result<Self, Error> {
+    async fn decode(input: &str, public_key: &DecodingKey) -> Result<Self, Error> {
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_issuer(&[ISSSUER]);
         validation.set_required_spec_claims(&["iss", "exp"]);
         let validation = validation;
 
-        let TokenData { claims, .. } = decode::<AdminAccessToken>(
-            input,
-            &*GLOBELISE_EOR_ADMIN_MANAGEMENT_MICROSERVICE_PUBLIC_KEY,
-            &validation,
-        )
-        .map_err(|_| Error::Unauthorized("Failed to decode access token"))?;
+        let TokenData { claims, .. } =
+            decode::<AdminAccessToken>(input, public_key, &validation)
+                .map_err(|_| Error::Unauthorized("Failed to decode access token"))?;
 
         // TODO: Check that the access token still points to a valid admin?
 
@@ -315,15 +353,18 @@ where
     type Rejection = Error;
 
     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        let decoding_key = PublicKey::new().await?;
+
+        // TODO: Add retry the decoding with a new public key if it fails.
         if let Ok(TypedHeader(Authorization(bearer))) =
             TypedHeader::<Authorization<Bearer>>::from_request(req).await
         {
-            Ok(AdminAccessToken::decode(bearer.token()).await?)
+            Ok(AdminAccessToken::decode(bearer.token(), &decoding_key.0).await?)
         } else if let Ok(Query(param)) = Query::<HashMap<String, String>>::from_request(req).await {
             let token = param.get("token").ok_or(Error::Unauthorized(
                 "Please provide access token in the query param",
             ))?;
-            Ok(AdminAccessToken::decode(token.as_str()).await?)
+            Ok(AdminAccessToken::decode(token.as_str(), &decoding_key.0).await?)
         } else {
             Err(Error::Unauthorized("No valid access token provided"))
         }
