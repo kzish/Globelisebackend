@@ -1,6 +1,6 @@
 //! Functions and types for handling authorization tokens.
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fs::File, io::Read, sync::Arc};
 
 use argon2::verify_encoded;
 use axum::{
@@ -231,31 +231,42 @@ where
 }
 
 /// Stores the keys used for encoding and decoding tokens.
-struct Keys {
+pub struct Keys {
     pub encoding: EncodingKey,
     pub decoding: DecodingKey,
 }
 
 impl Keys {
-    /// Creates a new encoding/decoding key pair from an Ed25519 DER-encoded key pair.
+    /// Creates a new encoding/decoding key pair from an Ed25519 key pair.
+    ///
+    /// The keys must be in PEM form.
     fn new(private_key: &[u8], public_key: &[u8]) -> Self {
         Self {
-            encoding: EncodingKey::from_ed_der(private_key),
-            decoding: DecodingKey::from_ed_der(public_key),
+            encoding: EncodingKey::from_ed_pem(private_key).expect("Could not create encoding key"),
+            decoding: DecodingKey::from_ed_pem(public_key).expect("Could not create decoding key"),
         }
     }
 }
 
 /// The public key used for decoding tokens.
-pub static PUBLIC_KEY: Lazy<String> = Lazy::new(|| ED25519_KEY_PAIR.pk.to_pem());
+pub static PUBLIC_KEY: Lazy<String> = Lazy::new(|| {
+    let mut public_key = String::new();
+    File::open("public.pem")
+        .expect("Could not open public key")
+        .read_to_string(&mut public_key)
+        .expect("Could not read public key");
+    public_key
+});
 
 /// The encoding/decoding key pair.
-static KEYS: Lazy<Keys> =
-    Lazy::new(|| Keys::new(&ED25519_KEY_PAIR.sk.to_der(), &ED25519_KEY_PAIR.pk.to_der()));
-
-/// The Ed25519 key pair used to generate the encoding/decoding key pair.
-static ED25519_KEY_PAIR: Lazy<ed25519_compact::KeyPair> =
-    Lazy::new(ed25519_compact::KeyPair::generate);
+pub static KEYS: Lazy<Keys> = Lazy::new(|| {
+    let mut private_key: Vec<u8> = Vec::new();
+    File::open("private.pem")
+        .expect("Could not open private key")
+        .read_to_end(&mut private_key)
+        .expect("Could not read private key");
+    Keys::new(&private_key, PUBLIC_KEY.as_bytes())
+});
 
 /// The issuer of tokens, used in the `iss` field of JWTs.
 pub const ISSSUER: &str = "https://globelise.com";
