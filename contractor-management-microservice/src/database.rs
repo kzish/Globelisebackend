@@ -31,85 +31,17 @@ impl Database {
 impl Database {
     /// Count the number of contracts
     pub async fn count_number_of_contracts(&self, ulid: &Ulid, role: &Role) -> Result<i64, Error> {
-        let query = format!(
-            "
-        WITH result1 AS (
-            SELECT
-                client_ulid,
-                contractor_ulid,
-                created_at
-            FROM
-                client_entities_and_contractor_entities
-        ),
-        result2 AS (
-            SELECT
-                client_ulid,
-                contractor_ulid,
-                created_at
-            FROM
-                client_entities_and_contractor_individuals
-        ),
-        result3 AS (
-            SELECT
-                client_ulid,
-                contractor_ulid,
-                created_at
-            FROM
-                client_individuals_and_contractor_entities
-        ),
-        result4 AS (
-            SELECT
-                client_ulid,
-                contractor_ulid,
-                created_at
-            FROM
-                client_individuals_and_contractor_individuals
-        ),
-        results_union AS (
-            SELECT
-                client_ulid,
-                contractor_ulid,
-                created_at
-            FROM
-                result1
-            UNION
-            SELECT
-                client_ulid,
-                contractor_ulid,
-                created_at
-            FROM
-                result2
-            UNION
-            SELECT
-                client_ulid,
-                contractor_ulid,
-                created_at
-            FROM
-                result3
-            UNION
-            SELECT
-                client_ulid,
-                contractor_ulid,
-                created_at
-            FROM
-                result4
-            WHERE
-                {} = $1
-        )
-        SELECT
-            COUNT(client_ulid) as count
-        FROM
-            results_union;",
+        let result = sqlx::query_scalar(&format!(
+            "SELECT COUNT(*) FROM contracts WHERE {} = $1",
             match role {
                 Role::Client => "client_ulid",
                 Role::Contractor => "contractor_ulid",
             }
-        );
-        let result: i64 = sqlx::query_scalar(&query)
-            .bind(ulid_to_sql_uuid(*ulid))
-            .fetch_one(&self.0)
-            .await
-            .map_err(|e| Error::Internal(e.to_string()))?;
+        ))
+        .bind(ulid_to_sql_uuid(*ulid))
+        .fetch_one(&self.0)
+        .await
+        .map_err(|e| Error::Internal(e.to_string()))?;
         Ok(result)
     }
 }
