@@ -16,7 +16,5 @@ target/
 # Various Editor/IDE files
 .tmuxp.yaml
 
-.env
-
 # Ignore Intellij workspace folder
 .idea/
