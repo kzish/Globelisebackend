@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 13.6
--- Dumped by pg_dump version 13.6
+-- Dumped from database version 14.1 (Debian 14.1-1.pgdg110+1)
+-- Dumped by pg_dump version 14.1 (Debian 14.1-1.pgdg110+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -102,7 +102,7 @@ CREATE TABLE public.onboard_entity_clients (
     last_name character varying(50),
     dob date,
     dial_code character varying(5),
-    phone_number character varying(15),
+    phone_number character varying(16),
     profile_picture bytea,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -130,7 +130,7 @@ CREATE TABLE public.onboard_entity_contractors (
     last_name character varying(50),
     dob date,
     dial_code character varying(5),
-    phone_number character varying(15),
+    phone_number character varying(16),
     profile_picture bytea,
     bank_name character varying(120),
     bank_account_name character varying(50),
@@ -151,7 +151,7 @@ CREATE TABLE public.onboard_eor_admins (
     last_name character varying(50),
     dob date,
     dial_code character varying(5),
-    phone_number character varying(15),
+    phone_number character varying(16),
     country character varying(100),
     city character varying(50),
     address character varying(250),
@@ -175,7 +175,7 @@ CREATE TABLE public.onboard_individual_clients (
     last_name character varying(50),
     dob date,
     dial_code character varying(5),
-    phone_number character varying(15),
+    phone_number character varying(16),
     country character varying(100),
     city character varying(50),
     address character varying(250),
@@ -199,7 +199,7 @@ CREATE TABLE public.onboard_individual_contractors (
     last_name character varying(50),
     dob date,
     dial_code character varying(5),
-    phone_number character varying(15),
+    phone_number character varying(16),
     country character varying(100),
     city character varying(50),
     address character varying(250),
@@ -215,6 +215,33 @@ CREATE TABLE public.onboard_individual_contractors (
 
 
 ALTER TABLE public.onboard_individual_contractors OWNER TO postgres;
+
+--
+-- Name: prefilled_onboard_individual_contractors; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.prefilled_onboard_individual_contractors (
+    email character varying(50) NOT NULL,
+    first_name character varying(50),
+    last_name character varying(50),
+    dob date,
+    dial_code character varying(5),
+    phone_number character varying(16),
+    country character varying(100),
+    city character varying(50),
+    address character varying(250),
+    postal_code character varying(20),
+    tax_id character varying(50),
+    time_zone character varying(50),
+    profile_picture bytea,
+    bank_name character varying(120),
+    bank_account_name character varying(50),
+    bank_account_number character varying(20),
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.prefilled_onboard_individual_contractors OWNER TO postgres;
 
 --
 -- Name: auth_entities auth_entities_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
@@ -305,6 +332,22 @@ ALTER TABLE ONLY public.onboard_individual_contractors
 
 
 --
+-- Name: prefilled_onboard_individual_contractors prefilled_onboard_individual_contractors_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.prefilled_onboard_individual_contractors
+    ADD CONSTRAINT prefilled_onboard_individual_contractors_email_key UNIQUE (email);
+
+
+--
+-- Name: prefilled_onboard_individual_contractors prefilled_onboard_individual_contractors_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.prefilled_onboard_individual_contractors
+    ADD CONSTRAINT prefilled_onboard_individual_contractors_pkey PRIMARY KEY (email);
+
+
+--
 -- Name: auth_entities mdt_auth_entities; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -358,6 +401,13 @@ CREATE TRIGGER mdt_onboard_individual_clients BEFORE UPDATE ON public.onboard_in
 --
 
 CREATE TRIGGER mdt_onboard_individual_contractors BEFORE UPDATE ON public.onboard_individual_contractors FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
+
+
+--
+-- Name: prefilled_onboard_individual_contractors mdt_onboard_individual_contractors; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER mdt_onboard_individual_contractors BEFORE UPDATE ON public.prefilled_onboard_individual_contractors FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
 
 
 --
