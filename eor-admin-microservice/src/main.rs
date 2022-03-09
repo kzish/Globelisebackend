@@ -15,6 +15,7 @@ mod auth;
 mod database;
 mod env;
 mod error;
+mod onboard;
 
 use env::LISTENING_ADDRESS;
 
@@ -45,6 +46,7 @@ async fn main() {
             "/auth/password/reset/execute",
             post(auth::password::reset::execute),
         )
+        .route("/onboard/admin-details", post(onboard::account_details))
         .route("/auth/access-token", post(auth::access_token))
         .route("/auth/public-key", get(auth::public_key))
         .layer(

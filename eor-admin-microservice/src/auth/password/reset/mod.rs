@@ -7,7 +7,7 @@ use axum::{
     response::Redirect,
 };
 use email_address::EmailAddress;
-use lettre::{Message, SmtpTransport, Transport};
+use lettre::{message::Mailbox, Message, SmtpTransport, Transport};
 use rand::Rng;
 use rusty_ulid::Ulid;
 use serde::Deserialize;
@@ -36,9 +36,9 @@ pub async fn send_email(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<(), Error> {
-    let email_address: EmailAddress = request
+    let email_address = request
         .email
-        .parse()
+        .parse::<EmailAddress>()
         .map_err(|_| Error::BadRequest("Not a valid email address"))?;
 
     let database = database.lock().await;
@@ -62,7 +62,7 @@ pub async fn send_email(
     let receiver_email = email_address
         // TODO: Get the name of the person associated to this email address
         .to_display("")
-        .parse()
+        .parse::<Mailbox>()
         .map_err(|_| Error::BadRequest("Bad request"))?;
     let email = Message::builder()
         .from(GLOBELISE_SENDER_EMAIL.clone())

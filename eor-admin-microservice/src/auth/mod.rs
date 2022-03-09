@@ -35,8 +35,8 @@ pub async fn signup(
 
     // Frontend validation can be bypassed, so perform basic validation
     // in the backend as well.
-    let email: EmailAddress = email
-        .parse()
+    let email = email
+        .parse::<EmailAddress>()
         .map_err(|_| Error::BadRequest("Not a valid email address"))?;
     if password.len() < 8 {
         return Err(Error::BadRequest(

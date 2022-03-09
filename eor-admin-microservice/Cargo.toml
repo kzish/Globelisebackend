@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.4.4", features = ["headers", "multipart"] }
+axum = { version = "0.4.8", features = ["headers", "multipart"] }
 dapr = "0.7.2"
 dotenv = "0.15.0"
 email_address = "0.2.1"
