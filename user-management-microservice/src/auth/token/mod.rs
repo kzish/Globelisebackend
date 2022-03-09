@@ -328,14 +328,16 @@ pub struct AdminAccessToken {
 }
 
 impl AdminAccessToken {
-    async fn decode(input: &str, public_key: &DecodingKey) -> Result<Self, Error> {
+    async fn decode(input: &str) -> Result<Self, Error> {
         let mut validation = Validation::new(Algorithm::EdDSA);
         validation.set_issuer(&[ISSSUER]);
         validation.set_required_spec_claims(&["iss", "exp"]);
         let validation = validation;
 
+        let public_key = PublicKey::new().await?;
+
         let TokenData { claims, .. } =
-            decode::<AdminAccessToken>(input, public_key, &validation)
+            decode::<AdminAccessToken>(input, &public_key.0, &validation)
                 .map_err(|_| Error::Unauthorized("Failed to decode access token"))?;
 
         // TODO: Check that the access token still points to a valid admin?
@@ -352,18 +354,16 @@ where
     type Rejection = Error;
 
     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let decoding_key = PublicKey::new().await?;
-
         // TODO: Add retry the decoding with a new public key if it fails.
         if let Ok(TypedHeader(Authorization(bearer))) =
             TypedHeader::<Authorization<Bearer>>::from_request(req).await
         {
-            Ok(AdminAccessToken::decode(bearer.token(), &decoding_key.0).await?)
+            Ok(AdminAccessToken::decode(bearer.token()).await?)
         } else if let Ok(Query(param)) = Query::<HashMap<String, String>>::from_request(req).await {
             let token = param.get("token").ok_or(Error::Unauthorized(
                 "Please provide access token in the query param",
             ))?;
-            Ok(AdminAccessToken::decode(token.as_str(), &decoding_key.0).await?)
+            Ok(AdminAccessToken::decode(token.as_str()).await?)
         } else {
             Err(Error::Unauthorized("No valid access token provided"))
         }
