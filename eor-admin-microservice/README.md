@@ -11,18 +11,18 @@ See [API](API.md).
 - [Rust compiler](https://www.rust-lang.org/tools/install)
 - [Dapr](https://docs.dapr.io/getting-started/)
   - Depends on Docker
-- RSA key pair for JWT encoding/decoding, stored in the files `private.pem` and `public.pem`
+- Ed25519 key pair for JWT encoding/decoding, stored in the files `private.pem` and `public.pem`
   - To generate them with OpenSSL, run these commands in the project root:
   ```
-  openssl genrsa -out private.pem 2048
-  openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+  openssl genpkey -algorithm ed25519 -outform PEM -out private.pem
+  openssl pkey -in private.pem -outform PEM -pubout -out public.pem
   ```
 - Environment variables:
   - `LISTENING_ADDRESS`: IP address and port that the server will listen on
     - e.g. `localhost:3000`
     - All occurences of `localhost` will be replaced by `127.0.0.1`
   - `DATABASE_URL`: URL for connecting to the PostgreSQL database
-    - e.g. `postgres://postgres:<password>@localhost/globelise_user_management`
+    - e.g. `postgres://postgres:<password>@localhost/globelise_eor_admin_management`
   - `GOOGLE_CLIENT_ID`: Google client ID
   - `GLOBELISE_DOMAIN_URL`: URL for the server hosting this microservice
   - `GLOBELISE_SMTP_EMAIL`: Email address for sending change password email
