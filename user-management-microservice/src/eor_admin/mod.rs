@@ -103,9 +103,9 @@ pub async fn add_individual_contractor(
         .map_err(|_| Error::BadRequest("Not a valid email address"))?;
 
     let database = database.lock().await;
-    if let Some(_) = database
+    if (database
         .user_id(&email_address, UserType::Individual)
-        .await?
+        .await?).is_some()
     {
         return Err(Error::UnavailableEmail);
     };
