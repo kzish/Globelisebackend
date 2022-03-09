@@ -9,14 +9,10 @@ target/
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 
-# Secrets and cryptographic keys
+# Secrets, cryptographic keys, environment variables, etc.
 *.pem
 *.env
 
-# Various Editor/IDE files
+# Various editor/IDE files
 .tmuxp.yaml
-
-.env
-
-# Ignore Intellij workspace folder
 .idea/

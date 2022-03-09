@@ -501,8 +501,7 @@ impl Database {
         email: String,
         details: IndividualDetails,
     ) -> Result<(), Error> {
-        let query = format!(
-            "
+        let query = "
             INSERT INTO  prefilled_onboard_individual_contractors
             (email, first_name, last_name, dob, dial_code, phone_number, country, city, address,
             postal_code, tax_id, time_zone, profile_picture) 
@@ -510,8 +509,8 @@ impl Database {
             ON CONFLICT(email) DO UPDATE SET 
             first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
             country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
-            time_zone = $11, profile_picture = $12",
-        );
+            time_zone = $11, profile_picture = $12"
+            .to_string();
         sqlx::query(&query)
             .bind(details.first_name)
             .bind(details.last_name)

@@ -13,7 +13,6 @@ pub enum Error {
     UnavailableEmail,
     WrongUserType,
     UnsupportedImageFormat,
-    Conflict(&'static str),
     BadRequest(&'static str),
     Unauthorized(&'static str),
     Forbidden,
@@ -40,7 +39,6 @@ impl IntoResponse for Error {
                 StatusCode::UNSUPPORTED_MEDIA_TYPE,
                 "Image must be PNG or JPEG",
             ),
-            Error::Conflict(message) => (StatusCode::CONFLICT, message),
             Error::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
             Error::Unauthorized(message) => {
                 eprintln!("{message}");

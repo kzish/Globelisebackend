@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+    "user-management-microservice",
+    "contractor-management-microservice",
+    "eor-admin-microservice",
+]

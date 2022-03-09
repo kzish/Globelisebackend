@@ -24,30 +24,23 @@ where
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_err(|e| Error::BadRequest(format!("{:#?}", e)))?
+        .map_err(|_| Error::BadRequest("Bad request"))?
     {
-        let name = field
-            .name()
-            .ok_or(Error::BadRequest("Invalid field name string".to_string()))?;
-
-        println!("name:{}", name);
-
-        let name = name
-            .parse::<T>()
-            .map_err(|_| Error::BadRequest("Unexpected field name".to_string()))?;
+        let name = field.name().ok_or(Error::BadRequest("Bad request"))?;
+        let name: T = name.parse().map_err(|_| Error::BadRequest("Bad request"))?;
 
         if name.is_image() {
             let data = validate_image_field(field).await?;
             if text_fields.contains_key(&name) || byte_fields.insert(name, data).is_some() {
-                return Err(Error::BadRequest("Duplicate field".to_string()));
+                return Err(Error::BadRequest("Duplicate field"));
             }
         } else {
             let data = field
                 .text()
                 .await
-                .map_err(|_| Error::BadRequest("Bad request".to_string()))?;
+                .map_err(|_| Error::BadRequest("Bad request"))?;
             if byte_fields.contains_key(&name) || text_fields.insert(name, data).is_some() {
-                return Err(Error::BadRequest("Duplicate field".to_string()));
+                return Err(Error::BadRequest("Duplicate field"));
             }
         }
     }
@@ -59,7 +52,7 @@ where
         .collect();
     for field in T::iter().filter(|f| f.is_required()) {
         if !fields_found.contains(&field) {
-            return Err(Error::BadRequest("Missing required field".to_string()));
+            return Err(Error::BadRequest("Missing required field"));
         }
     }
 
@@ -67,9 +60,7 @@ where
 }
 
 pub async fn validate_image_field(field: Field<'_>) -> Result<Bytes, Error> {
-    let filename = field
-        .file_name()
-        .ok_or(Error::BadRequest("Bad request".to_string()))?;
+    let filename = field.file_name().ok_or(Error::BadRequest("Bad request"))?;
     let mut file_extension = std::path::Path::new(filename)
         .extension()
         .ok_or(Error::UnsupportedImageFormat)?
@@ -82,7 +73,7 @@ pub async fn validate_image_field(field: Field<'_>) -> Result<Bytes, Error> {
 
     let content_type = field
         .content_type()
-        .ok_or(Error::BadRequest("Bad request".to_string()))?
+        .ok_or(Error::BadRequest("Bad request"))?
         .to_owned();
     match (content_type.type_(), content_type.subtype()) {
         (mime::IMAGE, mime::PNG) => {
@@ -101,7 +92,7 @@ pub async fn validate_image_field(field: Field<'_>) -> Result<Bytes, Error> {
     let data = field
         .bytes()
         .await
-        .map_err(|_| Error::BadRequest("Bad request".to_string()))?;
+        .map_err(|_| Error::BadRequest("Bad request"))?;
     if data.len() > IMAGE_SIZE_LIMIT {
         return Err(Error::PayloadTooLarge("File size cannot exceed 8MiB"));
     }
