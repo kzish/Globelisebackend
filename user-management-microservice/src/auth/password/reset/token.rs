@@ -14,6 +14,7 @@ impl OneTimeTokenAudience for LostPasswordToken {
         Duration::minutes(60)
     }
 }
+
 #[derive(Debug)]
 pub struct ChangePasswordToken;
 
