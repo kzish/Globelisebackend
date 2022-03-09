@@ -1,8 +1,14 @@
 //! Endpoint for handling Google authentication.
 
+use std::sync::Arc;
+
 use axum::extract::{Extension, Form};
 use email_address::EmailAddress;
-use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
+use http_cache_reqwest::{Cache, CacheMode, HttpCache, MokaManager};
+use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, TokenData, Validation};
+use reqwest::Client;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+
 use once_cell::sync::Lazy;
 
 use serde::Deserialize;
@@ -59,17 +65,18 @@ pub struct IdToken {
 
 impl IdToken {
     /// Decode and validate the token.
-    fn decode(&self, keys: &[OuathKey; 2]) -> Result<Claims, Error> {
+    fn decode(&self, keys: &[OauthKey]) -> Result<Claims, Error> {
+        let key = self.identify_key(keys)?;
+
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_audience(&[(*CLIENT_ID).clone()]);
         validation.set_issuer(&["https://accounts.google.com"]);
         validation.set_required_spec_claims(&["aud", "iss", "exp"]);
         let validation = validation;
 
-        // NOTE: Currently, only the second key works. This is subject to change.
         let TokenData { claims, .. } = decode::<Claims>(
             &*self.credential,
-            &DecodingKey::from_rsa_components(&*keys[1].n, &*keys[1].e).map_err(|_| {
+            &DecodingKey::from_rsa_components(&*key.n, &*key.e).map_err(|_| {
                 Error::Internal("Could not create decoding key for Google ID token".into())
             })?,
             &validation,
@@ -77,6 +84,25 @@ impl IdToken {
         .map_err(|_| Error::Unauthorized("Failed to decode Google ID token"))?;
 
         Ok(claims)
+    }
+
+    /// Pick the correct key used for the token.
+    fn identify_key<'a>(&self, keys: &'a [OauthKey]) -> Result<&'a OauthKey, Error> {
+        let header = decode_header(&*self.credential)
+            .map_err(|_| Error::Unauthorized("Failed to decode Google ID token header"))?;
+        let key_id = header
+            .kid
+            .ok_or(Error::Unauthorized("Google ID token header has no key id"))?;
+
+        for key in keys {
+            if key.kid == key_id {
+                return Ok(key);
+            }
+        }
+
+        Err(Error::Unauthorized(
+            "Could not identify correct key for Google ID token",
+        ))
     }
 }
 
@@ -88,7 +114,8 @@ struct Claims {
 
 /// Google's public key used for decoding tokens.
 #[derive(Deserialize)]
-struct OuathKey {
+struct OauthKey {
+    kid: String,
     n: String,
     e: String,
 }
@@ -96,14 +123,15 @@ struct OuathKey {
 /// Array of Google's public keys.
 #[derive(Deserialize)]
 struct OauthKeyList {
-    // NOTE: Currently, Google always returns two keys. This is subject to change.
-    keys: [OuathKey; 2],
+    keys: Vec<OauthKey>,
 }
 
 impl OauthKeyList {
     /// Fetch Google's public keys.
     async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        Ok(reqwest::get("https://www.googleapis.com/oauth2/v3/certs")
+        Ok(OAUTH_KEY_CLIENT
+            .get("https://www.googleapis.com/oauth2/v3/certs")
+            .send()
             .await?
             .json::<Self>()
             .await?)
@@ -113,3 +141,14 @@ impl OauthKeyList {
 /// The Google app's client ID.
 static CLIENT_ID: Lazy<String> =
     Lazy::new(|| std::env::var("GOOGLE_CLIENT_ID").expect("GOOGLE_CLIENT_ID must be set"));
+
+/// HTTP client for fetching and caching Google's public keys.
+static OAUTH_KEY_CLIENT: Lazy<ClientWithMiddleware> = Lazy::new(|| {
+    ClientBuilder::new(Client::new())
+        .with(Cache(HttpCache {
+            mode: CacheMode::Default,
+            manager: Arc::new(MokaManager::default()),
+            options: None,
+        }))
+        .build()
+});
