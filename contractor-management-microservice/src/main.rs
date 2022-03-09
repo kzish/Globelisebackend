@@ -32,6 +32,7 @@ async fn main() {
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
         .route("/users/index", get(contracts::user_index))
+        .route("/contractors/index", get(contracts::contractor_index))
         // ========== DEBUG PAGES ==========
         .layer(
             ServiceBuilder::new()
