@@ -1,5 +1,3 @@
-use base64::decode;
-use jsonwebtoken::DecodingKey;
 use lettre::{message::Mailbox, transport::smtp::authentication::Credentials as SmtpCredentials};
 use once_cell::sync::Lazy;
 
@@ -16,6 +14,7 @@ init_global_static!(LISTENING_ADDRESS);
 init_global_static!(GLOBELISE_DOMAIN_URL);
 init_global_static!(GLOBELISE_SMTP_URL);
 init_global_static!(PASSWORD_RESET_URL);
+init_global_static!(GLOBELISE_EOR_ADMIN_MICROSERVICE_DOMAIN_URL);
 
 pub static GLOBELISE_SENDER_EMAIL: Lazy<Mailbox> = Lazy::new(|| {
     std::env::var("GLOBELISE_SENDER_EMAIL")
