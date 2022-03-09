@@ -41,7 +41,7 @@ where
     };
 
     Ok((
-        encode(&Header::new(Algorithm::RS256), &claims, &KEYS.encoding)
+        encode(&Header::new(Algorithm::EdDSA), &claims, &KEYS.encoding)
             .map_err(|_| Error::Internal("Failed to encode one-time token".into()))?,
         expiration,
     ))
@@ -66,7 +66,7 @@ where
     T: OneTimeTokenAudience,
 {
     fn decode(input: &str) -> Result<Self, Error> {
-        let mut validation = Validation::new(Algorithm::RS256);
+        let mut validation = Validation::new(Algorithm::EdDSA);
         validation.set_audience(&[T::name()]);
         validation.set_issuer(&[ISSSUER]);
         validation.set_required_spec_claims(&["aud", "iss", "exp"]);
