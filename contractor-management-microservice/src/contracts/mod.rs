@@ -7,24 +7,17 @@ use axum::{
 use reqwest::Client;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use user_management_microservice_sdk::Role;
 
 use crate::{
-    auth::token::AccessToken, database::SharedDatabase,
-    env::GLOBELISE_USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL, error::Error,
+    auth::token::{AccessToken, AccessTokenClaims},
+    database::SharedDatabase,
+    env::GLOBELISE_USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
+    error::Error,
 };
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct UserIndex {
-    pub ulid: Ulid,
-    pub name: String,
-    pub role: Role,
-    pub contract_count: i64,
-    pub created_at: String,
-    pub email: String,
-}
-
-// Lists all the users plus some information about them.
+/// Lists all the users plus some information about them.
 pub async fn user_index(
     AccessToken(access_token): AccessToken,
     Query(query): Query<HashMap<String, String>>,
@@ -68,4 +61,53 @@ pub async fn user_index(
         })
     }
     Ok(Json(result))
+}
+
+pub async fn contractor_index(
+    access_token: AccessTokenClaims,
+    Query(query): Query<ContractorIndexQuery>,
+    Extension(database): Extension<SharedDatabase>,
+) -> Result<Json<Vec<ContractorIndex>>, Error> {
+    let ulid: Ulid = access_token.sub.parse().unwrap();
+    let database = database.lock().await;
+    Ok(Json(database.contractor_index(ulid, query).await?))
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct UserIndex {
+    pub ulid: Ulid,
+    pub name: String,
+    pub role: Role,
+    pub contract_count: i64,
+    pub created_at: String,
+    pub email: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ContractorIndexQuery {
+    #[serde(default = "ContractorIndexQuery::default_page")]
+    pub page: i64,
+    #[serde(default = "ContractorIndexQuery::default_per_page")]
+    pub per_page: i64,
+    pub search_text: Option<String>,
+}
+
+impl ContractorIndexQuery {
+    fn default_page() -> i64 {
+        1
+    }
+
+    fn default_per_page() -> i64 {
+        25
+    }
+}
+
+#[derive(Debug, FromRow, Deserialize, Serialize)]
+pub struct ContractorIndex {
+    #[sqlx(rename = "contractor_name")]
+    pub name: String,
+    pub contract_name: String,
+    pub contract_status: String,
+    pub job_title: String,
+    pub seniority: String,
 }
