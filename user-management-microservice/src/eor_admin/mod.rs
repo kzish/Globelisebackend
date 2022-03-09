@@ -1,6 +1,8 @@
 use std::{collections::HashMap, str::FromStr};
 
-use axum::extract::{Extension, Json, Query};
+use axum::extract::{Extension, Form, Json, Query};
+use email_address::EmailAddress;
+use lettre::{Message, SmtpTransport, Transport};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, Row};
@@ -12,6 +14,7 @@ use crate::{
         user::{Role, UserType},
     },
     database::{ulid_from_sql_uuid, SharedDatabase},
+    env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL},
     error::Error,
 };
 
@@ -49,7 +52,7 @@ impl UserIndex {
     }
 }
 
-pub async fn eor_admin_user_index(
+pub async fn user_index(
     // Only for validation
     _: AdminAccessToken,
     Query(query): Query<HashMap<String, String>>,
@@ -81,4 +84,74 @@ pub async fn eor_admin_user_index(
         .user_index(page, per_page, search_text, user_type, user_role)
         .await?;
     Ok(Json(result))
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AddUserRequest {
+    email: String,
+}
+
+pub async fn add_individual_contractor(
+    // Only for validation
+    _: AdminAccessToken,
+    Form(request): Form<AddUserRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> Result<(), Error> {
+    let email_address: EmailAddress = request
+        .email
+        .parse()
+        .map_err(|_| Error::BadRequest("Not a valid email address"))?;
+
+    let database = database.lock().await;
+    if let Some(_) = database
+        .user_id(&email_address, UserType::Individual)
+        .await?
+    {
+        return Err(Error::Conflict("That email is already used"));
+    };
+
+    let receiver_email = email_address
+        // TODO: Get the name of the person associated to this email address
+        .to_display("")
+        .parse()
+        .map_err(|_| Error::BadRequest("Bad request"))?;
+    let email = Message::builder()
+        .from(GLOBELISE_SENDER_EMAIL.clone())
+        // TODO: Remove this because this is supposed to be a no-reply email?
+        .reply_to(GLOBELISE_SENDER_EMAIL.clone())
+        .to(receiver_email)
+        .subject("Invitation to Globelise")
+        .header(lettre::message::header::ContentType::TEXT_HTML)
+        // TODO: Once designer have a template for this. Use a templating library to populate data.
+        .body(format!(
+            r##"
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Globelise Invitation</title>
+            </head>
+            <body>
+                <p>
+               Click the <a href="{}">link</a> to sign up as a Globelise individual contractor.
+                </p>
+                <p>If you did not expect to receive this email. Please ignore!</p>
+            </body>
+            </html>
+            "##,
+            (*GLOBELISE_DOMAIN_URL),
+        ))
+        .map_err(|_| Error::Internal("Could not create email for changing password".into()))?;
+
+    // Open a remote connection to gmail
+    let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)
+        .map_err(|_| Error::Internal("Could not connect to SMTP server".into()))?
+        .credentials(SMTP_CREDENTIAL.clone())
+        .build();
+
+    // Send the email
+    mailer
+        .send(&email)
+        .map_err(|e| Error::Internal(e.to_string()))?;
+
+    Ok(())
 }

@@ -29,11 +29,3 @@ pub static SMTP_CREDENTIAL: Lazy<SmtpCredentials> = Lazy::new(|| {
         std::env::var("GLOBELISE_SMTP_PASSWORD").expect("GLOBELISE_SMTP_PASSWORD not set"),
     )
 });
-
-pub static GLOBELISE_EOR_ADMIN_MANAGEMENT_MICROSERVICE_PUBLIC_KEY: Lazy<DecodingKey> =
-    Lazy::new(|| {
-        let base64 = std::env::var("GLOBELISE_EOR_ADMIN_MANAGEMENT_MICROSERVICE_PUBLIC_KEY")
-            .expect("GLOBELISE_EOR_ADMIN_MANAGEMENT_MICROSERVICE_PUBLIC_KEY must be set");
-        let decoded = decode(base64).unwrap();
-        DecodingKey::from_ed_pem(&decoded).unwrap()
-    });

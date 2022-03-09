@@ -14,8 +14,8 @@ use tower_http::add_extension::AddExtensionLayer;
 mod auth;
 mod database;
 mod env;
+mod eor_admin;
 mod error;
-mod info;
 mod onboard;
 
 use env::LISTENING_ADDRESS;
@@ -63,8 +63,16 @@ async fn main() {
         )
         .route("/onboard/bank-details", post(onboard::bank::bank_details))
         .route("/onboard/eor-details", post(onboard::eor::account_details))
-        // ========== BACKEND APIS ==========
-        .route("/eor-admin/users/index", get(info::eor_admin_user_index))
+        // ========== ADMIN APIS ==========
+        .route("/eor-admin/users/index", get(eor_admin::user_index))
+        .route(
+            "/eor-admin/users/add_individual_contractor",
+            post(eor_admin::add_individual_contractor),
+        )
+        .route(
+            "/eor-admin/users/onboard/prefill_individual_contractor",
+            post(onboard::individual::prefill_individual_contractor_account_details),
+        )
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
         .layer(

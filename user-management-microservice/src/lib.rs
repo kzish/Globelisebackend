@@ -4,8 +4,8 @@
 mod auth;
 mod database;
 mod env;
+mod eor_admin;
 mod error;
-mod info;
 mod onboard;
 
 use derive_builder::Builder;
@@ -16,8 +16,8 @@ use reqwest::{
 
 pub use crate::{
     auth::user::{Role, UserType},
+    eor_admin::UserIndex,
     error::Error,
-    info::UserIndex,
 };
 
 #[derive(Default, Builder, Debug)]
