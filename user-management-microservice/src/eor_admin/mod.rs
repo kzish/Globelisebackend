@@ -105,7 +105,8 @@ pub async fn add_individual_contractor(
     let database = database.lock().await;
     if (database
         .user_id(&email_address, UserType::Individual)
-        .await?).is_some()
+        .await?)
+        .is_some()
     {
         return Err(Error::UnavailableEmail);
     };

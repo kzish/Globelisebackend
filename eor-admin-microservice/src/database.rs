@@ -47,9 +47,11 @@ impl Database {
 
         let ulid = Ulid::generate();
 
-        sqlx::query("INSERT INTO auth_eor_admins
+        sqlx::query(
+            "INSERT INTO auth_eor_admins
              (ulid, email, password, is_google, is_outlook)
-            VALUES ($1, $2, $3, $4, $5)")
+            VALUES ($1, $2, $3, $4, $5)",
+        )
         .bind(ulid_to_sql_uuid(ulid))
         .bind(admin.email.as_ref())
         .bind(admin.password_hash)
@@ -69,10 +71,10 @@ impl Database {
         new_password_hash: Option<String>,
     ) -> Result<(), Error> {
         sqlx::query("UPDATE auth_eor_admins SET password = $1 WHERE ulid = $2")
-        .bind(new_password_hash)
-        .bind(ulid_to_sql_uuid(ulid))
-        .execute(&self.0)
-        .await?;
+            .bind(new_password_hash)
+            .bind(ulid_to_sql_uuid(ulid))
+            .execute(&self.0)
+            .await?;
 
         Ok(())
     }
@@ -94,9 +96,9 @@ impl Database {
     /// Gets a admin's id.
     pub async fn admin_id(&self, email: &EmailAddress) -> Result<Option<Ulid>, Error> {
         let m_row = sqlx::query("SELECT ulid FROM auth_eor_admins WHERE email = $1")
-        .bind(email.as_ref())
-        .fetch_optional(&self.0)
-        .await?;
+            .bind(email.as_ref())
+            .fetch_optional(&self.0)
+            .await?;
 
         if let Some(row) = m_row {
             Ok(Some(ulid_from_sql_uuid(row.get("ulid"))))
@@ -120,7 +122,8 @@ impl Database {
             ON CONFLICT(ulid) DO UPDATE SET 
             first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
             country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
-            time_zone = $11, profile_picture = $12".to_string();
+            time_zone = $11, profile_picture = $12"
+            .to_string();
         sqlx::query(&query)
             .bind(details.first_name)
             .bind(details.last_name)
