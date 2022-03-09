@@ -107,7 +107,7 @@ pub async fn add_individual_contractor(
         .user_id(&email_address, UserType::Individual)
         .await?
     {
-        return Err(Error::Conflict("That email is already used"));
+        return Err(Error::UnavailableEmail);
     };
 
     let receiver_email = email_address

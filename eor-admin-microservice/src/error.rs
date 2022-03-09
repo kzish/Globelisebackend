@@ -19,7 +19,7 @@ pub enum Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, message) = match self {
-            Error::UnavailableEmail => (StatusCode::CONFLICT, "Email is unavailable"),
+            Error::UnavailableEmail => (StatusCode::UNPROCESSABLE_ENTITY, "Email is unavailable"),
             Error::BadRequest(message) => (StatusCode::BAD_REQUEST, "Bad Request"),
             Error::Unauthorized(message) => {
                 return StatusCode::UNAUTHORIZED.into_response();
