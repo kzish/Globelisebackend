@@ -60,7 +60,7 @@ impl IndividualDetails {
                     &text_fields.remove(&IndividualDetailNames::Dob).unwrap(),
                     "%F",
                 )
-                .map_err(|e| Error::BadRequest(e.to_string()))?
+                .map_err(|_| Error::BadRequest("Date must use YYYY-MM-DD format"))?
             },
             dial_code: text_fields
                 .remove(&IndividualDetailNames::DialCode)
