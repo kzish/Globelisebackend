@@ -314,7 +314,7 @@ impl PublicKey {
             .await?
             .text()
             .await?;
-        Ok(PublicKey(DecodingKey::from_rsa_pem(key.as_bytes())?))
+        Ok(PublicKey(DecodingKey::from_ed_pem(key.as_bytes())?))
     }
 }
 
