@@ -62,7 +62,6 @@ async fn main() {
             post(onboard::entity::pic_details),
         )
         .route("/onboard/bank-details", post(onboard::bank::bank_details))
-        .route("/onboard/eor-details", post(onboard::eor::account_details))
         // ========== ADMIN APIS ==========
         .route("/eor-admin/users/index", get(eor_admin::user_index))
         .route(

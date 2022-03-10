@@ -35,7 +35,7 @@ pub async fn account_details(
     let ulid: Ulid = claims.sub.parse().unwrap();
     let database = database.lock().await;
     database
-        .onboard_individual_details(ulid, user_type, role, details)
+        .onboard_individual_details(ulid, role, details)
         .await
 }
 
