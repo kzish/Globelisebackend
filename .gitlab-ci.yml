@@ -12,7 +12,10 @@ variables:
 
 cache:
   paths:
-    - .cargo/
+    - .cargo/bin/
+    - .cargo/registry/index/
+    - .cargo/registry/cache/
+    - .cargo/git/db/
     - target/
 
 #test-code:
