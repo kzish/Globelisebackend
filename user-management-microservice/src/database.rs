@@ -202,18 +202,14 @@ impl Database {
     pub async fn onboard_individual_details(
         &self,
         ulid: Ulid,
-        user_type: UserType,
         role: Role,
         details: IndividualDetails,
     ) -> Result<(), Error> {
-        if !matches!(user_type, UserType::Individual | UserType::EorAdmin) {
-            return Err(Error::Forbidden);
-        }
-        if self.user(ulid, Some(user_type)).await?.is_none() {
+        if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
             return Err(Error::Forbidden);
         }
 
-        let target_table = user_type.db_onboard_name(role);
+        let target_table = UserType::Individual.db_onboard_name(role);
         let query = format!(
             "
             INSERT INTO {target_table} 
@@ -249,14 +245,10 @@ impl Database {
     pub async fn onboard_entity_details(
         &self,
         ulid: Ulid,
-        user_type: UserType,
         role: Role,
         details: EntityDetails,
     ) -> Result<(), Error> {
-        if !matches!(user_type, UserType::Entity) {
-            return Err(Error::Forbidden);
-        }
-        if self.user(ulid, Some(user_type)).await?.is_none() {
+        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
             return Err(Error::Forbidden);
         }
 
@@ -270,7 +262,7 @@ impl Database {
             company_name = $1, country = $2, entity_type = $3, registration_number = $4,
             tax_id = $5, company_address = $6, city = $7, postal_code = $8, time_zone = $9,
             logo = $10",
-            user_type.db_onboard_name(role)
+            UserType::Entity.db_onboard_name(role)
         ))
         .bind(details.company_name)
         .bind(details.country)
@@ -293,18 +285,14 @@ impl Database {
     pub async fn onboard_pic_details(
         &self,
         ulid: Ulid,
-        user_type: UserType,
         role: Role,
         details: PicDetails,
     ) -> Result<(), Error> {
-        if !matches!(user_type, UserType::Entity) {
-            return Err(Error::Forbidden);
-        }
-        if self.user(ulid, Some(user_type)).await?.is_none() {
+        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
             return Err(Error::Forbidden);
         }
 
-        let target_table = user_type.db_onboard_name(role);
+        let target_table = UserType::Entity.db_onboard_name(role);
         let query = format!(
             "
             INSERT INTO {target_table}
@@ -336,9 +324,6 @@ impl Database {
         user_type: UserType,
         details: BankDetails,
     ) -> Result<(), Error> {
-        if !matches!(user_type, UserType::Individual | UserType::Entity) {
-            return Err(Error::Forbidden);
-        }
         if self.user(ulid, Some(user_type)).await?.is_none() {
             return Err(Error::Forbidden);
         }

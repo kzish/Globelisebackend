@@ -14,9 +14,6 @@ pub async fn bank_details(
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
     let user_type: UserType = claims.user_type.parse().unwrap();
-    if !matches!(user_type, UserType::Individual | UserType::Entity) {
-        return Err(Error::Forbidden);
-    }
 
     let ulid: Ulid = claims.sub.parse().unwrap();
     let database = database.lock().await;

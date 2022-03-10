@@ -43,8 +43,6 @@ pub struct IndividualDetails {
 
 impl IndividualDetails {
     pub async fn from_multipart(multipart: Multipart) -> Result<Self, Error> {
-        println!("multipart:{:#?}", multipart);
-
         let (mut text_fields, mut byte_fields) =
             extract_multipart_form_data::<IndividualDetailNames>(multipart).await?;
 

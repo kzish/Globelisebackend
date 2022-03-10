@@ -28,7 +28,6 @@ impl User {
 pub enum UserType {
     Individual,
     Entity,
-    EorAdmin,
 }
 
 impl UserType {
@@ -36,7 +35,6 @@ impl UserType {
         match self {
             UserType::Individual => "auth_individuals",
             UserType::Entity => "auth_entities",
-            UserType::EorAdmin => "auth_eor_admins",
         }
     }
 
@@ -46,7 +44,6 @@ impl UserType {
             (UserType::Individual, Role::Contractor) => "onboard_individual_contractors",
             (UserType::Entity, Role::Client) => "onboard_entity_clients",
             (UserType::Entity, Role::Contractor) => "onboard_entity_contractors",
-            (UserType::EorAdmin, _) => "onboard_eor_admins",
         }
     }
 }
