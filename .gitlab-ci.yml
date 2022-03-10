@@ -1,0 +1,48 @@
+image: rust:slim
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+
+stages:
+  - test
+
+variables:
+  CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
+
+cache:
+  paths:
+    - .cargo/
+    - target/
+
+#test-code:
+#  stage: test
+#  script:
+#    - cargo install cargo-nextest
+#    - cargo nextest run --no-fail-fast
+#  rules:
+#    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
+
+lint-code:
+  stage: test
+  script:
+    - rustup component add clippy
+    - cargo clippy -- -D warnings
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
+    
+format-code:
+  stage: test
+  script:
+    - rustup component add rustfmt
+    - cargo fmt --check
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
+
+audit-code:
+  stage: test
+  script:
+    - cargo install cargo-deny
+    - cargo deny check
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
