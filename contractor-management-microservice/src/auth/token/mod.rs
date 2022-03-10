@@ -15,7 +15,7 @@ use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use user_management_microservice_sdk::UserType;
 
-use crate::{env::GLOBELISE_USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL, error::Error};
+use crate::{env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL, error::Error};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AccessToken(pub String);
@@ -107,7 +107,7 @@ impl UserManagementKey {
         let key = USER_MANAGEMENT_KEY_CLIENT
             .get(&format!(
                 "{}/auth/public-key",
-                &*GLOBELISE_USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL
+                &*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL
             ))
             .headers({
                 let mut headers = HeaderMap::default();

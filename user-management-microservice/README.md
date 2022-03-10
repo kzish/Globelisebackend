@@ -18,13 +18,13 @@ See [API](API.md).
   openssl pkey -in private.pem -outform PEM -pubout -out public.pem
   ```
 - Environment variables:
-  - `LISTENING_ADDRESS`: IP address and port that the server will listen on
+  - `USER_MANAGEMENT_MICROSERVICE_LISTENING_ADDRESS`: IP address and port that the server will listen on
     - e.g. `localhost:3000`
     - All occurences of `localhost` will be replaced by `127.0.0.1`
-  - `DATABASE_URL`: URL for connecting to the PostgreSQL database
+  - `USER_MANAGEMENT_MICROSERVICE_DATABASE_URL`: URL for connecting to the PostgreSQL database
     - e.g. `postgres://postgres:<password>@localhost/globelise_user_management`
   - `GOOGLE_CLIENT_ID`: Google client ID
-  - `GLOBELISE_DOMAIN_URL`: URL for the server hosting this microservice
+  - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL for the server hosting this microservice
   - `GLOBELISE_SMTP_EMAIL`: Email address for sending change password email
   - `GLOBELISE_SMTP_USERNAME`: SMTP username
   - `GLOBELISE_SMTP_PASSWORD`: SMTP password

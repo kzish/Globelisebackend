@@ -14,7 +14,10 @@ use crate::{
         user::{Role, UserType},
     },
     database::{ulid_from_sql_uuid, SharedDatabase},
-    env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL},
+    env::{
+        GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
+        USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
+    },
     error::Error,
 };
 
@@ -139,7 +142,7 @@ pub async fn add_individual_contractor(
             </body>
             </html>
             "##,
-            (*GLOBELISE_DOMAIN_URL),
+            (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
         ))
         .map_err(|_| Error::Internal("Could not create email for changing password".into()))?;
 

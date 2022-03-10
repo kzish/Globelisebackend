@@ -17,7 +17,7 @@ mod env;
 mod error;
 mod onboard;
 
-use env::LISTENING_ADDRESS;
+use env::EOR_ADMIN_MICROSERVICE_LISTENING_ADDRESS;
 
 #[tokio::main]
 async fn main() {
@@ -60,7 +60,7 @@ async fn main() {
         );
 
     axum::Server::bind(
-        &(*LISTENING_ADDRESS)
+        &(*EOR_ADMIN_MICROSERVICE_LISTENING_ADDRESS)
             .replace("localhost", "127.0.0.1")
             .parse()
             .expect("Invalid listening address"),

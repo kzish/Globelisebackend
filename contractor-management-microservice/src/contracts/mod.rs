@@ -13,7 +13,7 @@ use user_management_microservice_sdk::Role;
 use crate::{
     auth::token::{AccessToken, AccessTokenClaims},
     database::SharedDatabase,
-    env::GLOBELISE_USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
+    env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
     error::Error,
 };
 
@@ -34,14 +34,12 @@ pub async fn user_index(
 
     let response = user_management_microservice_sdk::get_users_info(
         &shared_client,
-        &*GLOBELISE_USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
+        &*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
         access_token,
         request,
     )
     .await
-    .map_err(|_| {
-        Error::Internal("Something wrong happened when trying to make request".to_string())
-    })?;
+    .map_err(|e| Error::Internal(e.to_string()))?;
 
     let mut result = Vec::with_capacity(response.len());
 

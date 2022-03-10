@@ -13,7 +13,7 @@ mod database;
 mod env;
 mod error;
 
-use env::LISTENING_ADDRESS;
+use env::CONTRACTOR_MANAGEMENT_MICROSERVICE_LISTENING_ADDRESS;
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -45,7 +45,7 @@ async fn main() {
         );
 
     axum::Server::bind(
-        &(*LISTENING_ADDRESS)
+        &(*CONTRACTOR_MANAGEMENT_MICROSERVICE_LISTENING_ADDRESS)
             .replace("localhost", "127.0.0.1")
             .parse()
             .expect("Invalid listening address"),

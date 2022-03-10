@@ -26,7 +26,10 @@ pub struct Database(Pool<Postgres>);
 impl Database {
     /// Connects to PostgreSQL.
     pub async fn new() -> Self {
-        let connection_str = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let connection_str = std::env::var("USER_MANAGEMENT_MICROSERVICE_DATABASE_URL")
+            .expect("USER_MANAGEMENT_MICROSERVICE_DATABASE_URL must be set");
+
+        println!("connection_str:{}", connection_str);
 
         let pool = PgPoolOptions::new()
             .max_connections(1)

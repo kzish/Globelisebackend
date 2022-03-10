@@ -9,5 +9,5 @@ macro_rules! init_global_static {
     };
 }
 
-init_global_static!(LISTENING_ADDRESS);
-init_global_static!(GLOBELISE_USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL);
+init_global_static!(CONTRACTOR_MANAGEMENT_MICROSERVICE_LISTENING_ADDRESS);
+init_global_static!(USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL);
