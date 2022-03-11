@@ -5,6 +5,7 @@ use axum::{
     extract::{Extension, FromRequest, Query, RequestParts, TypedHeader},
     headers::{authorization::Bearer, Authorization},
 };
+use common_utils::token::ISSUER;
 use jsonwebtoken::{decode, encode, Algorithm, Header, TokenData, Validation};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
@@ -15,7 +16,7 @@ use crate::{
     error::Error,
 };
 
-use super::{ISSSUER, KEYS};
+use super::KEYS;
 
 /// Creates a one-time token.
 pub fn create_one_time_token<T>(ulid: Ulid) -> Result<(String, i64), Error>
@@ -34,7 +35,7 @@ where
     let claims = OneTimeToken::<T> {
         sub: ulid.to_string(),
         aud: T::name().into(),
-        iss: ISSSUER.into(),
+        iss: ISSUER.into(),
         exp: expiration as usize,
         one_time_audience: PhantomData,
     };
@@ -66,7 +67,7 @@ where
     fn decode(input: &str) -> Result<Self, Error> {
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_audience(&[T::name()]);
-        validation.set_issuer(&[ISSSUER]);
+        validation.set_issuer(&[ISSUER]);
         validation.set_required_spec_claims(&["aud", "iss", "exp"]);
         let validation = validation;
 

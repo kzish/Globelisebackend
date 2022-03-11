@@ -1,4 +1,5 @@
 use axum::extract::{Extension, Form};
+use common_utils::token::Token;
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 
@@ -9,13 +10,13 @@ use crate::{
 };
 
 pub async fn bank_details(
-    claims: AccessToken,
+    claims: Token<AccessToken>,
     Form(details): Form<BankDetails>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
-    let user_type: UserType = claims.user_type.parse().unwrap();
+    let user_type = claims.payload.user_type.parse::<UserType>().unwrap();
 
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
     let database = database.lock().await;
     database
         .onboard_bank_details(ulid, user_type, details)

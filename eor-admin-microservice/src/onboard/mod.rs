@@ -6,6 +6,7 @@ use axum::{
     body::Bytes,
     extract::{ContentLengthLimit, Extension, Multipart},
 };
+use common_utils::token::Token;
 use rusty_ulid::Ulid;
 use strum::{EnumIter, EnumString};
 
@@ -14,13 +15,13 @@ use crate::{auth::token::AccessToken, database::SharedDatabase, error::Error};
 use multipart::{extract_multipart_form_data, MultipartFormFields, FORM_DATA_LENGTH_LIMIT};
 
 pub async fn account_details(
-    claims: AccessToken,
+    claims: Token<AccessToken>,
     ContentLengthLimit(multipart): ContentLengthLimit<Multipart, FORM_DATA_LENGTH_LIMIT>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
     let details = IndividualDetails::from_multipart(multipart).await?;
 
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
     let database = database.lock().await;
     database.onboard_admin_details(ulid, details).await
 }

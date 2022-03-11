@@ -3,6 +3,7 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use argon2::{hash_encoded, verify_encoded};
+use common_utils::token::create_token;
 use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
 
 use rand::Rng;
@@ -16,8 +17,8 @@ use crate::{database::Database, error::Error};
 
 use super::{
     token::{
-        create_refresh_token,
         one_time::{create_one_time_token, OneTimeTokenAudience},
+        RefreshToken, KEYS,
     },
     HASH_CONFIG,
 };
@@ -61,7 +62,9 @@ impl State {
         if let Some(existing_sessions) = self.sessions(ulid).await? {
             sessions = existing_sessions;
         }
-        let refresh_token = sessions.open(ulid)?;
+        let refresh_token = sessions.open(RefreshToken {
+            ulid: ulid.to_string(),
+        })?;
         self.serialize(Self::SESSION_CATEGORY, &ulid.to_string(), sessions)
             .await?;
         Ok(refresh_token)
@@ -203,8 +206,8 @@ impl Sessions {
     /// Opens a new session.
     ///
     /// Returns the refresh token for the session.
-    fn open(&mut self, ulid: Ulid) -> Result<String, Error> {
-        let (refresh_token, expiration) = create_refresh_token(ulid)?;
+    fn open(&mut self, payload: RefreshToken) -> Result<String, Error> {
+        let (refresh_token, expiration) = create_token(payload, &KEYS.encoding)?;
         let salt: [u8; 16] = rand::thread_rng().gen();
         let hash = hash_encoded(refresh_token.as_bytes(), &salt, &HASH_CONFIG)
             .map_err(|_| Error::Internal("Failed to hash session".into()))?;

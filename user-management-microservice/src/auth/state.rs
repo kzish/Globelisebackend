@@ -3,6 +3,7 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use argon2::{hash_encoded, verify_encoded};
+use common_utils::token::create_token;
 use dapr::{
     dapr::dapr::proto::runtime::v1::dapr_client::DaprClient as DaprProtoClient,
     Client as DaprClient,
@@ -19,8 +20,8 @@ use crate::{database::Database, error::Error};
 
 use super::{
     token::{
-        create_refresh_token,
         one_time::{create_one_time_token, OneTimeTokenAudience},
+        RefreshToken, KEYS,
     },
     user::UserType,
     HASH_CONFIG,
@@ -225,7 +226,13 @@ impl Sessions {
     ///
     /// Returns the refresh token for the session.
     fn open(&mut self, ulid: Ulid, user_type: UserType) -> Result<String, Error> {
-        let (refresh_token, expiration) = create_refresh_token(ulid, user_type)?;
+        let (refresh_token, expiration) = create_token(
+            RefreshToken {
+                ulid: ulid.to_string(),
+                user_type: user_type.to_string(),
+            },
+            &KEYS.encoding,
+        )?;
         let salt: [u8; 16] = rand::thread_rng().gen();
         let hash = hash_encoded(refresh_token.as_bytes(), &salt, &HASH_CONFIG)
             .map_err(|_| Error::Internal("Failed to hash session".into()))?;

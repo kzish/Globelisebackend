@@ -2,6 +2,7 @@
 
 use argon2::{self, hash_encoded, verify_encoded, Config};
 use axum::extract::{Extension, Form};
+use common_utils::token::{create_token, Token};
 use email_address::EmailAddress;
 use once_cell::sync::Lazy;
 use rand::Rng;
@@ -18,9 +19,11 @@ mod state;
 pub mod token;
 
 use admin::Admin;
-use token::{create_access_token, RefreshToken};
+use token::RefreshToken;
 
 pub use state::{SharedState, State};
+
+use self::token::{AccessToken, KEYS};
 
 /// Creates an account.
 pub async fn signup(
@@ -102,14 +105,18 @@ pub async fn login(
 
 /// Gets a new access token.
 pub async fn access_token(
-    claims: RefreshToken,
+    token: Token<RefreshToken>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<String, Error> {
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid = token.payload.ulid.parse::<Ulid>().unwrap();
 
     let database = database.lock().await;
     if let Some(Admin { email, .. }) = database.admin(ulid).await? {
-        let access_token = create_access_token(ulid, email)?;
+        let access = AccessToken {
+            ulid: token.payload.ulid,
+            email: email.to_string(),
+        };
+        let (access_token, _) = create_token(access, &KEYS.encoding)?;
         Ok(access_token)
     } else {
         Err(Error::Unauthorized("Invalid refresh token"))

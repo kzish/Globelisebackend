@@ -4,4 +4,5 @@ members = [
     "user-management-microservice",
     "contractor-management-microservice",
     "eor-admin-microservice",
+    "common-utils"
 ]
