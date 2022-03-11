@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use argon2::{self, hash_encoded};
 use axum::{
-    extract::{Extension, Form},
+    extract::{Extension, Json},
     http::Uri,
     response::Redirect,
 };
@@ -32,7 +32,7 @@ use token::{ChangePasswordToken, LostPasswordToken};
 
 /// Send email to the admin with the steps to recover their password.
 pub async fn send_email(
-    Form(request): Form<LostPasswordRequest>,
+    Json(request): Json<LostPasswordRequest>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<(), Error> {
@@ -127,7 +127,7 @@ pub async fn initiate(
 
 /// Replace the password for a admin with the requested one.
 pub async fn execute(
-    Form(request): Form<ChangePasswordRequest>,
+    Json(request): Json<ChangePasswordRequest>,
     OneTimeTokenBearer(claims): OneTimeTokenBearer<OneTimeToken<ChangePasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
