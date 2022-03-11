@@ -16,8 +16,8 @@ use unicode_normalization::UnicodeNormalization;
 use crate::{
     auth::token::one_time::create_one_time_token,
     env::{
-        GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, PASSWORD_RESET_URL, SMTP_CREDENTIAL,
-        USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
+        GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, PASSWORD_RESET_URL,
+        SMTP_CREDENTIAL,
     },
     error::Error,
 };
@@ -90,7 +90,7 @@ pub async fn send_email(
             </body>
             </html>
             "##,
-            (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
+            (*GLOBELISE_DOMAIN_URL),
             user_type,
             one_time_token
         ))

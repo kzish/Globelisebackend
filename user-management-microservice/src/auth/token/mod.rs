@@ -19,7 +19,7 @@ use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use serde::{Deserialize, Serialize};
 use time::Duration;
 
-use crate::{env::EOR_ADMIN_MICROSERVICE_DOMAIN_URL, error::Error};
+use crate::{database::Database, env::GLOBELISE_EOR_ADMIN_MICROSERVICE_DOMAIN_URL, error::Error};
 
 pub mod one_time;
 
@@ -79,7 +79,7 @@ impl Keys {
 /// The public key used for decoding tokens.
 pub static PUBLIC_KEY: Lazy<String> = Lazy::new(|| {
     let mut public_key = String::new();
-    File::open("user-management-microservice/public.pem")
+    File::open("public.pem")
         .expect("Could not open public key")
         .read_to_string(&mut public_key)
         .expect("Could not read public key");
@@ -89,7 +89,7 @@ pub static PUBLIC_KEY: Lazy<String> = Lazy::new(|| {
 /// The encoding/decoding key pair.
 pub static KEYS: Lazy<Keys> = Lazy::new(|| {
     let mut private_key: Vec<u8> = Vec::new();
-    File::open("user-management-microservice/private.pem")
+    File::open("private.pem")
         .expect("Could not open private key")
         .read_to_end(&mut private_key)
         .expect("Could not read private key");
@@ -115,7 +115,7 @@ impl PublicKey {
         let key = EOR_ADMIN_PUBLIC_KEY
             .get(&format!(
                 "{}/auth/public-key",
-                &*EOR_ADMIN_MICROSERVICE_DOMAIN_URL
+                &*GLOBELISE_EOR_ADMIN_MICROSERVICE_DOMAIN_URL
             ))
             .headers({
                 let mut headers = HeaderMap::default();

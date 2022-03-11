@@ -15,8 +15,8 @@ use serde::Deserialize;
 use crate::{
     auth::token::one_time::create_one_time_token,
     env::{
-        EOR_ADMIN_MICROSERVICE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL,
-        PASSWORD_RESET_URL, SMTP_CREDENTIAL,
+        GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, PASSWORD_RESET_URL,
+        SMTP_CREDENTIAL,
     },
     error::Error,
 };
@@ -87,7 +87,7 @@ pub async fn send_email(
             </body>
             </html>
             "##,
-            (*EOR_ADMIN_MICROSERVICE_DOMAIN_URL),
+            (*GLOBELISE_DOMAIN_URL),
             one_time_token
         ))
         .map_err(|_| Error::Internal("Could not create email for changing password".into()))?;

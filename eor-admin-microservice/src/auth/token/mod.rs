@@ -45,7 +45,7 @@ impl TokenLike for RefreshToken {
 /// The public key used for decoding tokens.
 pub static PUBLIC_KEY: Lazy<String> = Lazy::new(|| {
     let mut public_key = String::new();
-    File::open("eor-admin-microservice/public.pem")
+    File::open("public.pem")
         .expect("Could not open public key")
         .read_to_string(&mut public_key)
         .expect("Could not read public key");
@@ -55,7 +55,7 @@ pub static PUBLIC_KEY: Lazy<String> = Lazy::new(|| {
 /// The encoding/decoding key pair.
 pub static KEYS: Lazy<Keys> = Lazy::new(|| {
     let mut private_key: Vec<u8> = Vec::new();
-    File::open("eor-admin-microservice/private.pem")
+    File::open("private.pem")
         .expect("Could not open private key")
         .read_to_end(&mut private_key)
         .expect("Could not read private key");
