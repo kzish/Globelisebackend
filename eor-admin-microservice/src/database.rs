@@ -8,7 +8,7 @@ use tokio::sync::Mutex;
 use crate::auth::admin::Admin;
 
 use crate::error::Error;
-use crate::onboard::IndividualDetails;
+use crate::onboard::individual::IndividualDetails;
 
 pub type SharedDatabase = Arc<Mutex<Database>>;
 
