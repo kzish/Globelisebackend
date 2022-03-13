@@ -1,4 +1,5 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Path};
+use common_utils::token::Token;
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
@@ -15,7 +16,7 @@ use crate::{
 use super::util::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT};
 
 pub async fn account_details(
-    claims: AccessToken,
+    claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<EntityDetails>,
         FORM_DATA_LENGTH_LIMIT,
@@ -23,28 +24,30 @@ pub async fn account_details(
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
-    let user_type: UserType = claims.user_type.parse().unwrap();
+    let user_type: UserType = claims.payload.user_type.parse::<UserType>().unwrap();
     if !matches!(user_type, UserType::Entity) {
         return Err(Error::Forbidden);
     }
 
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid: Ulid = claims.payload.ulid.parse().unwrap();
+
     let database = database.lock().await;
     database.onboard_entity_details(ulid, role, request).await
 }
 
 pub async fn pic_details(
-    claims: AccessToken,
+    claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<Json<PicDetails>, FORM_DATA_LENGTH_LIMIT>,
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
-    let user_type: UserType = claims.user_type.parse().unwrap();
+    let user_type = claims.payload.user_type.parse::<UserType>().unwrap();
     if !matches!(user_type, UserType::Entity) {
         return Err(Error::Forbidden);
     }
 
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid: Ulid = claims.payload.ulid.parse().unwrap();
+
     let database = database.lock().await;
     database.onboard_pic_details(ulid, role, request).await
 }

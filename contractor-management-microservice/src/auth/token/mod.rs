@@ -8,6 +8,7 @@ use axum::{
     headers::{authorization::Bearer, Authorization},
     http::{HeaderMap, HeaderValue},
 };
+use common_utils::{token::ISSUER, DaprAppId};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use once_cell::sync::Lazy;
 use reqwest::Client;
@@ -56,7 +57,7 @@ pub struct AccessTokenClaims {
 impl AccessTokenClaims {
     async fn decode(input: &str) -> Result<Self, Error> {
         let mut validation = Validation::new(Algorithm::EdDSA);
-        validation.set_issuer(&[ISSSUER]);
+        validation.set_issuer(&[ISSUER]);
         validation.set_required_spec_claims(&["iss", "exp"]);
         let validation = validation;
 
@@ -113,7 +114,7 @@ impl UserManagementKey {
                 let mut headers = HeaderMap::default();
                 headers.insert(
                     "dapr-app-id",
-                    HeaderValue::from_static("user-management-microservice"),
+                    HeaderValue::from_static(DaprAppId::UserManagementMicroservice.as_str()),
                 );
                 headers
             })
@@ -126,6 +127,3 @@ impl UserManagementKey {
 }
 
 static USER_MANAGEMENT_KEY_CLIENT: Lazy<Client> = Lazy::new(Client::new);
-
-/// The issuer of tokens, used in the `iss` field of JWTs.
-pub const ISSSUER: &str = "https://globelise.com";

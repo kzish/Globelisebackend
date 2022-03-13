@@ -1,12 +1,14 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Path};
+use common_utils::token::Token;
 use email_address::EmailAddress;
+use eor_admin_sdk::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 
 use crate::{
     auth::{
-        token::{AccessToken, AdminAccessToken},
+        token::AccessToken,
         user::{Role, UserType},
     },
     database::SharedDatabase,
@@ -16,7 +18,7 @@ use crate::{
 use super::util::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT};
 
 pub async fn account_details(
-    claims: AccessToken,
+    claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<IndividualDetails>,
         FORM_DATA_LENGTH_LIMIT,
@@ -24,12 +26,12 @@ pub async fn account_details(
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
-    let user_type: UserType = claims.user_type.parse().unwrap();
+    let user_type: UserType = claims.payload.user_type.parse().unwrap();
     if !matches!(user_type, UserType::Individual) {
         return Err(Error::Forbidden);
     }
 
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
     let database = database.lock().await;
     database
         .onboard_individual_details(ulid, role, request)
@@ -38,7 +40,7 @@ pub async fn account_details(
 
 pub async fn prefill_individual_contractor_account_details(
     // Only needed for validation
-    _: AdminAccessToken,
+    _: Token<AdminAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<PrefillIndividualDetails>,
         FORM_DATA_LENGTH_LIMIT,

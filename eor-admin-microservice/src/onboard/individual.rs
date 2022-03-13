@@ -1,4 +1,5 @@
 use axum::extract::{ContentLengthLimit, Extension, Json};
+use common_utils::token::Token;
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
@@ -8,14 +9,14 @@ use crate::{auth::token::AccessToken, database::SharedDatabase, error::Error};
 use super::util::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT};
 
 pub async fn account_details(
-    claims: AccessToken,
+    claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<IndividualDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid: Ulid = claims.payload.ulid.parse().unwrap();
     let database = database.lock().await;
     database.onboard_admin_details(ulid, request).await
 }

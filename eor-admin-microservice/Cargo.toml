@@ -4,6 +4,14 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[lib]
+name = "eor_admin_sdk"
+path = "src/lib.rs"
+
+[[bin]]
+name = "eor-admin-microservice"
+path = "src/main.rs"
+
 [dependencies]
 axum = { version = "0.4.8", features = ["headers", "multipart"] }
 dapr = "0.7.2"
@@ -30,3 +38,5 @@ tonic = "0.5.2"
 tower = { version = "0.4.12", features = ["timeout", "load-shed", "limit"] }
 tower-http = { version = "0.2.4", features = ["add-extension"] }
 unicode-normalization = "0.1.19"
+# Local crates
+common-utils = { path = "../common-utils" }

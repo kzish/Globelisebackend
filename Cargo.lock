@@ -498,6 +498,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
 
 [[package]]
+name = "common-utils"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "email_address",
+ "http-cache-reqwest",
+ "jsonwebtoken",
+ "once_cell",
+ "reqwest",
+ "reqwest-middleware",
+ "rust-argon2",
+ "rusty_ulid",
+ "serde",
+ "sqlx",
+ "strum",
+ "time 0.3.7",
+ "tokio",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -523,6 +543,7 @@ name = "contractor-management-microservice"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "common-utils",
  "dapr",
  "dotenv",
  "jsonwebtoken",
@@ -915,6 +936,7 @@ name = "eor-admin-microservice"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "common-utils",
  "dapr",
  "dotenv",
  "email_address",
@@ -3570,10 +3592,12 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "base64 0.13.0",
+ "common-utils",
  "dapr",
  "derive_builder",
  "dotenv",
  "email_address",
+ "eor-admin-microservice",
  "http-cache-reqwest",
  "image",
  "jsonwebtoken",

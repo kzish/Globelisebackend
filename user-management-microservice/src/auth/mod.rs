@@ -1,7 +1,11 @@
 //! Endpoints for user authentication and authorization.
 
 use argon2::{self, hash_encoded, verify_encoded, Config};
-use axum::extract::{Extension, Json, Path};
+use axum::{
+    extract::{Extension, Path},
+    Json,
+};
+use common_utils::token::{create_token, Token};
 use email_address::EmailAddress;
 use once_cell::sync::Lazy;
 use rand::Rng;
@@ -17,10 +21,12 @@ mod state;
 pub mod token;
 pub mod user;
 
-use token::{create_access_token, RefreshToken};
+use token::{AccessToken, RefreshToken};
 use user::{User, UserType};
 
 pub use state::{SharedState, State};
+
+use self::token::KEYS;
 
 /// Creates an account.
 pub async fn signup(
@@ -111,18 +117,22 @@ pub async fn login(
 
 /// Gets a new access token.
 pub async fn access_token(
-    claims: RefreshToken,
+    claims: Token<RefreshToken>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<String, Error> {
-    let ulid: Ulid = claims.sub.parse().unwrap();
-    let user_type: UserType = claims.user_type.parse().unwrap();
-
+    let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
+    let user_type = claims.payload.user_type.parse::<UserType>().unwrap();
     let database = database.lock().await;
     if let Some((User { email, .. }, _)) = database.user(ulid, Some(user_type)).await? {
-        let access_token = create_access_token(ulid, email, user_type)?;
+        let access_token = AccessToken {
+            ulid: claims.payload.ulid,
+            email: email.to_string(),
+            user_type: claims.payload.user_type,
+        };
+        let (access_token, _) = create_token(access_token, &KEYS.encoding)?;
         Ok(access_token)
     } else {
-        Err(Error::Unauthorized("Invalid refresh token"))
+        Err(Error::Unauthorized("User does not exist in the database"))
     }
 }
 

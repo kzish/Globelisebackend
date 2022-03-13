@@ -67,3 +67,4 @@ impl_from_error!(time::error::InvalidFormatDescription);
 impl_from_error!(strum::ParseError);
 impl_from_error!(jsonwebtoken::errors::Error);
 impl_from_error!(reqwest_middleware::Error);
+impl_from_error!(common_utils::error::GlobeliseError);

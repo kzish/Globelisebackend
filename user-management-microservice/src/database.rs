@@ -18,10 +18,10 @@ use crate::{
 
 use crate::error::Error;
 
-pub type SharedDatabase = Arc<Mutex<Database>>;
-
 /// Convenience wrapper around PostgreSQL.
 pub struct Database(Pool<Postgres>);
+
+pub type SharedDatabase = Arc<Mutex<Database>>;
 
 impl Database {
     /// Connects to PostgreSQL.

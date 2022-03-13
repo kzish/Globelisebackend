@@ -8,6 +8,7 @@ mod eor_admin;
 mod error;
 mod onboard;
 
+use common_utils::DaprAppId;
 use derive_builder::Builder;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
@@ -62,7 +63,7 @@ pub async fn get_users_info(
             let mut headers = HeaderMap::new();
             headers.insert(
                 "dapr-app-id",
-                HeaderValue::from_static("user-management-microservice"),
+                HeaderValue::from_static(DaprAppId::UserManagementMicroservice.as_str()),
             );
             headers
         })

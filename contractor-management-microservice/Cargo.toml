@@ -27,3 +27,4 @@ tower-http = { version = "0.2.4", features = ["add-extension"] }
 unicode-normalization = "0.1.19"
 # Microservices SDK
 user-management-microservice = { path = "../user-management-microservice" }
+common-utils = { path = "../common-utils" }

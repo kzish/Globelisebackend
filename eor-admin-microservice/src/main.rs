@@ -1,11 +1,13 @@
 use std::{sync::Arc, time::Duration};
 
+use auth::token::KEYS;
 use axum::{
     error_handling::HandleErrorLayer,
     http::StatusCode,
     routing::{get, post},
     BoxError, Router,
 };
+use common_utils::token::PublicKeys;
 use database::Database;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
@@ -26,8 +28,9 @@ async fn main() {
     let shared_state = auth::State::new().await.expect("Could not connect to Dapr");
     let shared_state = Arc::new(Mutex::new(shared_state));
 
-    let database = Database::new().await;
-    let database = Arc::new(Mutex::new(database));
+    let database = Arc::new(Mutex::new(Database::new().await));
+
+    let public_keys = Arc::new(Mutex::new(PublicKeys::default()));
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
@@ -59,7 +62,9 @@ async fn main() {
                 .concurrency_limit(1024)
                 .timeout(Duration::from_secs(10))
                 .layer(AddExtensionLayer::new(database))
-                .layer(AddExtensionLayer::new(shared_state)),
+                .layer(AddExtensionLayer::new(shared_state))
+                .layer(AddExtensionLayer::new(KEYS.decoding.clone()))
+                .layer(AddExtensionLayer::new(public_keys)),
         );
 
     axum::Server::bind(
