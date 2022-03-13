@@ -16,7 +16,6 @@ mod auth;
 mod database;
 mod env;
 mod eor_admin;
-mod error;
 mod onboard;
 
 use crate::auth::token::KEYS;

@@ -3,7 +3,10 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use argon2::{hash_encoded, verify_encoded};
-use common_utils::token::create_token;
+use common_utils::{
+    error::{GlobeliseError, GlobeliseResult},
+    token::create_token,
+};
 use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
 
 use rand::Rng;
@@ -13,7 +16,7 @@ use time::OffsetDateTime;
 use tokio::sync::Mutex;
 use tonic::transport::Channel;
 
-use crate::{database::Database, error::Error};
+use crate::database::Database;
 
 use super::{
     token::{
@@ -50,10 +53,14 @@ impl State {
     /// Opens a new session for a admin.
     ///
     /// Returns the refresh token for the session.
-    pub async fn open_session(&mut self, database: &Database, ulid: Ulid) -> Result<String, Error> {
+    pub async fn open_session(
+        &mut self,
+        database: &Database,
+        ulid: Ulid,
+    ) -> GlobeliseResult<String> {
         // Validate that the admin exists
         if database.admin(ulid).await?.is_none() {
-            return Err(Error::Unauthorized(
+            return Err(GlobeliseError::Unauthorized(
                 "Refused to open session: invalid admin",
             ));
         }
@@ -71,7 +78,7 @@ impl State {
     }
 
     /// Revoke all sessions for a admin.
-    pub async fn revoke_all_sessions(&mut self, ulid: Ulid) -> Result<(), Error> {
+    pub async fn revoke_all_sessions(&mut self, ulid: Ulid) -> GlobeliseResult<()> {
         if let Some(mut sessions) = self.sessions(ulid).await? {
             sessions.revoke_all();
             self.serialize(Self::SESSION_CATEGORY, &ulid.to_string(), sessions)
@@ -82,7 +89,7 @@ impl State {
     }
 
     /// Clears expired sessions for a admin.
-    pub async fn clear_expired_sessions(&mut self, ulid: Ulid) -> Result<(), Error> {
+    pub async fn clear_expired_sessions(&mut self, ulid: Ulid) -> GlobeliseResult<()> {
         if let Some(mut sessions) = self.sessions(ulid).await? {
             sessions.clear_expired();
             self.serialize(Self::SESSION_CATEGORY, &ulid.to_string(), sessions)
@@ -93,13 +100,13 @@ impl State {
     }
 
     /// Gets existing sessions for a admin.
-    pub async fn sessions(&mut self, ulid: Ulid) -> Result<Option<Sessions>, Error> {
+    pub async fn sessions(&mut self, ulid: Ulid) -> GlobeliseResult<Option<Sessions>> {
         self.deserialize(Self::SESSION_CATEGORY, &ulid.to_string())
             .await
     }
 
     /// Opens a new one-time session for a admin.
-    pub async fn open_one_time_session<T>(&mut self, ulid: Ulid) -> Result<String, Error>
+    pub async fn open_one_time_session<T>(&mut self, ulid: Ulid) -> GlobeliseResult<String>
     where
         T: OneTimeTokenAudience,
     {
@@ -122,7 +129,7 @@ impl State {
         &mut self,
         ulid: Ulid,
         token: &[u8],
-    ) -> Result<bool, Error>
+    ) -> GlobeliseResult<bool>
     where
         T: OneTimeTokenAudience,
     {
@@ -136,7 +143,7 @@ impl State {
 
             for (hash, _) in sessions.iter() {
                 if let Ok(true) = verify_encoded(hash, token) {
-                    matching_hash = Some(hash.clone());
+                    matching_hash = Some(hash.to_string());
                     break;
                 }
             }
@@ -155,12 +162,13 @@ impl State {
     }
 
     /// Serializes and stores data in the state store.
-    async fn serialize<T>(&mut self, category: &str, key: &str, value: T) -> Result<(), Error>
+    async fn serialize<T>(&mut self, category: &str, key: &str, value: T) -> GlobeliseResult<()>
     where
         T: Serialize,
     {
         let prefixed_key = category.to_string() + "--" + key;
-        let value = serde_json::to_vec(&value).map_err(|e| Error::Internal(e.to_string()))?;
+        let value =
+            serde_json::to_vec(&value).map_err(|e| GlobeliseError::Internal(e.to_string()))?;
         self.dapr_client
             .save_state(Self::STATE_STORE, vec![(&*prefixed_key, value)])
             .await?;
@@ -168,7 +176,7 @@ impl State {
     }
 
     /// Deserializes data from the state store.
-    async fn deserialize<T>(&mut self, category: &str, key: &str) -> Result<Option<T>, Error>
+    async fn deserialize<T>(&mut self, category: &str, key: &str) -> GlobeliseResult<Option<T>>
     where
         T: DeserializeOwned,
     {
@@ -179,8 +187,8 @@ impl State {
             .await?;
 
         if !result.data.is_empty() {
-            let value: T =
-                serde_json::from_slice(&result.data).map_err(|e| Error::Internal(e.to_string()))?;
+            let value: T = serde_json::from_slice(&result.data)
+                .map_err(|e| GlobeliseError::Internal(e.to_string()))?;
             Ok(Some(value))
         } else {
             Ok(None)
@@ -206,11 +214,11 @@ impl Sessions {
     /// Opens a new session.
     ///
     /// Returns the refresh token for the session.
-    fn open(&mut self, payload: RefreshToken) -> Result<String, Error> {
+    fn open(&mut self, payload: RefreshToken) -> GlobeliseResult<String> {
         let (refresh_token, expiration) = create_token(payload, &KEYS.encoding)?;
         let salt: [u8; 16] = rand::thread_rng().gen();
         let hash = hash_encoded(refresh_token.as_bytes(), &salt, &HASH_CONFIG)
-            .map_err(|_| Error::Internal("Failed to hash session".into()))?;
+            .map_err(|_| GlobeliseError::Internal("Failed to hash session".into()))?;
         self.sessions.insert(hash, expiration);
         Ok(refresh_token)
     }
@@ -242,14 +250,14 @@ impl OneTimeSessions {
     /// Opens a new session.
     ///
     /// Returns the refresh token for the session.
-    fn open<T>(&mut self, ulid: Ulid) -> Result<String, Error>
+    fn open<T>(&mut self, ulid: Ulid) -> GlobeliseResult<String>
     where
         T: OneTimeTokenAudience,
     {
         let (one_time_token, expiration) = create_one_time_token::<T>(ulid)?;
         let salt: [u8; 16] = rand::thread_rng().gen();
         let hash = hash_encoded(one_time_token.as_bytes(), &salt, &HASH_CONFIG)
-            .map_err(|_| Error::Internal("Failed to hash one-time session".into()))?;
+            .map_err(|_| GlobeliseError::Internal("Failed to hash one-time session".into()))?;
         self.sessions.insert(hash, expiration);
         Ok(one_time_token)
     }

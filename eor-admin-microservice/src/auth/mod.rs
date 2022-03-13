@@ -2,7 +2,10 @@
 
 use argon2::{self, hash_encoded, verify_encoded, Config};
 use axum::extract::{Extension, Json};
-use common_utils::token::{create_token, Token};
+use common_utils::{
+    error::{GlobeliseError, GlobeliseResult},
+    token::{create_token, Token},
+};
 use email_address::EmailAddress;
 use once_cell::sync::Lazy;
 use rand::Rng;
@@ -10,7 +13,7 @@ use rusty_ulid::Ulid;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 
-use crate::{database::SharedDatabase, error::Error};
+use crate::database::SharedDatabase;
 
 pub mod admin;
 pub mod google;
@@ -30,7 +33,7 @@ pub async fn signup(
     Json(request): Json<CreateAccountRequest>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<String, Error> {
+) -> GlobeliseResult<String> {
     // Credentials should be normalized for maximum compatibility.
     let email: String = request.email.trim().nfc().collect();
     let password: String = request.password.nfc().collect();
@@ -40,19 +43,19 @@ pub async fn signup(
     // in the backend as well.
     let email = email
         .parse::<EmailAddress>()
-        .map_err(|_| Error::BadRequest("Not a valid email address"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
     if password.len() < 8 {
-        return Err(Error::BadRequest(
+        return Err(GlobeliseError::BadRequest(
             "Password must be at least 8 characters long",
         ));
     }
     if password != confirm_password {
-        return Err(Error::BadRequest("Passwords do not match"));
+        return Err(GlobeliseError::BadRequest("Passwords do not match"));
     }
 
     let salt: [u8; 16] = rand::thread_rng().gen();
     let hash = hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG)
-        .map_err(|_| Error::Internal("Failed to hash password".into()))?;
+        .map_err(|_| GlobeliseError::Internal("Failed to hash password".into()))?;
 
     let admin = Admin {
         email,
@@ -73,14 +76,14 @@ pub async fn login(
     Json(request): Json<LoginRequest>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<String, Error> {
+) -> GlobeliseResult<String> {
     // Credentials should be normalized for maximum compatibility.
     let email: String = request.email.trim().nfc().collect();
     let password: String = request.password.nfc().collect();
 
     let email: EmailAddress = email
         .parse()
-        .map_err(|_| Error::BadRequest("Not a valid email address"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
 
     // NOTE: A timing attack can detect registered emails.
     // Mitigating this is not strictly necessary, as attackers can still find out
@@ -100,14 +103,14 @@ pub async fn login(
         }
     }
 
-    Err(Error::Unauthorized("Email login failed"))
+    Err(GlobeliseError::Unauthorized("Email login failed"))
 }
 
 /// Gets a new access token.
 pub async fn access_token(
     token: Token<RefreshToken>,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<String, Error> {
+) -> GlobeliseResult<String> {
     let ulid = token.payload.ulid.parse::<Ulid>().unwrap();
 
     let database = database.lock().await;
@@ -119,7 +122,7 @@ pub async fn access_token(
         let (access_token, _) = create_token(access, &KEYS.encoding)?;
         Ok(access_token)
     } else {
-        Err(Error::Unauthorized("Invalid refresh token"))
+        Err(GlobeliseError::Unauthorized("Invalid refresh token"))
     }
 }
 

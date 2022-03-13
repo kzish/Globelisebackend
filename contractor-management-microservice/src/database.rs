@@ -1,14 +1,12 @@
 use std::{sync::Arc, time::Duration};
 
+use common_utils::error::{GlobeliseError, GlobeliseResult};
 use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
 use user_management_microservice_sdk::Role;
 
-use crate::{
-    contracts::{ContractorIndex, ContractorIndexQuery},
-    error::Error,
-};
+use crate::contracts::{ContractorIndex, ContractorIndexQuery};
 
 pub type SharedDatabase = Arc<Mutex<Database>>;
 
@@ -33,7 +31,11 @@ impl Database {
 
 impl Database {
     /// Counts the number of contracts.
-    pub async fn count_number_of_contracts(&self, ulid: &Ulid, role: &Role) -> Result<i64, Error> {
+    pub async fn count_number_of_contracts(
+        &self,
+        ulid: &Ulid,
+        role: &Role,
+    ) -> GlobeliseResult<i64> {
         let result = sqlx::query_scalar(&format!(
             "SELECT COUNT(*) FROM contractors WHERE {} = $1",
             match role {
@@ -44,7 +46,7 @@ impl Database {
         .bind(ulid_to_sql_uuid(*ulid))
         .fetch_one(&self.0)
         .await
-        .map_err(|e| Error::Internal(e.to_string()))?;
+        .map_err(|e| GlobeliseError::Internal(e.to_string()))?;
         Ok(result)
     }
 
@@ -53,7 +55,7 @@ impl Database {
         &self,
         client_ulid: Ulid,
         query: ContractorIndexQuery,
-    ) -> Result<Vec<ContractorIndex>, Error> {
+    ) -> GlobeliseResult<Vec<ContractorIndex>> {
         let index = sqlx::query_as(&format!(
             "SELECT * FROM contractor_index WHERE client_ulid = $1 {} LIMIT $2 OFFSET $3",
             match query.search_text {

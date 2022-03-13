@@ -1,11 +1,12 @@
 use std::{sync::Arc, time::Duration};
 
+use common_utils::error::{GlobeliseError, GlobeliseResult};
 use email_address::EmailAddress;
 use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
 use tokio::sync::Mutex;
 
-use crate::{auth::admin::Admin, error::Error, onboard::individual::IndividualDetails};
+use crate::{auth::admin::Admin, onboard::individual::IndividualDetails};
 
 pub type SharedDatabase = Arc<Mutex<Database>>;
 
@@ -28,16 +29,16 @@ impl Database {
     }
 
     /// Creates and stores a new admin.
-    pub async fn create_admin(&self, admin: Admin) -> Result<Ulid, Error> {
+    pub async fn create_admin(&self, admin: Admin) -> GlobeliseResult<Ulid> {
         if !admin.has_authentication() {
-            return Err(Error::Unauthorized(
+            return Err(GlobeliseError::Unauthorized(
                 "Refused to create admin: no authentication method provided",
             ));
         }
 
         // Avoid overwriting an existing admin.
         match self.admin_id(&admin.email).await {
-            Ok(Some(_)) => return Err(Error::UnavailableEmail),
+            Ok(Some(_)) => return Err(GlobeliseError::UnavailableEmail),
             Ok(None) => (),
             Err(e) => return Err(e),
         }
@@ -66,7 +67,7 @@ impl Database {
         ulid: Ulid,
         // TODO: Create a newtype to ensure only hashed password are inserted
         new_password_hash: Option<String>,
-    ) -> Result<(), Error> {
+    ) -> GlobeliseResult<()> {
         sqlx::query("UPDATE auth_eor_admins SET password = $1 WHERE ulid = $2")
             .bind(new_password_hash)
             .bind(ulid_to_sql_uuid(ulid))
@@ -77,7 +78,7 @@ impl Database {
     }
 
     /// Gets a admin's authentication information.
-    pub async fn admin(&self, ulid: Ulid) -> Result<Option<Admin>, Error> {
+    pub async fn admin(&self, ulid: Ulid) -> GlobeliseResult<Option<Admin>> {
         sqlx::query(
             "SELECT email, password, is_google, is_outlook
                 FROM auth_eor_admins
@@ -91,7 +92,7 @@ impl Database {
     }
 
     /// Gets a admin's id.
-    pub async fn admin_id(&self, email: &EmailAddress) -> Result<Option<Ulid>, Error> {
+    pub async fn admin_id(&self, email: &EmailAddress) -> GlobeliseResult<Option<Ulid>> {
         let m_row = sqlx::query("SELECT ulid FROM auth_eor_admins WHERE email = $1")
             .bind(email.as_ref())
             .fetch_optional(&self.0)
@@ -110,7 +111,7 @@ impl Database {
         &self,
         ulid: Ulid,
         details: IndividualDetails,
-    ) -> Result<(), Error> {
+    ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO onboard_eor_admins 
             (ulid, first_name, last_name, dob, dial_code, phone_number, country, city, address,
@@ -137,7 +138,7 @@ impl Database {
             .bind(ulid_to_sql_uuid(ulid))
             .execute(&self.0)
             .await
-            .map_err(|e| Error::Internal(e.to_string()))?;
+            .map_err(GlobeliseError::internal)?;
 
         Ok(())
     }

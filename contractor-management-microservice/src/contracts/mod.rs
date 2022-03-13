@@ -4,6 +4,7 @@ use axum::{
     extract::{Extension, Query},
     Json,
 };
+use common_utils::error::{GlobeliseError, GlobeliseResult};
 use reqwest::Client;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
@@ -14,7 +15,6 @@ use crate::{
     auth::token::{AccessToken, AccessTokenClaims},
     database::SharedDatabase,
     env::GLOBELISE_USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
-    error::Error,
 };
 
 /// Lists all the users plus some information about them.
@@ -23,7 +23,7 @@ pub async fn user_index(
     Query(query): Query<HashMap<String, String>>,
     Extension(shared_client): Extension<Client>,
     Extension(shared_database): Extension<SharedDatabase>,
-) -> Result<Json<Vec<UserIndex>>, Error> {
+) -> GlobeliseResult<Json<Vec<UserIndex>>> {
     let request = user_management_microservice_sdk::GetUserInfoRequest {
         page: query.get("page").map(|v| v.parse()).transpose()?,
         per_page: query.get("per_page").map(|v| v.parse()).transpose()?,
@@ -40,7 +40,7 @@ pub async fn user_index(
     )
     .await
     .map_err(|_| {
-        Error::Internal("Something wrong happened when trying to make request".to_string())
+        GlobeliseError::Internal("Something wrong happened when trying to make request".to_string())
     })?;
 
     let mut result = Vec::with_capacity(response.len());
@@ -67,7 +67,7 @@ pub async fn contractor_index(
     access_token: AccessTokenClaims,
     Query(query): Query<ContractorIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<Json<Vec<ContractorIndex>>, Error> {
+) -> GlobeliseResult<Json<Vec<ContractorIndex>>> {
     let ulid: Ulid = access_token.sub.parse().unwrap();
     let database = database.lock().await;
     Ok(Json(database.contractor_index(ulid, query).await?))

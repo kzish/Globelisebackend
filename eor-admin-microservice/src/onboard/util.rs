@@ -1,16 +1,15 @@
+use common_utils::error::GlobeliseError;
 use serde::Deserialize;
-
-use crate::error::Error;
 
 #[derive(Debug, Deserialize)]
 pub struct DateWrapper(String);
 
 impl TryFrom<DateWrapper> for sqlx::types::time::Date {
-    type Error = Error;
+    type Error = GlobeliseError;
 
     fn try_from(date: DateWrapper) -> Result<Self, Self::Error> {
         sqlx::types::time::Date::parse(date.0, "%F")
-            .map_err(|_| Error::BadRequest("Date must use YYYY-MM-DD format"))
+            .map_err(|_| GlobeliseError::BadRequest("Date must use YYYY-MM-DD format"))
     }
 }
 
@@ -24,19 +23,21 @@ impl AsRef<[u8]> for ImageData {
 }
 
 impl TryFrom<Vec<u8>> for ImageData {
-    type Error = Error;
+    type Error = GlobeliseError;
 
     fn try_from(image_data: Vec<u8>) -> Result<Self, Self::Error> {
-        match image::guess_format(&image_data).map_err(|_| Error::UnsupportedImageFormat)? {
+        match image::guess_format(&image_data)
+            .map_err(|_| GlobeliseError::UnsupportedImageFormat)?
+        {
             image::ImageFormat::Png | image::ImageFormat::Jpeg => (),
-            _ => return Err(Error::UnsupportedImageFormat),
+            _ => return Err(GlobeliseError::UnsupportedImageFormat),
         }
 
-        let image =
-            image::load_from_memory(&image_data).map_err(|_| Error::UnsupportedImageFormat)?;
+        let image = image::load_from_memory(&image_data)
+            .map_err(|_| GlobeliseError::UnsupportedImageFormat)?;
         let (width, height) = image::GenericImageView::dimensions(&image);
         if width > IMAGE_DIMENSION_LIMIT || height > IMAGE_DIMENSION_LIMIT {
-            return Err(Error::PayloadTooLarge(
+            return Err(GlobeliseError::PayloadTooLarge(
                 "Image dimensions cannot exceed 400px x 400px",
             ));
         }

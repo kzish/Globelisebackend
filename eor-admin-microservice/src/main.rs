@@ -16,7 +16,6 @@ use tower_http::add_extension::AddExtensionLayer;
 mod auth;
 mod database;
 mod env;
-mod error;
 mod onboard;
 
 use env::LISTENING_ADDRESS;

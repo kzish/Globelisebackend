@@ -12,7 +12,6 @@ mod auth;
 mod contracts;
 mod database;
 mod env;
-mod error;
 
 use env::LISTENING_ADDRESS;
 
