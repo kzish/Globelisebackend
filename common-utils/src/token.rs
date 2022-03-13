@@ -165,6 +165,33 @@ where
     }
 }
 
+pub struct TokenString(pub String);
+
+#[async_trait]
+impl<B> FromRequest<B> for TokenString
+where
+    B: Send,
+{
+    type Rejection = GlobeliseError;
+
+    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        if let Ok(TypedHeader(Authorization(bearer))) =
+            TypedHeader::<Authorization<Bearer>>::from_request(req).await
+        {
+            Ok(TokenString(bearer.token().to_string()))
+        } else if let Ok(Query(param)) = Query::<HashMap<String, String>>::from_request(req).await {
+            let token = param.get("token").ok_or(GlobeliseError::Unauthorized(
+                "Please provide access token in the query param or as auth bearer",
+            ))?;
+            Ok(TokenString(token.to_string()))
+        } else {
+            Err(GlobeliseError::Unauthorized(
+                "No valid access token provided",
+            ))
+        }
+    }
+}
+
 /// HTTP client for public keys
 static HTTP_CLIENT: Lazy<ClientWithMiddleware> = Lazy::new(|| {
     ClientBuilder::new(ReqwestClient::new())

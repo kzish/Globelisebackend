@@ -18,7 +18,10 @@ use reqwest::{
 };
 
 pub use crate::{
-    auth::user::{Role, UserType},
+    auth::{
+        token::AccessToken,
+        user::{Role, UserType},
+    },
     eor_admin::UserIndex,
 };
 
@@ -59,7 +62,7 @@ pub async fn get_users_info(
         query.push(("user_role", user_role.to_string()))
     }
     let response = client
-        .get(format!("{base_url}/users/index"))
+        .get(format!("{base_url}/eor-admin/users/index"))
         .headers({
             let mut headers = HeaderMap::new();
             headers.insert(
