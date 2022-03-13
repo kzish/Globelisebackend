@@ -4,26 +4,25 @@ use axum::{
     extract::{Extension, Query},
     Json,
 };
+use common_utils::{
+    error::{GlobeliseError, GlobeliseResult},
+    token::{Token, TokenString},
+};
 use reqwest::Client;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use user_management_microservice_sdk::Role;
+use user_management_microservice_sdk::{AccessToken, Role};
 
-use crate::{
-    auth::token::{AccessToken, AccessTokenClaims},
-    database::SharedDatabase,
-    env::GLOBELISE_USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
-    error::Error,
-};
+use crate::{database::SharedDatabase, env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL};
 
 /// Lists all the users plus some information about them.
 pub async fn user_index(
-    AccessToken(access_token): AccessToken,
+    TokenString(access_token): TokenString,
     Query(query): Query<HashMap<String, String>>,
     Extension(shared_client): Extension<Client>,
     Extension(shared_database): Extension<SharedDatabase>,
-) -> Result<Json<Vec<UserIndex>>, Error> {
+) -> GlobeliseResult<Json<Vec<UserIndex>>> {
     let request = user_management_microservice_sdk::GetUserInfoRequest {
         page: query.get("page").map(|v| v.parse()).transpose()?,
         per_page: query.get("per_page").map(|v| v.parse()).transpose()?,
@@ -34,14 +33,11 @@ pub async fn user_index(
 
     let response = user_management_microservice_sdk::get_users_info(
         &shared_client,
-        &*GLOBELISE_USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
+        &*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
         access_token,
         request,
     )
-    .await
-    .map_err(|_| {
-        Error::Internal("Something wrong happened when trying to make request".to_string())
-    })?;
+    .await?;
 
     let mut result = Vec::with_capacity(response.len());
 
@@ -64,11 +60,11 @@ pub async fn user_index(
 }
 
 pub async fn contractor_index(
-    access_token: AccessTokenClaims,
+    access_token: Token<AccessToken>,
     Query(query): Query<ContractorIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<Json<Vec<ContractorIndex>>, Error> {
-    let ulid: Ulid = access_token.sub.parse().unwrap();
+) -> GlobeliseResult<Json<Vec<ContractorIndex>>> {
+    let ulid = access_token.payload.ulid.parse::<Ulid>().unwrap();
     let database = database.lock().await;
     Ok(Json(database.contractor_index(ulid, query).await?))
 }

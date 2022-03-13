@@ -1,5 +1,8 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Path};
-use common_utils::token::Token;
+use common_utils::{
+    error::{GlobeliseError, GlobeliseResult},
+    token::Token,
+};
 use email_address::EmailAddress;
 use eor_admin_sdk::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
@@ -12,7 +15,6 @@ use crate::{
         user::{Role, UserType},
     },
     database::SharedDatabase,
-    error::Error,
 };
 
 use super::util::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT};
@@ -25,10 +27,10 @@ pub async fn account_details(
     >,
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<(), Error> {
+) -> GlobeliseResult<()> {
     let user_type: UserType = claims.payload.user_type.parse().unwrap();
     if !matches!(user_type, UserType::Individual) {
-        return Err(Error::Forbidden);
+        return Err(GlobeliseError::Forbidden);
     }
 
     let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
@@ -46,9 +48,11 @@ pub async fn prefill_individual_contractor_account_details(
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<(), Error> {
+) -> GlobeliseResult<()> {
     if !EmailAddress::is_valid(&request.email) {
-        return Err(Error::BadRequest("Please provide a valid email address"));
+        return Err(GlobeliseError::BadRequest(
+            "Please provide a valid email address",
+        ));
     }
 
     let (email, details) = request.split();

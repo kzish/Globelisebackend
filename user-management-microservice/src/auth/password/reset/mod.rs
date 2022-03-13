@@ -6,6 +6,7 @@ use axum::{
     http::Uri,
     response::Redirect,
 };
+use common_utils::error::{GlobeliseError, GlobeliseResult};
 use email_address::EmailAddress;
 use lettre::{Message, SmtpTransport, Transport};
 use rand::Rng;
@@ -19,7 +20,6 @@ use crate::{
         GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, PASSWORD_RESET_URL,
         SMTP_CREDENTIAL,
     },
-    error::Error,
 };
 
 use crate::auth::{
@@ -38,11 +38,11 @@ pub async fn send_email(
     Path(user_type): Path<UserType>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<(), Error> {
+) -> GlobeliseResult<()> {
     let email_address: EmailAddress = request
         .email
         .parse()
-        .map_err(|_| Error::BadRequest("Not a valid email address"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
 
     let database = database.lock().await;
     let (user_ulid, is_valid_attempt) = match database.user_id(&email_address, user_type).await {
@@ -66,7 +66,7 @@ pub async fn send_email(
         // TODO: Get the name of the person associated to this email address
         .to_display("")
         .parse()
-        .map_err(|_| Error::BadRequest("Bad request"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Bad request"))?;
     let email = Message::builder()
         .from(GLOBELISE_SENDER_EMAIL.clone())
         .reply_to(GLOBELISE_SENDER_EMAIL.clone())
@@ -94,11 +94,13 @@ pub async fn send_email(
             user_type,
             one_time_token
         ))
-        .map_err(|_| Error::Internal("Could not create email for changing password".into()))?;
+        .map_err(|_| {
+            GlobeliseError::Internal("Could not create email for changing password".into())
+        })?;
 
     // Open a remote connection to gmail
     let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)
-        .map_err(|_| Error::Internal("Could not connect to SMTP server".into()))?
+        .map_err(|_| GlobeliseError::Internal("Could not connect to SMTP server".into()))?
         .credentials(SMTP_CREDENTIAL.clone())
         .build();
 
@@ -106,7 +108,7 @@ pub async fn send_email(
     if is_valid_attempt && created_valid_token {
         mailer
             .send(&email)
-            .map_err(|e| Error::Internal(e.to_string()))?;
+            .map_err(|e| GlobeliseError::Internal(e.to_string()))?;
     }
 
     Ok(())
@@ -117,7 +119,7 @@ pub async fn initiate(
     OneTimeTokenParam(claims): OneTimeTokenParam<OneTimeToken<LostPasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<Redirect, Error> {
+) -> GlobeliseResult<Redirect> {
     let ulid: Ulid = claims.sub.parse().unwrap();
     let user_type: UserType = claims.user_type.parse().unwrap();
 
@@ -138,7 +140,7 @@ pub async fn execute(
     OneTimeTokenBearer(claims): OneTimeTokenBearer<OneTimeToken<ChangePasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<(), Error> {
+) -> GlobeliseResult<()> {
     let ulid: Ulid = claims.sub.parse().unwrap();
     let user_type: UserType = claims.user_type.parse().unwrap();
 
@@ -146,7 +148,7 @@ pub async fn execute(
     let confirm_new_password: String = request.new_password.nfc().collect();
 
     if new_password != confirm_new_password {
-        return Err(Error::BadRequest("Passwords do not match"));
+        return Err(GlobeliseError::BadRequest("Passwords do not match"));
     }
 
     let database = database.lock().await;
@@ -156,7 +158,7 @@ pub async fn execute(
     // Either rely completely on SQL or use some kind of transaction commit.
     let salt: [u8; 16] = rand::thread_rng().gen();
     let hash = hash_encoded(new_password.as_bytes(), &salt, &HASH_CONFIG)
-        .map_err(|_| Error::Internal("Failed to hash password".into()))?;
+        .map_err(|_| GlobeliseError::Internal("Failed to hash password".into()))?;
 
     database
         .update_password(ulid, user_type, Some(hash))

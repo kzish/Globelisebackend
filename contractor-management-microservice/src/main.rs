@@ -8,11 +8,9 @@ use tokio::sync::Mutex;
 use tower::ServiceBuilder;
 use tower_http::add_extension::AddExtensionLayer;
 
-mod auth;
 mod contracts;
 mod database;
 mod env;
-mod error;
 
 use env::LISTENING_ADDRESS;
 

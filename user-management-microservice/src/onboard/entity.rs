@@ -1,5 +1,8 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Path};
-use common_utils::token::Token;
+use common_utils::{
+    error::{GlobeliseError, GlobeliseResult},
+    token::Token,
+};
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
@@ -10,7 +13,6 @@ use crate::{
         user::{Role, UserType},
     },
     database::SharedDatabase,
-    error::Error,
 };
 
 use super::util::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT};
@@ -23,10 +25,10 @@ pub async fn account_details(
     >,
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<(), Error> {
+) -> GlobeliseResult<()> {
     let user_type: UserType = claims.payload.user_type.parse::<UserType>().unwrap();
     if !matches!(user_type, UserType::Entity) {
-        return Err(Error::Forbidden);
+        return Err(GlobeliseError::Forbidden);
     }
 
     let ulid: Ulid = claims.payload.ulid.parse().unwrap();
@@ -40,10 +42,10 @@ pub async fn pic_details(
     ContentLengthLimit(Json(request)): ContentLengthLimit<Json<PicDetails>, FORM_DATA_LENGTH_LIMIT>,
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<(), Error> {
+) -> GlobeliseResult<()> {
     let user_type = claims.payload.user_type.parse::<UserType>().unwrap();
     if !matches!(user_type, UserType::Entity) {
-        return Err(Error::Forbidden);
+        return Err(GlobeliseError::Forbidden);
     }
 
     let ulid: Ulid = claims.payload.ulid.parse().unwrap();

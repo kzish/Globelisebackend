@@ -5,10 +5,12 @@ mod auth;
 mod database;
 mod env;
 mod eor_admin;
-mod error;
 mod onboard;
 
-use common_utils::DaprAppId;
+use common_utils::{
+    error::{GlobeliseError, GlobeliseResult},
+    DaprAppId,
+};
 use derive_builder::Builder;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
@@ -16,9 +18,11 @@ use reqwest::{
 };
 
 pub use crate::{
-    auth::user::{Role, UserType},
+    auth::{
+        token::AccessToken,
+        user::{Role, UserType},
+    },
     eor_admin::UserIndex,
-    error::Error,
 };
 
 #[derive(Default, Builder, Debug)]
@@ -40,7 +44,7 @@ pub async fn get_users_info(
     base_url: &str,
     access_token: String,
     request: GetUserInfoRequest,
-) -> Result<Vec<UserIndex>, Error> {
+) -> GlobeliseResult<Vec<UserIndex>> {
     let mut query: Vec<(&'static str, String)> = vec![];
     if let Some(page) = request.page {
         query.push(("page", page.to_string()))
@@ -58,7 +62,7 @@ pub async fn get_users_info(
         query.push(("user_role", user_role.to_string()))
     }
     let response = client
-        .get(format!("{base_url}/users/index"))
+        .get(format!("{base_url}/eor-admin/users/index"))
         .headers({
             let mut headers = HeaderMap::new();
             headers.insert(
@@ -73,6 +77,6 @@ pub async fn get_users_info(
         .await?;
     match response.status() {
         StatusCode::OK => Ok(response.json().await?),
-        _ => Err(Error::Internal(response.status().to_string())),
+        _ => Err(GlobeliseError::Internal(response.status().to_string())),
     }
 }

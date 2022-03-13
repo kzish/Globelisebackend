@@ -67,25 +67,17 @@ impl IntoResponse for GlobeliseError {
     }
 }
 
-impl std::error::Error for GlobeliseError {}
-
 impl std::fmt::Display for GlobeliseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:#?}", self)
+        writeln!(f, "{:#?}", self)
     }
 }
 
-macro_rules! impl_from_error {
-    ($name:ty) => {
-        impl From<$name> for GlobeliseError {
-            fn from(e: $name) -> Self {
-                GlobeliseError::internal(e)
-            }
-        }
-    };
+impl<T> From<T> for GlobeliseError
+where
+    T: std::error::Error,
+{
+    fn from(e: T) -> Self {
+        GlobeliseError::internal(e)
+    }
 }
-
-impl_from_error!(std::env::VarError);
-impl_from_error!(reqwest_middleware::Error);
-impl_from_error!(reqwest::Error);
-impl_from_error!(jsonwebtoken::errors::Error);

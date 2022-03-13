@@ -1,11 +1,10 @@
 //! Types for admin data.
 
+use common_utils::error::GlobeliseResult;
 use email_address::EmailAddress;
 
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, Row};
-
-use crate::error::Error;
 
 /// Stores information associated with a admin id.
 #[derive(Debug, Deserialize, Serialize)]
@@ -21,7 +20,7 @@ impl Admin {
         self.password_hash.is_some() || self.google || self.outlook
     }
 
-    pub fn from_pg_row(row: PgRow) -> Result<Self, Error> {
+    pub fn from_pg_row(row: PgRow) -> GlobeliseResult<Self> {
         Ok(Admin {
             email: row.try_get::<String, _>("email")?.parse()?,
             password_hash: row.try_get("password")?,

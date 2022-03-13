@@ -1,19 +1,18 @@
 use axum::extract::{Extension, Json};
-use common_utils::token::Token;
+use common_utils::{error::GlobeliseResult, token::Token};
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 
 use crate::{
     auth::{token::AccessToken, user::UserType},
     database::SharedDatabase,
-    error::Error,
 };
 
 pub async fn bank_details(
     claims: Token<AccessToken>,
     Json(details): Json<BankDetails>,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<(), Error> {
+) -> GlobeliseResult<()> {
     let user_type = claims.payload.user_type.parse::<UserType>().unwrap();
 
     let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
