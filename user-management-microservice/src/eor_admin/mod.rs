@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use axum::extract::{Extension, Form, Json, Query};
+use axum::extract::{Extension, Json, Query};
 use email_address::EmailAddress;
 use lettre::{Message, SmtpTransport, Transport};
 use rusty_ulid::Ulid;
@@ -94,7 +94,7 @@ pub struct AddUserRequest {
 pub async fn add_individual_contractor(
     // Only for validation
     _: AdminAccessToken,
-    Form(request): Form<AddUserRequest>,
+    Json(request): Json<AddUserRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
     let email_address: EmailAddress = request

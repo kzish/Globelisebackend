@@ -1,4 +1,4 @@
-use axum::extract::{Extension, Form};
+use axum::extract::{Extension, Json};
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 
@@ -10,7 +10,7 @@ use crate::{
 
 pub async fn bank_details(
     claims: AccessToken,
-    Form(details): Form<BankDetails>,
+    Json(details): Json<BankDetails>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
     let user_type: UserType = claims.user_type.parse().unwrap();
@@ -23,6 +23,7 @@ pub async fn bank_details(
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct BankDetails {
     pub bank_name: String,
     pub account_name: String,
