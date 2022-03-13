@@ -1,7 +1,10 @@
 //! Endpoints for user authentication and authorization.
 
 use argon2::{self, hash_encoded, verify_encoded, Config};
-use axum::extract::{Extension, Form, Path};
+use axum::{
+    extract::{Extension, Path},
+    Json,
+};
 use common_utils::token::{create_token, Token};
 use email_address::EmailAddress;
 use once_cell::sync::Lazy;
@@ -27,7 +30,7 @@ use self::token::KEYS;
 
 /// Creates an account.
 pub async fn signup(
-    Form(request): Form<CreateAccountRequest>,
+    Json(request): Json<CreateAccountRequest>,
     Path(user_type): Path<UserType>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
@@ -73,7 +76,7 @@ pub async fn signup(
 
 /// Logs a user in.
 pub async fn login(
-    Form(request): Form<LoginRequest>,
+    Json(request): Json<LoginRequest>,
     Path(user_type): Path<UserType>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,

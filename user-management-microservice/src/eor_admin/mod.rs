@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use axum::extract::{Extension, Form, Json, Query};
+use axum::extract::{Extension, Json, Query};
 use common_utils::token::Token;
 use email_address::EmailAddress;
 use eor_admin_sdk::AccessToken as AdminAccessToken;
@@ -93,7 +93,7 @@ pub struct AddUserRequest {
 pub async fn add_individual_contractor(
     // Only for validation
     _: Token<AdminAccessToken>,
-    Form(request): Form<AddUserRequest>,
+    Json(request): Json<AddUserRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
     let email_address: EmailAddress = request

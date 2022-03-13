@@ -21,7 +21,7 @@ pub struct AccessToken {
 
 impl TokenLike for AccessToken {
     fn aud() -> &'static str {
-        "refresh_token"
+        "access_token"
     }
 
     fn exp() -> Duration {

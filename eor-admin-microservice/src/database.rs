@@ -5,7 +5,7 @@ use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
 use tokio::sync::Mutex;
 
-use crate::{auth::admin::Admin, error::Error, onboard::IndividualDetails};
+use crate::{auth::admin::Admin, error::Error, onboard::individual::IndividualDetails};
 
 pub type SharedDatabase = Arc<Mutex<Database>>;
 

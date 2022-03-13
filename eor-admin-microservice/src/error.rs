@@ -39,11 +39,32 @@ impl IntoResponse for Error {
     }
 }
 
-impl<T> From<T> for Error
-where
-    T: std::error::Error,
-{
-    fn from(e: T) -> Self {
-        Error::Internal(e.to_string())
+impl std::error::Error for Error {}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#?}", self)
     }
 }
+
+macro_rules! impl_from_error {
+    ($error_type:ty) => {
+        impl From<$error_type> for crate::error::Error {
+            fn from(e: $error_type) -> Self {
+                Error::Internal(e.to_string())
+            }
+        }
+    };
+}
+
+impl_from_error!(sqlx::Error);
+impl_from_error!(dapr::error::Error);
+impl_from_error!(email_address::Error);
+impl_from_error!(reqwest::Error);
+impl_from_error!(time::error::Format);
+impl_from_error!(time::error::ComponentRange);
+impl_from_error!(time::error::InvalidFormatDescription);
+impl_from_error!(strum::ParseError);
+impl_from_error!(jsonwebtoken::errors::Error);
+impl_from_error!(reqwest_middleware::Error);
+impl_from_error!(common_utils::error::GlobeliseError);

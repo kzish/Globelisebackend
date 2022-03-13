@@ -1,31 +1,20 @@
 # API
 
-**Note:** The API is still a work in progress. Feel free to make suggestions.
-
-Replace `<domain>` with the address that the server listens on.
-
-`<user type>` can be one of the following values:
-
-```
-individual
-entity
-eor-admin
-```
-
-**Warning:** `eor-admin` is deprecated.
-
-`<role>` can be one of the following values:
-
-```
-client
-contractor
-```
-
-Optional form fields will be marked `(optional)`.
-
-For any error responses not listed here, assume that the body is either `text/plain` or nonexistent.
+**Warning:** The API is still unstable. Feel free to make suggestions.
 
 [[_TOC_]]
+
+# Notes
+
+- Replace `<domain>` with the address that the server listens on
+- `<user type>` can be one of the following values:
+    - `individual`
+    - `entity`
+- `<role>` can be one of the following values:
+    - `client`
+    - `contractor`
+- Optional fields will be marked `(optional)`
+- All binary data sent via JSON **must** be base64 encoded
 
 # Authentication
 
@@ -41,7 +30,7 @@ For any error responses not listed here, assume that the body is either `text/pl
 
 **Request**
 
-`POST` these fields as `application/x-www-form-urlencoded`:
+`POST` these fields as `application/json`:
 
 ```
 email
@@ -73,7 +62,7 @@ Email is unavailable
 
 **Request**
 
-`POST` these fields as `application/x-www-form-urlencoded`:
+`POST` these fields as `application/json`:
 
 ```
 email
@@ -173,7 +162,7 @@ Success: `200 OK` - `text/plain`
 `POST`
 
 - an access token via the bearer authentication scheme
-- these fields as `multipart/form-data`:
+- these fields as `application/json`:
 
 ```
 first-name
@@ -207,7 +196,7 @@ Success: `200 OK`
 `POST`
 
 - an access token via the bearer authentication scheme
-- these fields as `multipart/form-data`:
+- these fields as `application/json`:
 
 ```
 company-name
@@ -239,7 +228,7 @@ Success: `200 OK`
 `POST`
 
 - an access token via the bearer authentication scheme
-- these fields as `multipart/form-data`:
+- these fields as `application/json`:
 
 ```
 first-name
@@ -267,46 +256,12 @@ Success: `200 OK`
 `POST`
 
 - an access token via the bearer authentication scheme
-- these fields as `multipart/form-data`:
+- these fields as `application/json`:
 
 ```
 bank-name
 account-name
 account-number
-```
-
-**Response**
-
-Success: `200 OK`
-
-## EOR admin account details (deprecated)
-
-**Endpoint**
-
-```
-<domain>/onboard/eor-details
-```
-
-**Request**
-
-`POST`
-
-- an access token via the bearer authentication scheme
-- these fields as `multipart/form-data`:
-
-```
-first-name
-last-name
-dob
-dial-code
-phone-number
-country
-city
-address
-postal-code
-tax-id (optional)
-time-zone
-profile-picture (optional)
 ```
 
 **Response**
@@ -325,7 +280,7 @@ Success: `200 OK`
 
 **Request**
 
-`POST` these fields as `application/x-www-form-urlencoded`:
+`POST` these fields as `application/json`:
 
 ```
 email
@@ -378,7 +333,7 @@ Redirects user to the frontend password reset page with a new one-time token in 
 `POST`
 
 - the provided one-time token via the bearer authentication scheme
-- these fields as `application/x-www-form-urlencoded`:
+- these fields as `application/json`:
 
 ```
 new-password
@@ -390,6 +345,8 @@ confirm-new-password
 Success: `200 OK`
 
 # Index users
+
+This endpoint is intended for backend use.
 
 **Endpoint**
 
@@ -414,5 +371,5 @@ Success: `200 OK`
 Success: `200 OK` - `application/json`
 
 ```
-<public key>
+<TODO>
 ```
