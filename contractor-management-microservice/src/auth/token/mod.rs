@@ -8,7 +8,7 @@ use axum::{
     headers::{authorization::Bearer, Authorization},
     http::{HeaderMap, HeaderValue},
 };
-use common_utils::token::ISSUER;
+use common_utils::{token::ISSUER, DaprAppId};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use once_cell::sync::Lazy;
 use reqwest::Client;
@@ -114,7 +114,7 @@ impl UserManagementKey {
                 let mut headers = HeaderMap::default();
                 headers.insert(
                     "dapr-app-id",
-                    HeaderValue::from_static("user-management-microservice"),
+                    HeaderValue::from_static(DaprAppId::UserManagementMicroservice.as_str()),
                 );
                 headers
             })

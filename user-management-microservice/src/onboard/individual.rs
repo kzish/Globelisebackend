@@ -6,12 +6,13 @@ use axum::{
 };
 use common_utils::token::Token;
 use email_address::EmailAddress;
+use eor_admin_sdk::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
 use strum::{EnumIter, EnumString};
 
 use crate::{
     auth::{
-        token::{AccessToken, AdminAccessToken},
+        token::AccessToken,
         user::{Role, UserType},
     },
     database::SharedDatabase,
@@ -128,7 +129,7 @@ impl MultipartFormFields for IndividualDetailNames {
 
 pub async fn prefill_individual_contractor_account_details(
     // Only needed for validation
-    _: AdminAccessToken,
+    _: Token<AdminAccessToken>,
     ContentLengthLimit(multipart): ContentLengthLimit<Multipart, FORM_DATA_LENGTH_LIMIT>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {

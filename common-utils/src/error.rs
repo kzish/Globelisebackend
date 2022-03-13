@@ -22,6 +22,15 @@ pub enum GlobeliseError {
     Internal(String),
 }
 
+impl GlobeliseError {
+    pub fn internal<E>(e: E) -> GlobeliseError
+    where
+        E: std::error::Error,
+    {
+        GlobeliseError::Internal(format!("{:#?}", e))
+    }
+}
+
 impl IntoResponse for GlobeliseError {
     fn into_response(self) -> Response {
         let (status, message) = match self {
@@ -65,3 +74,18 @@ impl std::fmt::Display for GlobeliseError {
         write!(f, "{:#?}", self)
     }
 }
+
+macro_rules! impl_from_error {
+    ($name:ty) => {
+        impl From<$name> for GlobeliseError {
+            fn from(e: $name) -> Self {
+                GlobeliseError::internal(e)
+            }
+        }
+    };
+}
+
+impl_from_error!(std::env::VarError);
+impl_from_error!(reqwest_middleware::Error);
+impl_from_error!(reqwest::Error);
+impl_from_error!(jsonwebtoken::errors::Error);

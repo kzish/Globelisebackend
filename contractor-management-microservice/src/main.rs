@@ -1,6 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use axum::{error_handling::HandleErrorLayer, http::StatusCode, routing::get, BoxError, Router};
+use common_utils::token::PublicKeys;
 use database::Database;
 use reqwest::Client;
 use tokio::sync::Mutex;
@@ -26,8 +27,9 @@ async fn main() {
         .build()
         .unwrap();
 
-    let database = Database::new().await;
-    let database = Arc::new(Mutex::new(database));
+    let database = Arc::new(Mutex::new(Database::new().await));
+
+    let public_keys = Arc::new(Mutex::new(PublicKeys::default()));
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
@@ -41,7 +43,8 @@ async fn main() {
                 .concurrency_limit(1024)
                 .timeout(Duration::from_secs(10))
                 .layer(AddExtensionLayer::new(database))
-                .layer(AddExtensionLayer::new(reqwest_client)),
+                .layer(AddExtensionLayer::new(reqwest_client))
+                .layer(AddExtensionLayer::new(public_keys)),
         );
 
     axum::Server::bind(

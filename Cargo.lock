@@ -3538,6 +3538,7 @@ dependencies = [
  "derive_builder",
  "dotenv",
  "email_address",
+ "eor-admin-microservice",
  "http-cache-reqwest",
  "image",
  "jsonwebtoken",

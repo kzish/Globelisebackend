@@ -1,5 +1,6 @@
 //! Functions and types for handling authorization tokens.
 
+use error::GlobeliseResult;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumIter, EnumString};
 
@@ -25,4 +26,47 @@ pub enum UserType {
 pub enum Role {
     Client,
     Contractor,
+}
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, EnumIter, EnumString, Display, Deserialize, Serialize, Hash,
+)]
+#[serde(rename_all = "kebab-case")]
+#[strum(serialize_all = "kebab-case")]
+pub enum DaprAppId {
+    UserManagementMicroservice,
+    EorAdminMicroservice,
+    ContractorManagementMicroservice,
+}
+
+impl DaprAppId {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            DaprAppId::UserManagementMicroservice => "user-management-microservice",
+            DaprAppId::EorAdminMicroservice => "eor-admin-microservice",
+            DaprAppId::ContractorManagementMicroservice => "contractor-management-microservice",
+        }
+    }
+
+    pub fn microservice_env_key(&self) -> &'static str {
+        match self {
+            DaprAppId::UserManagementMicroservice => "USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL",
+            DaprAppId::EorAdminMicroservice => "EOR_ADMIN_MICROSERVICE_DOMAIN_URL",
+            DaprAppId::ContractorManagementMicroservice => {
+                "CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL"
+            }
+        }
+    }
+
+    pub fn microservice_domain_url(&self) -> GlobeliseResult<String> {
+        Ok((match self {
+            DaprAppId::UserManagementMicroservice => {
+                std::env::var("USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL")
+            }
+            DaprAppId::EorAdminMicroservice => std::env::var("EOR_ADMIN_MICROSERVICE_DOMAIN_URL"),
+            DaprAppId::ContractorManagementMicroservice => {
+                std::env::var("CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL")
+            }
+        })?)
+    }
 }

@@ -2,7 +2,10 @@
 
 use std::{fs::File, io::Read};
 
-use common_utils::token::{Keys, TokenLike};
+use common_utils::{
+    token::{Keys, TokenLike},
+    DaprAppId,
+};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use time::Duration;
@@ -24,6 +27,10 @@ impl TokenLike for AccessToken {
     fn exp() -> Duration {
         Duration::minutes(60)
     }
+
+    fn dapr_app_id() -> DaprAppId {
+        DaprAppId::EorAdminMicroservice
+    }
 }
 
 /// Claims for refresh tokens.
@@ -39,6 +46,10 @@ impl TokenLike for RefreshToken {
 
     fn exp() -> Duration {
         Duration::minutes(60)
+    }
+
+    fn dapr_app_id() -> DaprAppId {
+        DaprAppId::EorAdminMicroservice
     }
 }
 

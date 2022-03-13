@@ -4,6 +4,14 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[lib]
+name = "eor_admin_sdk"
+path = "src/lib.rs"
+
+[[bin]]
+name = "eor-admin-microservice"
+path = "src/main.rs"
+
 [dependencies]
 axum = { version = "0.4.8", features = ["headers", "multipart"] }
 dapr = "0.7.2"

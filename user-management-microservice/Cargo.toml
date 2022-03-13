@@ -42,3 +42,4 @@ tower-http = { version = "0.2.4", features = ["add-extension"] }
 unicode-normalization = "0.1.19"
 # Local crates
 common-utils = { path = "../common-utils" }
+eor-admin-microservice = { path = "../eor-admin-microservice" }

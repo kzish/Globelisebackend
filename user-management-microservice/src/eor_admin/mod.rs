@@ -1,7 +1,9 @@
 use std::{collections::HashMap, str::FromStr};
 
 use axum::extract::{Extension, Form, Json, Query};
+use common_utils::token::Token;
 use email_address::EmailAddress;
+use eor_admin_sdk::AccessToken as AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
@@ -9,10 +11,7 @@ use sqlx::{postgres::PgRow, Row};
 use time::{format_description, OffsetDateTime};
 
 use crate::{
-    auth::{
-        token::AdminAccessToken,
-        user::{Role, UserType},
-    },
+    auth::user::{Role, UserType},
     database::{ulid_from_sql_uuid, SharedDatabase},
     env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL},
     error::Error,
@@ -54,7 +53,7 @@ impl UserIndex {
 
 pub async fn user_index(
     // Only for validation
-    _: AdminAccessToken,
+    _: Token<AdminAccessToken>,
     Query(query): Query<HashMap<String, String>>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<Json<Vec<UserIndex>>, Error> {
@@ -93,7 +92,7 @@ pub struct AddUserRequest {
 
 pub async fn add_individual_contractor(
     // Only for validation
-    _: AdminAccessToken,
+    _: Token<AdminAccessToken>,
     Form(request): Form<AddUserRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> Result<(), Error> {
