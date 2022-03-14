@@ -20,16 +20,20 @@ See [API](API.md).
 - Environment variables:
   - `LISTENING_ADDRESS`: IP address and port that the server will listen on
     - e.g. `localhost:3000`
+  - `DAPR_ADDRESS`: IP address and port of the DAPR sidecar.
+    - e.g. `localhost:3500`
     - All occurences of `localhost` will be replaced by `127.0.0.1`
   - `DATABASE_URL`: URL for connecting to the PostgreSQL database
     - e.g. `postgres://postgres:<password>@localhost/globelise_user_management`
   - `GOOGLE_CLIENT_ID`: Google client ID
-  - `GLOBELISE_DOMAIN_URL`: URL for the server hosting this microservice
-  - `GLOBELISE_SMTP_EMAIL`: Email address for sending change password email
+  - `GLOBELISE_SENDER_EMAIL`: Email address that will be used
   - `GLOBELISE_SMTP_USERNAME`: SMTP username
   - `GLOBELISE_SMTP_PASSWORD`: SMTP password
   - `GLOBELISE_SMTP_URL`: SMTP server URL
   - `PASSWORD_RESET_URL`: URL of frontend password reset page
+  - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for user management microservice
+  - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for contractor management microservice
+  - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for eor admin microservice
 
 ## Build
 
