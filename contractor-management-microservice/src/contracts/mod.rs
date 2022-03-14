@@ -5,7 +5,7 @@ use axum::{
     Json,
 };
 use common_utils::{
-    error::{GlobeliseError, GlobeliseResult},
+    error::GlobeliseResult,
     token::{Token, TokenString},
 };
 use reqwest::Client;
