@@ -108,15 +108,36 @@ pub async fn login(
 
 /// Gets a new access token.
 pub async fn access_token(
-    token: Token<RefreshToken>,
+    claims: Token<RefreshToken>,
     Extension(database): Extension<SharedDatabase>,
+    Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    let ulid = token.payload.ulid.parse::<Ulid>().unwrap();
+    let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
+
+    let mut shared_state = shared_state.lock().await;
+    let mut is_session_valid = false;
+    let _ = shared_state.clear_expired_sessions(ulid).await;
+    if let Some(sessions) = shared_state.sessions(ulid).await? {
+        let encoded_claims = jsonwebtoken::encode(
+            &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::EdDSA),
+            &claims,
+            &KEYS.encoding,
+        )?;
+        for (hash, _) in sessions.iter() {
+            if let Ok(true) = verify_encoded(hash, encoded_claims.as_bytes()) {
+                is_session_valid = true;
+                break;
+            }
+        }
+    }
+    if !is_session_valid {
+        return Err(GlobeliseError::Unauthorized("Refresh token rejected"));
+    }
 
     let database = database.lock().await;
     if let Some(Admin { email, .. }) = database.admin(ulid).await? {
         let access = AccessToken {
-            ulid: token.payload.ulid,
+            ulid: claims.payload.ulid,
             email: email.to_string(),
         };
         let (access_token, _) = create_token(access, &KEYS.encoding)?;
