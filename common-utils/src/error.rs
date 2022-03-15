@@ -69,7 +69,13 @@ impl IntoResponse for GlobeliseError {
 
 impl std::fmt::Display for GlobeliseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{:#?}", self)
+        match self {
+            GlobeliseError::UnsupportedImageFormat => write!(f, "Image must be PNG or JPEG"),
+            GlobeliseError::BadRequest(message) => write!(f, "{message}"),
+            GlobeliseError::PayloadTooLarge(message) => write!(f, "{message}"),
+            GlobeliseError::Internal(_) => write!(f, "Internal error"),
+            _ => writeln!(f, "{:#?}", self),
+        }
     }
 }
 
