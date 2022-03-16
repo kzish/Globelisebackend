@@ -21,6 +21,7 @@ cache:
 test-code:
   stage: test
   script:
+    - rustup component add rustfmt
     - cargo install cargo-nextest
     - cargo nextest run --no-fail-fast
   rules:
@@ -29,6 +30,7 @@ test-code:
 lint-code:
   stage: test
   script:
+    - rustup component add rustfmt
     - rustup component add clippy
     - cargo clippy -- -D warnings
   rules:
