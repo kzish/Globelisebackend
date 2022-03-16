@@ -11,7 +11,7 @@ macro_rules! init_global_static {
 }
 
 init_global_static!(LISTENING_ADDRESS);
-init_global_static!(GLOBELISE_DOMAIN_URL);
+init_global_static!(EOR_ADMIN_MICROSERVICE_DOMAIN_URL);
 init_global_static!(GLOBELISE_SMTP_URL);
 init_global_static!(PASSWORD_RESET_URL);
 

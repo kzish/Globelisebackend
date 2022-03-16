@@ -161,8 +161,7 @@ impl Database {
         );
         let result = sqlx::query(&query)
             .fetch_all(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?
+            .await?
             .into_iter()
             .map(UserIndex::from_pg_row)
             .collect::<GlobeliseResult<Vec<UserIndex>>>()?;
