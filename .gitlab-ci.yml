@@ -1,0 +1,36 @@
+image: rust:latest
+
+stages:
+  - build
+  - test
+  - deploy
+
+build user_management_backend:
+  stage: build
+  only:
+    - merge-requests
+    - feature/DevOPs-01-UMM
+  script:
+    - apt-get update -y
+    - apt-get install -y pkg-config libssl-dev wget build-essential
+    - wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash
+    - rustup component add rustfmt
+    - openssl genrsa -out private.pem 2048
+    - openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+    - cargo build
+  artifacts:
+    paths:
+      - ./target
+
+test user_management_backend_artifacts:
+  stage: test
+  image: alpine
+  only:
+    - merge-requests
+    - feature/DevOPs-01-UMM
+  script:
+    - cd ./target/debug/
+    - test -f "user-management-microservice"
+    - test -f "contractor-management-microservice"
+    - test -f "eor-admin-microservice"
+
