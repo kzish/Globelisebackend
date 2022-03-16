@@ -7,7 +7,6 @@ stages:
 
 cache:
   paths:
-  - .cargo/
   - target/
 
 build user_management_backend:
