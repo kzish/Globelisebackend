@@ -5,6 +5,11 @@ stages:
   - test
   - deploy
 
+cache:
+  paths:
+  - .cargo/
+  - target/
+
 build user_management_backend:
   stage: build
   only:
