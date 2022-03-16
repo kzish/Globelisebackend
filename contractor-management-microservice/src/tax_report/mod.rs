@@ -66,6 +66,7 @@ pub enum TaxInterval {
 }
 
 #[derive(Debug, FromRow, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct TaxReportIndex {
     client_ulid: Ulid,
     client_name: String,
@@ -91,6 +92,7 @@ impl TaxReportIndex {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct TaxReportIndexQuery {
     #[serde(default = "TaxReportIndexQuery::default_page")]
     pub page: i64,
@@ -114,6 +116,7 @@ impl TaxReportIndexQuery {
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct CreateTaxReportIndex {
     pub client_ulid: Ulid,
     pub contractor_ulid: Ulid,
