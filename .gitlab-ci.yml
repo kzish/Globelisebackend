@@ -9,7 +9,7 @@ build user_management_backend:
   stage: build
   only:
     - merge-requests
-    - feature/DevOPs-01-UMM
+    - devops01
   script:
     - apt-get update -y
     - apt-get install -y pkg-config libssl-dev wget build-essential
@@ -27,7 +27,7 @@ test user_management_backend_artifacts:
   image: alpine
   only:
     - merge-requests
-    - feature/DevOPs-01-UMM
+    - devops01
   script:
     - cd ./target/debug/
     - test -f "user-management-microservice"
