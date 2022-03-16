@@ -16,6 +16,7 @@ use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, StatusCode,
 };
+use serde::{Deserialize, Serialize};
 
 pub use crate::{
     auth::{
@@ -25,7 +26,7 @@ pub use crate::{
     eor_admin::UserIndex,
 };
 
-#[derive(Default, Builder, Debug)]
+#[derive(Default, Builder, Debug, Serialize, Deserialize)]
 pub struct GetUserInfoRequest {
     #[builder(setter(strip_option), default)]
     pub page: Option<u64>,
@@ -46,6 +47,7 @@ pub async fn get_users_info(
     request: GetUserInfoRequest,
 ) -> GlobeliseResult<Vec<UserIndex>> {
     let mut query: Vec<(&'static str, String)> = vec![];
+    // TODO: Turn this into a derive_macro
     if let Some(page) = request.page {
         query.push(("page", page.to_string()))
     }
@@ -77,6 +79,9 @@ pub async fn get_users_info(
         .await?;
     match response.status() {
         StatusCode::OK => Ok(response.json().await?),
+        StatusCode::UNAUTHORIZED => Err(GlobeliseError::Unauthorized(
+            "Not authorised to make the request",
+        )),
         _ => Err(GlobeliseError::Internal(response.status().to_string())),
     }
 }

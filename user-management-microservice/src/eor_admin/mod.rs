@@ -6,7 +6,7 @@ use common_utils::{
     token::Token,
 };
 use email_address::EmailAddress;
-use eor_admin_sdk::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,10 @@ use time::{format_description, OffsetDateTime};
 use crate::{
     auth::user::{Role, UserType},
     database::{ulid_from_sql_uuid, SharedDatabase},
-    env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL},
+    env::{
+        GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
+        USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
+    },
 };
 
 /// Stores information associated with a user id.
@@ -140,7 +143,7 @@ pub async fn add_individual_contractor(
             </body>
             </html>
             "##,
-            (*GLOBELISE_DOMAIN_URL),
+            (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
         ))
         .map_err(|_| {
             GlobeliseError::Internal("Could not create email for changing password".into())

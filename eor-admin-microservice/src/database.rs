@@ -137,8 +137,7 @@ impl Database {
             .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
             .bind(ulid_to_sql_uuid(ulid))
             .execute(&self.0)
-            .await
-            .map_err(GlobeliseError::internal)?;
+            .await?;
 
         Ok(())
     }

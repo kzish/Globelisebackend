@@ -1,10 +1,11 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Path};
 use common_utils::{
+    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use email_address::EmailAddress;
-use eor_admin_sdk::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
@@ -16,8 +17,6 @@ use crate::{
     },
     database::SharedDatabase,
 };
-
-use super::util::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT};
 
 pub async fn account_details(
     claims: Token<AccessToken>,

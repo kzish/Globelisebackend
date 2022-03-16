@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use axum::{
     extract::{Extension, Query},
     Json,
@@ -12,25 +10,17 @@ use reqwest::Client;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use user_management_microservice_sdk::{AccessToken, Role};
+use user_management_microservice_sdk::{AccessToken, GetUserInfoRequest, Role};
 
 use crate::{database::SharedDatabase, env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL};
 
 /// Lists all the users plus some information about them.
 pub async fn user_index(
     TokenString(access_token): TokenString,
-    Query(query): Query<HashMap<String, String>>,
+    Query(request): Query<GetUserInfoRequest>,
     Extension(shared_client): Extension<Client>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<UserIndex>>> {
-    let request = user_management_microservice_sdk::GetUserInfoRequest {
-        page: query.get("page").map(|v| v.parse()).transpose()?,
-        per_page: query.get("per_page").map(|v| v.parse()).transpose()?,
-        search_text: query.get("search_text").map(|v| v.parse()).transpose()?,
-        user_type: query.get("user_type").map(|v| v.parse()).transpose()?,
-        user_role: query.get("user_role").map(|v| v.parse()).transpose()?,
-    };
-
     let response = user_management_microservice_sdk::get_users_info(
         &shared_client,
         &*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,

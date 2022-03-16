@@ -1,6 +1,11 @@
 use std::{sync::Arc, time::Duration};
 
-use axum::{error_handling::HandleErrorLayer, http::StatusCode, routing::get, BoxError, Router};
+use axum::{
+    error_handling::HandleErrorLayer,
+    http::StatusCode,
+    routing::{get, post},
+    BoxError, Router,
+};
 use common_utils::token::PublicKeys;
 use database::Database;
 use reqwest::Client;
@@ -11,6 +16,7 @@ use tower_http::add_extension::AddExtensionLayer;
 mod contracts;
 mod database;
 mod env;
+mod tax_report;
 
 use env::LISTENING_ADDRESS;
 
@@ -33,6 +39,19 @@ async fn main() {
         // ========== PUBLIC PAGES ==========
         .route("/users/index", get(contracts::user_index))
         .route("/contractors/index", get(contracts::contractor_index))
+        .route(
+            "/users/tax-report/index",
+            get(tax_report::user_tax_report_index),
+        )
+        // ========== ADMIN PAGES ==========
+        .route(
+            "/eor-admin/tax-report/create",
+            post(tax_report::eor_admin_create_tax_report),
+        )
+        .route(
+            "/eor-admin/tax-report/index",
+            get(tax_report::eor_admin_tax_report_index),
+        )
         // ========== DEBUG PAGES ==========
         .layer(
             ServiceBuilder::new()
