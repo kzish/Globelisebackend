@@ -18,13 +18,13 @@ cache:
     - .cargo/git/db/
     - target/
 
-#test-code:
-#  stage: test
-#  script:
-#    - cargo install cargo-nextest
-#    - cargo nextest run --no-fail-fast
-#  rules:
-#    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
+test-code:
+  stage: test
+  script:
+    - cargo install cargo-nextest
+    - cargo nextest run --no-fail-fast
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
 
 lint-code:
   stage: test
