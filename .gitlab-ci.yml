@@ -25,6 +25,7 @@ prepare:
   stage: prepare-test
   script:
     - cargo install cargo-nextest
+    - cargo install cargo-tarpaulin
     - cargo install cargo-deny
 
 test:
@@ -32,6 +33,8 @@ test:
   script:
     - rustup component add rustfmt
     - cargo nextest run --no-fail-fast
+    - cargo tarpaulin --ignore-tests
+  coverage: '/^\d+.\d+% coverage/'
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
 
