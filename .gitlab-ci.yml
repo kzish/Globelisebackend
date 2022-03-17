@@ -20,7 +20,7 @@ cache:
     - .cargo/git/db/
     - target/
 
-test-code:
+test:
   stage: test
   script:
     - rustup component add rustfmt
@@ -29,7 +29,7 @@ test-code:
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
 
-lint-code:
+lint:
   stage: test
   script:
     - rustup component add rustfmt
@@ -38,7 +38,7 @@ lint-code:
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
     
-format-code:
+format:
   stage: test
   script:
     - rustup component add rustfmt
@@ -46,7 +46,7 @@ format-code:
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
 
-audit-code:
+audit:
   stage: test
   script:
     - cargo install cargo-deny
