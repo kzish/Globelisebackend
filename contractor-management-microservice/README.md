@@ -13,7 +13,6 @@ Microservice for the management of contractors
     - All occurences of `localhost` will be replaced by `127.0.0.1`
   - `DATABASE_URL`: URL for connecting to the PostgreSQL database
     - e.g. `postgres://postgres:<password>@localhost/globelise_eor_admin_management`
-  - `GOOGLE_CLIENT_ID`: Google client ID
   - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for user management microservice
   - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for contractor management microservice
   - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for eor admin microservice
