@@ -47,37 +47,77 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: contractors; Type: TABLE; Schema: public; Owner: postgres
+-- Name: contracts; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.contractors (
+CREATE TABLE public.contracts (
+    id uuid NOT NULL,
     client_ulid uuid NOT NULL,
-    client_name character varying(120) NOT NULL,
+    client_name text NOT NULL,
     contractor_ulid uuid NOT NULL,
-    contractor_name character varying(120) NOT NULL,
-    contract_name character varying(50) NOT NULL,
-    contract_status character varying(50) NOT NULL,
-    job_title character varying(50) NOT NULL,
-    seniority character varying(50) NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    contractor_name text NOT NULL,
+    contract_name text NOT NULL,
+    contract_status text NOT NULL,
+    contract_amount integer NOT NULL,
+    job_title text NOT NULL,
+    seniority text NOT NULL,
+    begin_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    end_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
-ALTER TABLE public.contractors OWNER TO postgres;
+ALTER TABLE public.contracts OWNER TO postgres;
+
+--
+-- Name: contract_index_for_client; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.contract_index_for_client AS
+ SELECT contracts.client_ulid,
+    contracts.contract_name,
+    contracts.job_title,
+    contracts.seniority,
+    contracts.contractor_name,
+    contracts.contract_status,
+    contracts.contract_amount,
+    contracts.end_at
+   FROM public.contracts;
+
+
+ALTER TABLE public.contract_index_for_client OWNER TO postgres;
+
+--
+-- Name: contract_index_for_contractor; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.contract_index_for_contractor AS
+ SELECT contracts.contractor_ulid,
+    contracts.contract_name,
+    contracts.job_title,
+    contracts.seniority,
+    contracts.client_name,
+    contracts.contract_status,
+    contracts.contract_amount,
+    contracts.end_at
+   FROM public.contracts;
+
+
+ALTER TABLE public.contract_index_for_contractor OWNER TO postgres;
 
 --
 -- Name: contractor_index; Type: VIEW; Schema: public; Owner: postgres
 --
 
 CREATE VIEW public.contractor_index AS
- SELECT contractors.client_ulid,
-    contractors.contract_name,
-    contractors.contract_status,
-    contractors.contractor_name,
-    contractors.job_title,
-    contractors.seniority
-   FROM public.contractors;
+ SELECT contracts.client_ulid,
+    contracts.contract_name,
+    contracts.contract_status,
+    contracts.contractor_name,
+    contracts.job_title,
+    contracts.seniority
+   FROM public.contracts;
 
 
 ALTER TABLE public.contractor_index OWNER TO postgres;
@@ -87,13 +127,12 @@ ALTER TABLE public.contractor_index OWNER TO postgres;
 --
 
 CREATE TABLE public.tax_report (
-    client_ulid uuid NOT NULL,
-    contractor_ulid uuid NOT NULL,
+    id uuid,
     tax_interval public.interval_type NOT NULL,
-    tax_name character varying(120) NOT NULL,
-    begin_period timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    end_period timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    country character varying(50) NOT NULL,
+    tax_name text NOT NULL,
+    begin_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    end_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    country text NOT NULL,
     tax_report_file bytea,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -107,26 +146,34 @@ ALTER TABLE public.tax_report OWNER TO postgres;
 --
 
 CREATE VIEW public.tax_report_full AS
- SELECT contractors.client_ulid,
-    contractors.client_name,
-    contractors.contractor_ulid,
-    contractors.contractor_name,
-    contractors.contract_name,
+ SELECT contracts.client_ulid,
+    contracts.client_name,
+    contracts.contractor_ulid,
+    contracts.contractor_name,
+    contracts.contract_name,
     tax_report.tax_interval,
     tax_report.tax_name,
     tax_report.country,
     tax_report.tax_report_file
    FROM (public.tax_report
-     JOIN public.contractors ON (((tax_report.client_ulid = contractors.client_ulid) AND (tax_report.contractor_ulid = contractors.contractor_ulid))));
+     JOIN public.contracts ON ((tax_report.id = contracts.id)));
 
 
 ALTER TABLE public.tax_report_full OWNER TO postgres;
 
 --
--- Name: contractors mdt_contracts; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: contracts contracts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER mdt_contracts BEFORE UPDATE ON public.contractors FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
+ALTER TABLE ONLY public.contracts
+    ADD CONSTRAINT contracts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: contracts mdt_contracts; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER mdt_contracts BEFORE UPDATE ON public.contracts FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
 
 
 --
@@ -134,6 +181,14 @@ CREATE TRIGGER mdt_contracts BEFORE UPDATE ON public.contractors FOR EACH ROW EX
 --
 
 CREATE TRIGGER mdt_tax_report BEFORE UPDATE ON public.tax_report FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
+
+
+--
+-- Name: tax_report tax_report_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tax_report
+    ADD CONSTRAINT tax_report_id_fkey FOREIGN KEY (id) REFERENCES public.contracts(id);
 
 
 --

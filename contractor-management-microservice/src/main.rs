@@ -40,6 +40,14 @@ async fn main() {
         .route("/users/index", get(contracts::user_index))
         .route("/contractors/index", get(contracts::contractor_index))
         .route(
+            "/contracts/client/index",
+            get(contracts::contract_for_client_index),
+        )
+        .route(
+            "/contracts/contractor/index",
+            get(contracts::contract_for_contractor_index),
+        )
+        .route(
             "/users/tax-report/index",
             get(tax_report::user_tax_report_index),
         )
