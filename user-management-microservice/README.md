@@ -28,6 +28,7 @@ See [API](API.md).
   - `GLOBELISE_SMTP_USERNAME`: SMTP username
   - `GLOBELISE_SMTP_PASSWORD`: SMTP password
   - `GLOBELISE_SMTP_URL`: SMTP server URL
+  - `FRONTEND_URL`: URL of frontend
   - `PASSWORD_RESET_URL`: URL of frontend password reset page
   - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for user management microservice
   - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for contractor management microservice

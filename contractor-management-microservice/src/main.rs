@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use axum::{
     error_handling::HandleErrorLayer,
-    http::StatusCode,
+    http::{Method, StatusCode},
     routing::{get, post},
     BoxError, Router,
 };
@@ -11,14 +11,17 @@ use database::Database;
 use reqwest::Client;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
-use tower_http::add_extension::AddExtensionLayer;
+use tower_http::{
+    add_extension::AddExtensionLayer,
+    cors::{Any, CorsLayer, Origin},
+};
 
 mod contracts;
 mod database;
 mod env;
 mod tax_report;
 
-use env::LISTENING_ADDRESS;
+use env::{FRONTEND_URL, LISTENING_ADDRESS};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -59,6 +62,15 @@ async fn main() {
                 .load_shed()
                 .concurrency_limit(1024)
                 .timeout(Duration::from_secs(10))
+                .layer(
+                    CorsLayer::new()
+                        .allow_origin(Origin::exact(
+                            FRONTEND_URL.parse().expect("Invalid frontend URL"),
+                        ))
+                        .allow_methods(vec![Method::GET, Method::POST])
+                        .allow_credentials(true)
+                        .allow_headers(Any),
+                )
                 .layer(AddExtensionLayer::new(database))
                 .layer(AddExtensionLayer::new(reqwest_client))
                 .layer(AddExtensionLayer::new(public_keys)),
