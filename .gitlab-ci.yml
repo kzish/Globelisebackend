@@ -5,6 +5,7 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
 
 stages:
+  - prepare-test
   - test
 
 variables:
@@ -20,11 +21,16 @@ cache:
     - .cargo/git/db/
     - target/
 
+prepare:
+  stage: prepare-test
+  script:
+    - cargo install cargo-nextest
+    - cargo install cargo-deny
+
 test:
   stage: test
   script:
     - rustup component add rustfmt
-    - cargo install cargo-nextest
     - cargo nextest run --no-fail-fast
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
@@ -49,7 +55,6 @@ format:
 audit:
   stage: test
   script:
-    - cargo install cargo-deny
     - cargo deny check
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
