@@ -20,8 +20,6 @@ See [API](API.md).
 - Environment variables:
   - `LISTENING_ADDRESS`: IP address and port that the server will listen on
     - e.g. `localhost:3002`
-  - `DAPR_ADDRESS`: IP address and port of the DAPR sidecar.
-    - e.g. `localhost:3502`
     - All occurences of `localhost` will be replaced by `127.0.0.1`
   - `DATABASE_URL`: URL for connecting to the PostgreSQL database
     - e.g. `postgres://postgres:<password>@localhost/globelise_eor_admin_management`
