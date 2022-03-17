@@ -1,3 +1,4 @@
+use axum::http::HeaderValue;
 use once_cell::sync::Lazy;
 
 macro_rules! init_global_static {
@@ -9,5 +10,11 @@ macro_rules! init_global_static {
 }
 
 init_global_static!(LISTENING_ADDRESS);
-init_global_static!(FRONTEND_URL);
 init_global_static!(USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL);
+
+pub static FRONTEND_URL: Lazy<HeaderValue> = Lazy::new(|| {
+    std::env::var("FRONTEND_URL")
+        .expect("FRONTEND_URL not set")
+        .parse()
+        .expect("FRONTEND_URL not set properly")
+});

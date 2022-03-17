@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use axum::{
     error_handling::HandleErrorLayer,
-    http::{Method, StatusCode},
+    http::{HeaderValue, Method, StatusCode},
     routing::{get, post},
     BoxError, Router,
 };
@@ -64,9 +64,16 @@ async fn main() {
                 .timeout(Duration::from_secs(10))
                 .layer(
                     CorsLayer::new()
-                        .allow_origin(Origin::exact(
-                            FRONTEND_URL.parse().expect("Invalid frontend URL"),
-                        ))
+                        .allow_origin(Origin::predicate(|origin: &HeaderValue, _| {
+                            let mut is_valid = origin == *FRONTEND_URL;
+
+                            #[cfg(debug_assertions)]
+                            {
+                                is_valid |= origin.as_bytes().starts_with(b"http://localhost:");
+                            }
+
+                            is_valid
+                        }))
                         .allow_methods(vec![Method::GET, Method::POST])
                         .allow_credentials(true)
                         .allow_headers(Any),
