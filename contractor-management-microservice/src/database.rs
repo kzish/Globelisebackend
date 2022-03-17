@@ -7,7 +7,9 @@ use tokio::sync::Mutex;
 use user_management_microservice_sdk::Role;
 
 use crate::{
-    contracts::{ContractorIndex, ContractorIndexQuery},
+    contracts::{
+        ContractForClientIndex, ContractForContractorIndex, ContractorIndex, PaginationQuery,
+    },
     tax_report::{CreateTaxReportIndex, TaxReportIndex, TaxReportIndexQuery},
 };
 
@@ -40,7 +42,7 @@ impl Database {
         role: &Role,
     ) -> GlobeliseResult<i64> {
         let result = sqlx::query_scalar(&format!(
-            "SELECT COUNT(*) FROM contractors WHERE {} = $1",
+            "SELECT COUNT(*) FROM contracts WHERE {} = $1",
             match role {
                 Role::Client => "client_ulid",
                 Role::Contractor => "contractor_ulid",
@@ -53,11 +55,11 @@ impl Database {
         Ok(result)
     }
 
-    /// Indexes contractors working for a client.
+    /// Indexes contracts working for a client.
     pub async fn contractor_index(
         &self,
         client_ulid: Ulid,
-        query: ContractorIndexQuery,
+        query: PaginationQuery,
     ) -> GlobeliseResult<Vec<ContractorIndex>> {
         let index = sqlx::query_as(&format!(
             "SELECT * FROM contractor_index WHERE client_ulid = $1 {} LIMIT $2 OFFSET $3",
@@ -67,6 +69,100 @@ impl Database {
             }
         ))
         .bind(ulid_to_sql_uuid(client_ulid))
+        .bind(query.per_page)
+        .bind((query.page - 1) * query.per_page)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(index)
+    }
+
+    /// Index contract of a given contractor
+    pub async fn contract_for_contractor_index(
+        &self,
+        contractor_ulid: Ulid,
+        query: PaginationQuery,
+    ) -> GlobeliseResult<Vec<ContractForContractorIndex>> {
+        let index = sqlx::query_as(&format!(
+            r##"
+SELECT
+    contractor_ulid, contract_name, job_title, seniority, 
+    client_name, contract_status, contract_amount, end_at 
+FROM 
+    contract_index_for_contractor 
+WHERE 
+    contractor_ulid = $1 {}
+LIMIT $2 OFFSET $3"##,
+            match query.search_text {
+                Some(search_text) => format!(
+                    "AND (contract_name ~* '{search_text}' OR client_name ~* '{search_text}')",
+                ),
+                None => "".into(),
+            }
+        ))
+        .bind(ulid_to_sql_uuid(contractor_ulid))
+        .bind(query.per_page)
+        .bind((query.page - 1) * query.per_page)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(index)
+    }
+
+    /// Index contract of a given contractor
+    pub async fn contract_for_client_index(
+        &self,
+        client_ulid: Ulid,
+        query: PaginationQuery,
+    ) -> GlobeliseResult<Vec<ContractForClientIndex>> {
+        let index = sqlx::query_as(&format!(
+            r##"
+    SELECT
+        client_ulid, contract_name, job_title, seniority, 
+        contractor_name, contract_status, contract_amount, end_at 
+    FROM 
+        contract_index_for_client 
+    WHERE 
+        client_ulid = $1 {}
+    LIMIT $2 OFFSET $3"##,
+            match query.search_text {
+                Some(search_text) => format!(
+                    "AND (contract_name ~* '{search_text}' OR contractor_name ~* '{search_text}')",
+                ),
+                None => "".into(),
+            }
+        ))
+        .bind(ulid_to_sql_uuid(client_ulid))
+        .bind(query.per_page)
+        .bind((query.page - 1) * query.per_page)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(index)
+    }
+
+    /// Index contract for EOR admin purposes
+    pub async fn eor_admin_contract_index(
+        &self,
+        query: PaginationQuery,
+    ) -> GlobeliseResult<Vec<ContractForClientIndex>> {
+        let index = sqlx::query_as(&format!(
+            r##"
+        SELECT
+            contract_name, job_title, seniority, 
+            client_name, contract_status, contract_amount, end_at 
+        FROM 
+        contract_index_for_eor_admin 
+        WHERE 
+            1 = 1 {}
+        LIMIT $1 OFFSET $2"##,
+            match query.search_text {
+                Some(search_text) => format!(
+                    "AND (contract_name ~* '{search_text}' OR client_name ~* '{search_text}')",
+                ),
+                None => "".into(),
+            }
+        ))
         .bind(query.per_page)
         .bind((query.page - 1) * query.per_page)
         .fetch_all(&self.0)

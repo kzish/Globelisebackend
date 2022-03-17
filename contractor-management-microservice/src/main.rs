@@ -43,6 +43,14 @@ async fn main() {
         .route("/users/index", get(contracts::user_index))
         .route("/contractors/index", get(contracts::contractor_index))
         .route(
+            "/client/contract/index",
+            get(contracts::contract_for_client_index),
+        )
+        .route(
+            "/contractor/contract/index",
+            get(contracts::contract_for_contractor_index),
+        )
+        .route(
             "/users/tax-report/index",
             get(tax_report::user_tax_report_index),
         )
@@ -54,6 +62,10 @@ async fn main() {
         .route(
             "/eor-admin/tax-report/index",
             get(tax_report::eor_admin_tax_report_index),
+        )
+        .route(
+            "/eor-admin/contract/index",
+            get(contracts::eor_admin_contract_index),
         )
         // ========== DEBUG PAGES ==========
         .layer(
