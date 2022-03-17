@@ -107,6 +107,23 @@ CREATE VIEW public.contract_index_for_contractor AS
 ALTER TABLE public.contract_index_for_contractor OWNER TO postgres;
 
 --
+-- Name: contract_index_for_eor_admin; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.contract_index_for_eor_admin AS
+ SELECT contracts.contract_name,
+    contracts.job_title,
+    contracts.seniority,
+    contracts.client_name,
+    contracts.contract_status,
+    contracts.contract_amount,
+    contracts.end_at
+   FROM public.contracts;
+
+
+ALTER TABLE public.contract_index_for_eor_admin OWNER TO postgres;
+
+--
 -- Name: contractor_index; Type: VIEW; Schema: public; Owner: postgres
 --
 

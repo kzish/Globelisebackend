@@ -6,6 +6,7 @@ use common_utils::{
     error::GlobeliseResult,
     token::{Token, TokenString},
 };
+use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use reqwest::Client;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
@@ -51,7 +52,7 @@ pub async fn user_index(
 
 pub async fn contractor_index(
     access_token: Token<UserAccessToken>,
-    Query(query): Query<ContractorIndexQuery>,
+    Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractorIndex>>> {
     let ulid = access_token.payload.ulid.parse::<Ulid>().unwrap();
@@ -61,7 +62,7 @@ pub async fn contractor_index(
 
 pub async fn contract_for_contractor_index(
     access_token: Token<UserAccessToken>,
-    Query(query): Query<ContractForContractorIndexQuery>,
+    Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractForContractorIndex>>> {
     let ulid = access_token.payload.ulid.parse::<Ulid>().unwrap();
@@ -73,12 +74,21 @@ pub async fn contract_for_contractor_index(
 
 pub async fn contract_for_client_index(
     access_token: Token<UserAccessToken>,
-    Query(query): Query<ContractForClientIndexQuery>,
+    Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractForClientIndex>>> {
     let ulid = access_token.payload.ulid.parse::<Ulid>().unwrap();
     let database = database.lock().await;
     Ok(Json(database.contract_for_client_index(ulid, query).await?))
+}
+
+pub async fn eor_admin_contract_index(
+    _: Token<AdminAccessToken>,
+    Query(query): Query<PaginationQuery>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ContractForClientIndex>>> {
+    let database = database.lock().await;
+    Ok(Json(database.eor_admin_contract_index(query).await?))
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -92,15 +102,15 @@ pub struct UserIndex {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct ContractorIndexQuery {
-    #[serde(default = "ContractorIndexQuery::default_page")]
+pub struct PaginationQuery {
+    #[serde(default = "PaginationQuery::default_page")]
     pub page: i64,
-    #[serde(default = "ContractorIndexQuery::default_per_page")]
+    #[serde(default = "PaginationQuery::default_per_page")]
     pub per_page: i64,
     pub search_text: Option<String>,
 }
 
-impl ContractorIndexQuery {
+impl PaginationQuery {
     fn default_page() -> i64 {
         1
     }
@@ -132,25 +142,6 @@ pub struct ContractForContractorIndex {
     pub end_at: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ContractForContractorIndexQuery {
-    #[serde(default = "ContractForContractorIndexQuery::default_page")]
-    pub page: i64,
-    #[serde(default = "ContractForContractorIndexQuery::default_per_page")]
-    pub per_page: i64,
-    pub search_text: Option<String>,
-}
-
-impl ContractForContractorIndexQuery {
-    fn default_page() -> i64 {
-        1
-    }
-
-    fn default_per_page() -> i64 {
-        25
-    }
-}
-
 #[derive(Debug, FromRow, Deserialize, Serialize)]
 pub struct ContractForClientIndex {
     pub client_ulid: String,
@@ -161,23 +152,4 @@ pub struct ContractForClientIndex {
     pub contract_status: String,
     pub contract_amount: String,
     pub end_at: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ContractForClientIndexQuery {
-    #[serde(default = "ContractForClientIndexQuery::default_page")]
-    pub page: i64,
-    #[serde(default = "ContractForClientIndexQuery::default_per_page")]
-    pub per_page: i64,
-    pub search_text: Option<String>,
-}
-
-impl ContractForClientIndexQuery {
-    fn default_page() -> i64 {
-        1
-    }
-
-    fn default_per_page() -> i64 {
-        25
-    }
 }
