@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use auth::token::KEYS;
 use axum::{
     error_handling::HandleErrorLayer,
-    http::StatusCode,
+    http::{Method, StatusCode},
     routing::{get, post},
     BoxError, Router,
 };
@@ -11,14 +11,17 @@ use common_utils::token::PublicKeys;
 use database::Database;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
-use tower_http::add_extension::AddExtensionLayer;
+use tower_http::{
+    add_extension::AddExtensionLayer,
+    cors::{Any, CorsLayer, Origin},
+};
 
 mod auth;
 mod database;
 mod env;
 mod onboard;
 
-use env::LISTENING_ADDRESS;
+use env::{FRONTEND_URL, LISTENING_ADDRESS};
 
 #[tokio::main]
 async fn main() {
@@ -60,6 +63,15 @@ async fn main() {
                 .load_shed()
                 .concurrency_limit(1024)
                 .timeout(Duration::from_secs(10))
+                .layer(
+                    CorsLayer::new()
+                        .allow_origin(Origin::exact(
+                            FRONTEND_URL.parse().expect("Invalid frontend URL"),
+                        ))
+                        .allow_methods(vec![Method::GET, Method::POST])
+                        .allow_credentials(true)
+                        .allow_headers(Any),
+                )
                 .layer(AddExtensionLayer::new(database))
                 .layer(AddExtensionLayer::new(shared_state))
                 .layer(AddExtensionLayer::new(KEYS.decoding.clone()))
