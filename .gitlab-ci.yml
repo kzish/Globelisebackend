@@ -24,7 +24,6 @@ cache:
 prepare:
   stage: prepare-test
   script:
-    - cargo clean
     - cargo install cargo-nextest
     - cargo install cargo-tarpaulin
     - cargo install cargo-deny
@@ -40,6 +39,7 @@ test:
 coverage:
   stage: test
   script:
+    - rustup component add rustfmt
     - cargo tarpaulin --ignore-tests --skip-clean --target-dir target/coverage/
   coverage: '/^\d+.\d+% coverage/'
   rules:
