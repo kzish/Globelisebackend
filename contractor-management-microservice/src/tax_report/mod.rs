@@ -68,6 +68,7 @@ pub enum TaxInterval {
 #[derive(Debug, FromRow, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TaxReportIndex {
+    ulid: Ulid,
     client_ulid: Ulid,
     client_name: String,
     contractor_ulid: Ulid,
@@ -78,6 +79,7 @@ pub struct TaxReportIndex {
 impl TaxReportIndex {
     pub fn from_pg_row(row: PgRow) -> GlobeliseResult<Self> {
         Ok(Self {
+            ulid: row.try_get::<String, _>("ulid")?.parse::<Ulid>()?,
             client_ulid: row.try_get::<String, _>("client_ulid")?.parse::<Ulid>()?,
             client_name: row.try_get::<String, _>("client_name")?,
             contractor_ulid: row
