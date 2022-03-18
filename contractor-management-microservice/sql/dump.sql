@@ -51,7 +51,7 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.contracts (
-    id uuid NOT NULL,
+    ulid uuid NOT NULL,
     client_ulid uuid NOT NULL,
     client_name text NOT NULL,
     contractor_ulid uuid NOT NULL,
@@ -144,7 +144,7 @@ ALTER TABLE public.contractor_index OWNER TO postgres;
 --
 
 CREATE TABLE public.tax_report (
-    id uuid,
+    ulid uuid NOT NULL,
     tax_interval public.interval_type NOT NULL,
     tax_name text NOT NULL,
     begin_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -173,7 +173,7 @@ CREATE VIEW public.tax_report_full AS
     tax_report.country,
     tax_report.tax_report_file
    FROM (public.tax_report
-     JOIN public.contracts ON ((tax_report.id = contracts.id)));
+     JOIN public.contracts ON ((tax_report.ulid = contracts.ulid)));
 
 
 ALTER TABLE public.tax_report_full OWNER TO postgres;
@@ -183,7 +183,15 @@ ALTER TABLE public.tax_report_full OWNER TO postgres;
 --
 
 ALTER TABLE ONLY public.contracts
-    ADD CONSTRAINT contracts_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT contracts_pkey PRIMARY KEY (ulid);
+
+
+--
+-- Name: tax_report tax_report_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tax_report
+    ADD CONSTRAINT tax_report_pkey PRIMARY KEY (ulid);
 
 
 --
@@ -198,14 +206,6 @@ CREATE TRIGGER mdt_contracts BEFORE UPDATE ON public.contracts FOR EACH ROW EXEC
 --
 
 CREATE TRIGGER mdt_tax_report BEFORE UPDATE ON public.tax_report FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
-
-
---
--- Name: tax_report tax_report_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.tax_report
-    ADD CONSTRAINT tax_report_id_fkey FOREIGN KEY (id) REFERENCES public.contracts(id);
 
 
 --

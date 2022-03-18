@@ -180,7 +180,7 @@ LIMIT $2 OFFSET $3"##,
         let index = sqlx::query(&format!(
             r##"
             SELECT 
-                client_ulid, client_name, contractor_ulid, contractor_name, 
+                id, client_ulid, client_name, contractor_ulid, contractor_name, 
                 contract_name, tax_interval, tax_name, country, tax_report_file 
             FROM 
                 tax_report_full WHERE 1 = 1 AND {} = $1 {}
@@ -213,11 +213,12 @@ LIMIT $2 OFFSET $3"##,
         sqlx::query(
             r##"
             INSERT INTO tax_report 
-            (client_ulid, contractor_ulid, tax_interval, 
+            (id, client_ulid, contractor_ulid, tax_interval, 
             tax_name, begin_period, end_period, country, tax_report_file)
             VALUES 
-            ($1, $2, $3::interval_type, $4, $5, $6, $7, $8)"##,
+            ($2, $3, $4::interval_type, $5, $6, $7, $8, $9)"##,
         )
+        .bind(ulid_to_sql_uuid(Ulid::generate()))
         .bind(ulid_to_sql_uuid(query.client_ulid))
         .bind(ulid_to_sql_uuid(query.contractor_ulid))
         .bind(query.tax_interval.to_string())
