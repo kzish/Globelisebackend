@@ -1,34 +1,56 @@
 variables:
-  CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
+  CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
 
 default:
   image: rust:latest
   cache:
+    - &cargo_registry
+      key: cargo-registry
+      paths:
+        - .cargo/registry/index/
+        - .cargo/registry/cache/
+        - .cargo/git/db/
+      policy: pull
+    - &cargo_artifacts
+      key: cargo-artifacts
+      paths:
+        - target/
+      policy: pull
+  before_script:
+    - rustup component add rustfmt # Required for Dapr build script
+
+.cargo-tools:
+  - &cargo_tools
+    key: cargo-tools
     paths:
-      # Paths required for all builds and tests
-      - .cargo/registry/index/
-      - .cargo/registry/cache/
-      - .cargo/git/db/
-      - target/
-      # Paths required only for tests
       - .cargo/bin/
       - .cargo/.crates.toml
       - .cargo/.crates2.json
-  before_script:
-    - rustup component add rustfmt
+    policy: pull
 
 install-tools:
   stage: install-test-tools
+  cache:
+    - <<: *cargo_registry
+      policy: pull-push
+    - <<: *cargo_tools
+      policy: pull-push
+    - key: cargo-tools-artifacts
+      paths:
+        - target-tools/
+  variables:
+    CARGO_TARGET_DIR: target-tools/
   script:
     - cargo install cargo-nextest
     - cargo install cargo-tarpaulin
     - cargo install cargo-deny
 
 test:
-  extends: default
   stage: test
   cache:
-    policy: pull
+    - <<: *cargo_registry
+    - <<: *cargo_artifacts
+    - <<: *cargo_tools
   script:
     - cargo nextest --config-file nextest.toml run -P ci --no-fail-fast
   artifacts:
@@ -39,39 +61,31 @@ test:
 coverage:
   stage: test
   cache:
-    paths:
-      - .cargo/registry/index/
-      - .cargo/registry/cache/
-      - .cargo/git/db/
-      - target-coverage/
-      - .cargo/bin/
-      - .cargo/.crates.toml
-      - .cargo/.crates2.json
+    - <<: *cargo_registry
+    - <<: *cargo_tools
+    - key: cargo-coverage-artifacts
+      paths:
+        - target-coverage/
   script:
     - cargo tarpaulin --ignore-tests --skip-clean --target-dir target-coverage/
   coverage: '/^\d+.\d+% coverage/'
 
 lint:
-  extends: default
   stage: test
-  cache:
-    policy: pull
   script:
     - rustup component add clippy
     - cargo clippy -- -D warnings
     
 format:
-  extends: default
   stage: test
-  cache:
-    policy: pull
+  cache: []
   script:
     - cargo fmt --check
 
 audit:
-  extends: default
   stage: test
   cache:
-    policy: pull
+    - <<: *cargo_registry
+    - <<: *cargo_tools
   script:
     - cargo deny check

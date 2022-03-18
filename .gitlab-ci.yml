@@ -12,5 +12,10 @@ include: .gitlab/ci/test.yml
 
 build:
   stage: build
+  cache:
+    - <<: *cargo_registry
+      policy: pull-push
+    - <<: *cargo_artifacts
+      policy: pull-push
   script:
     - cargo build
