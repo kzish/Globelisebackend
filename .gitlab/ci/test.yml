@@ -23,7 +23,7 @@ default:
         - target/
       policy: pull
     - &cargo_install_cache
-      key: default
+      key: cargo-install
       paths:
         - .cargo/bin/
         - .cargo/.crates.toml
