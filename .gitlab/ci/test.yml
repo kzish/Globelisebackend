@@ -30,7 +30,11 @@ test:
   cache:
     policy: pull
   script:
-    - cargo nextest run --no-fail-fast
+    - cargo nextest --config-file nextest.toml run -P ci --no-fail-fast
+  artifacts:
+    when: always
+    reports:
+      junit: target/nextest/ci/junit.xml
 
 coverage:
   stage: test
