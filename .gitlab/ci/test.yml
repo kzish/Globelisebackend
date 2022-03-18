@@ -1,85 +1,64 @@
-image: rust:latest
-
-workflow:
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
-        && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
-
-stages:
-  - prepare
-  - test
-
 variables:
   CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
 
 default:
+  image: rust:latest
   cache:
-    - &default_cache
-      key: default
-      paths:
-        - .cargo/registry/index/
-        - .cargo/registry/cache/
-        - .cargo/git/db/
-        - target/
-      policy: pull
-    - &cargo_install_cache
-      key: cargo-install
-      paths:
-        - .cargo/bin/
-        - .cargo/.crates.toml
-        - .cargo/.crates2.json
-      policy: pull
+    paths:
+      # Paths required for all builds and tests
+      - .cargo/registry/index/
+      - .cargo/registry/cache/
+      - .cargo/git/db/
+      - target/
+      # Paths required only for tests
+      - .cargo/bin/
+      - .cargo/.crates.toml
+      - .cargo/.crates2.json
   before_script:
     - rustup component add rustfmt
 
-build:
-  stage: prepare
-  extends: default
-  cache:
-    - <<: *default_cache
-      policy: pull-push
-  script:
-    - cargo build
-
 install-tools:
-  stage: prepare
-  cache:
-    - <<: *default_cache
-      policy: pull-push
-    - <<: *cargo_install_cache
-      policy: pull-push
+  stage: install-test-tools
   script:
     - cargo install cargo-nextest
     - cargo install cargo-tarpaulin
     - cargo install cargo-deny
 
 test:
+  extends: default
   stage: test
+  cache:
+    policy: pull
   script:
     - cargo nextest run --no-fail-fast
 
 coverage:
   stage: test
-  cache:
-    - <<: *default_cache
-      policy: pull-push
-    - <<: *cargo_install_cache
   script:
     - cargo tarpaulin --ignore-tests --skip-clean --target-dir target/coverage/
   coverage: '/^\d+.\d+% coverage/'
 
 lint:
+  extends: default
   stage: test
+  cache:
+    policy: pull
   script:
     - rustup component add clippy
     - cargo clippy -- -D warnings
     
 format:
+  extends: default
   stage: test
+  cache:
+    policy: pull
   script:
     - cargo fmt --check
 
 audit:
+  extends: default
   stage: test
+  cache:
+    policy: pull
   script:
     - cargo deny check
