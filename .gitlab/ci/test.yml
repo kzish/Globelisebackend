@@ -12,25 +12,23 @@ stages:
 variables:
   CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
 
-.default-cache: 
-  paths:
-    - .cargo/registry/index/
-    - .cargo/registry/cache/
-    - .cargo/git/db/
-    - target/
-
-.cargo-install-cache:
-  paths:
-    - .cargo/bin/
-    - .cargo/.crates.toml
-    - .cargo/.crates2.json
-
 default:
   cache:
-    paths:
-      - !reference [.default-cache, paths]
-      - !reference [.cargo-install-cache, paths]
-    policy: pull
+    - &default_cache
+      key: default
+      paths:
+        - .cargo/registry/index/
+        - .cargo/registry/cache/
+        - .cargo/git/db/
+        - target/
+      policy: pull
+    - &cargo_install_cache
+      key: default
+      paths:
+        - .cargo/bin/
+        - .cargo/.crates.toml
+        - .cargo/.crates2.json
+      policy: pull
   before_script:
     - rustup component add rustfmt
 
@@ -38,19 +36,18 @@ build:
   stage: prepare
   extends: default
   cache:
-    paths:
-      - !reference [.default-cache, paths]
-    policy: pull-push
+    - <<: *default_cache
+      policy: pull-push
   script:
     - cargo build
 
 install-tools:
   stage: prepare
   cache:
-    paths:
-      - !reference [.default-cache, paths]
-      - !reference [.cargo-install-cache, paths]
-    policy: pull-push
+    - <<: *default_cache
+      policy: pull-push
+    - <<: *cargo_install_cache
+      policy: pull-push
   script:
     - cargo install cargo-nextest
     - cargo install cargo-tarpaulin
@@ -64,9 +61,9 @@ test:
 coverage:
   stage: test
   cache:
-    paths:
-      - !reference [.default-cache, paths]
-    policy: pull-push
+    - <<: *default_cache
+      policy: pull-push
+    - <<: *cargo_install_cache
   script:
     - cargo tarpaulin --ignore-tests --skip-clean --target-dir target/coverage/
   coverage: '/^\d+.\d+% coverage/'
