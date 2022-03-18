@@ -1,156 +1,73 @@
-use std::hash::Hash;
-
-use axum::{
-    body::Bytes,
-    extract::{ContentLengthLimit, Extension, Multipart, Path},
+use axum::extract::{ContentLengthLimit, Extension, Json, Path};
+use common_utils::{
+    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
+    error::{GlobeliseError, GlobeliseResult},
+    token::Token,
 };
 use email_address::EmailAddress;
+use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
-use strum::{EnumIter, EnumString};
+use serde::Deserialize;
+use serde_with::{base64::Base64, serde_as, TryFromInto};
 
 use crate::{
     auth::{
-        token::{AccessToken, AdminAccessToken},
+        token::AccessToken,
         user::{Role, UserType},
     },
     database::SharedDatabase,
-    error::Error,
 };
 
-use super::multipart::{extract_multipart_form_data, MultipartFormFields, FORM_DATA_LENGTH_LIMIT};
-
 pub async fn account_details(
-    claims: AccessToken,
-    ContentLengthLimit(multipart): ContentLengthLimit<Multipart, FORM_DATA_LENGTH_LIMIT>,
+    claims: Token<AccessToken>,
+    ContentLengthLimit(Json(request)): ContentLengthLimit<
+        Json<IndividualDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<(), Error> {
-    let user_type: UserType = claims.user_type.parse().unwrap();
+) -> GlobeliseResult<()> {
+    let user_type: UserType = claims.payload.user_type.parse().unwrap();
     if !matches!(user_type, UserType::Individual) {
-        return Err(Error::Forbidden);
+        return Err(GlobeliseError::Forbidden);
     }
 
-    let details = IndividualDetails::from_multipart(multipart).await?;
-
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
     let database = database.lock().await;
     database
-        .onboard_individual_details(ulid, user_type, role, details)
+        .onboard_individual_details(ulid, role, request)
         .await
-}
-
-#[derive(Debug)]
-pub struct IndividualDetails {
-    pub first_name: String,
-    pub last_name: String,
-    pub dob: sqlx::types::time::Date,
-    pub dial_code: String,
-    pub phone_number: String,
-    pub country: String,
-    pub city: String,
-    pub address: String,
-    pub postal_code: String,
-    pub tax_id: Option<String>,
-    pub time_zone: String,
-    pub profile_picture: Option<Bytes>,
-}
-
-impl IndividualDetails {
-    pub async fn from_multipart(multipart: Multipart) -> Result<Self, Error> {
-        let (mut text_fields, mut byte_fields) =
-            extract_multipart_form_data::<IndividualDetailNames>(multipart).await?;
-
-        Ok(Self {
-            first_name: text_fields
-                .remove(&IndividualDetailNames::FirstName)
-                .unwrap(),
-            last_name: text_fields
-                .remove(&IndividualDetailNames::LastName)
-                .unwrap(),
-            dob: {
-                sqlx::types::time::Date::parse(
-                    &text_fields.remove(&IndividualDetailNames::Dob).unwrap(),
-                    "%F",
-                )
-                .map_err(|_| Error::BadRequest("Date must use YYYY-MM-DD format"))?
-            },
-            dial_code: text_fields
-                .remove(&IndividualDetailNames::DialCode)
-                .unwrap(),
-            phone_number: text_fields
-                .remove(&IndividualDetailNames::PhoneNumber)
-                .unwrap(),
-            country: text_fields.remove(&IndividualDetailNames::Country).unwrap(),
-            address: text_fields.remove(&IndividualDetailNames::Address).unwrap(),
-            city: text_fields.remove(&IndividualDetailNames::City).unwrap(),
-            postal_code: text_fields
-                .remove(&IndividualDetailNames::PostalCode)
-                .unwrap(),
-            tax_id: text_fields.remove(&IndividualDetailNames::TaxId),
-            time_zone: text_fields
-                .remove(&IndividualDetailNames::TimeZone)
-                .unwrap(),
-            profile_picture: byte_fields.remove(&IndividualDetailNames::ProfilePicture),
-        })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, EnumString)]
-#[strum(serialize_all = "kebab-case")]
-enum IndividualDetailNames {
-    FirstName,
-    LastName,
-    Dob,
-    DialCode,
-    PhoneNumber,
-    Country,
-    City,
-    Address,
-    PostalCode,
-    TaxId,
-    TimeZone,
-    ProfilePicture,
-}
-
-impl MultipartFormFields for IndividualDetailNames {
-    fn is_required(&self) -> bool {
-        !matches!(
-            self,
-            IndividualDetailNames::TaxId | IndividualDetailNames::ProfilePicture,
-        )
-    }
-
-    fn is_image(&self) -> bool {
-        matches!(self, IndividualDetailNames::ProfilePicture)
-    }
 }
 
 pub async fn prefill_individual_contractor_account_details(
     // Only needed for validation
-    _: AdminAccessToken,
-    ContentLengthLimit(multipart): ContentLengthLimit<Multipart, FORM_DATA_LENGTH_LIMIT>,
+    _: Token<AdminAccessToken>,
+    ContentLengthLimit(Json(request)): ContentLengthLimit<
+        Json<PrefillIndividualDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<(), Error> {
-    let prefill_details = PrefillIndividualDetails::from_multipart(multipart).await?;
-
-    if !EmailAddress::is_valid(&prefill_details.email) {
-        return Err(Error::BadRequest("Please provide a valid email address"));
+) -> GlobeliseResult<()> {
+    if !EmailAddress::is_valid(&request.email) {
+        return Err(GlobeliseError::BadRequest(
+            "Please provide a valid email address",
+        ));
     }
 
+    let (email, details) = request.split();
     let database = database.lock().await;
-
-    let (email, details) = prefill_details.split();
-
     database
         .prefill_onboard_individual_contractors(email, details)
         .await
 }
 
-#[derive(Debug)]
-pub struct PrefillIndividualDetails {
-    pub email: String,
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct IndividualDetails {
     pub first_name: String,
     pub last_name: String,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
     pub dob: sqlx::types::time::Date,
     pub dial_code: String,
     pub phone_number: String,
@@ -158,9 +75,35 @@ pub struct PrefillIndividualDetails {
     pub city: String,
     pub address: String,
     pub postal_code: String,
+    #[serde(default)]
     pub tax_id: Option<String>,
     pub time_zone: String,
-    pub profile_picture: Option<Bytes>,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub profile_picture: Option<ImageData>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefillIndividualDetails {
+    pub email: String,
+    pub first_name: String,
+    pub last_name: String,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub dob: sqlx::types::time::Date,
+    pub dial_code: String,
+    pub phone_number: String,
+    pub country: String,
+    pub city: String,
+    pub address: String,
+    pub postal_code: String,
+    #[serde(default)]
+    pub tax_id: Option<String>,
+    pub time_zone: String,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub profile_picture: Option<ImageData>,
 }
 
 impl PrefillIndividualDetails {
@@ -182,85 +125,5 @@ impl PrefillIndividualDetails {
                 profile_picture: self.profile_picture,
             },
         )
-    }
-
-    pub async fn from_multipart(multipart: Multipart) -> Result<Self, Error> {
-        let (mut text_fields, mut byte_fields) =
-            extract_multipart_form_data::<PrefillIndividualDetailNames>(multipart).await?;
-
-        Ok(Self {
-            email: text_fields
-                .remove(&PrefillIndividualDetailNames::Email)
-                .unwrap(),
-            first_name: text_fields
-                .remove(&PrefillIndividualDetailNames::FirstName)
-                .unwrap(),
-            last_name: text_fields
-                .remove(&PrefillIndividualDetailNames::LastName)
-                .unwrap(),
-            dob: {
-                sqlx::types::time::Date::parse(
-                    &text_fields
-                        .remove(&PrefillIndividualDetailNames::Dob)
-                        .unwrap(),
-                    "%F",
-                )
-                .map_err(|_| Error::BadRequest("Date must use YYYY-MM-DD format"))?
-            },
-            dial_code: text_fields
-                .remove(&PrefillIndividualDetailNames::DialCode)
-                .unwrap(),
-            phone_number: text_fields
-                .remove(&PrefillIndividualDetailNames::PhoneNumber)
-                .unwrap(),
-            country: text_fields
-                .remove(&PrefillIndividualDetailNames::Country)
-                .unwrap(),
-            address: text_fields
-                .remove(&PrefillIndividualDetailNames::Address)
-                .unwrap(),
-            city: text_fields
-                .remove(&PrefillIndividualDetailNames::City)
-                .unwrap(),
-            postal_code: text_fields
-                .remove(&PrefillIndividualDetailNames::PostalCode)
-                .unwrap(),
-            tax_id: text_fields.remove(&PrefillIndividualDetailNames::TaxId),
-            time_zone: text_fields
-                .remove(&PrefillIndividualDetailNames::TimeZone)
-                .unwrap(),
-            profile_picture: byte_fields.remove(&PrefillIndividualDetailNames::ProfilePicture),
-        })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, EnumString)]
-#[strum(serialize_all = "kebab-case")]
-enum PrefillIndividualDetailNames {
-    Email,
-    FirstName,
-    LastName,
-    Dob,
-    DialCode,
-    PhoneNumber,
-    Country,
-    City,
-    Address,
-    PostalCode,
-    TaxId,
-    TimeZone,
-    ProfilePicture,
-}
-
-impl MultipartFormFields for PrefillIndividualDetailNames {
-    fn is_required(&self) -> bool {
-        !matches!(
-            self,
-            PrefillIndividualDetailNames::TaxId | PrefillIndividualDetailNames::ProfilePicture,
-        )
-    }
-
-    fn is_image(&self) -> bool {
-        matches!(self, PrefillIndividualDetailNames::ProfilePicture)
     }
 }

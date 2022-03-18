@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use axum::extract::{Extension, Form, Path};
+use common_utils::error::{GlobeliseError, GlobeliseResult};
 use email_address::EmailAddress;
 use http_cache_reqwest::{Cache, CacheMode, HttpCache, MokaManager};
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, TokenData, Validation};
@@ -10,8 +11,6 @@ use once_cell::sync::Lazy;
 use reqwest::Client;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use serde::Deserialize;
-
-use crate::error::Error;
 
 use super::{
     user::{User, UserType},
@@ -24,10 +23,10 @@ pub async fn login(
     Path(user_type): Path<UserType>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<String, Error> {
+) -> GlobeliseResult<String> {
     let OauthKeyList { keys } = OauthKeyList::new()
         .await
-        .map_err(|_| Error::Internal("Could not get Google's public keys".into()))?;
+        .map_err(|_| GlobeliseError::Internal("Could not get Google's public keys".into()))?;
 
     let claims = id_token.decode(&keys)?;
     let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
@@ -43,7 +42,7 @@ pub async fn login(
             Ok(refresh_token)
         } else {
             // TODO: Implement linking with an existing account.
-            Err(Error::Unauthorized(
+            Err(GlobeliseError::Unauthorized(
                 "Linking Google with existing account is not implemented",
             ))
         }
@@ -71,7 +70,7 @@ pub struct IdToken {
 
 impl IdToken {
     /// Decode and validate the token.
-    fn decode(&self, keys: &[OauthKey]) -> Result<Claims, Error> {
+    fn decode(&self, keys: &[OauthKey]) -> GlobeliseResult<Claims> {
         let key = self.identify_key(keys)?;
 
         let mut validation = Validation::new(Algorithm::RS256);
@@ -83,22 +82,22 @@ impl IdToken {
         let TokenData { claims, .. } = decode::<Claims>(
             &*self.credential,
             &DecodingKey::from_rsa_components(&*key.n, &*key.e).map_err(|_| {
-                Error::Internal("Could not create decoding key for Google ID token".into())
+                GlobeliseError::Internal("Could not create decoding key for Google ID token".into())
             })?,
             &validation,
         )
-        .map_err(|_| Error::Unauthorized("Failed to decode Google ID token"))?;
+        .map_err(|_| GlobeliseError::Unauthorized("Failed to decode Google ID token"))?;
 
         Ok(claims)
     }
 
     /// Pick the correct key used for the token.
-    fn identify_key<'a>(&self, keys: &'a [OauthKey]) -> Result<&'a OauthKey, Error> {
+    fn identify_key<'a>(&self, keys: &'a [OauthKey]) -> GlobeliseResult<&'a OauthKey> {
         let header = decode_header(&*self.credential)
-            .map_err(|_| Error::Unauthorized("Failed to decode Google ID token header"))?;
-        let key_id = header
-            .kid
-            .ok_or(Error::Unauthorized("Google ID token header has no key id"))?;
+            .map_err(|_| GlobeliseError::Unauthorized("Failed to decode Google ID token header"))?;
+        let key_id = header.kid.ok_or(GlobeliseError::Unauthorized(
+            "Google ID token header has no key id",
+        ))?;
 
         for key in keys {
             if key.kid == key_id {
@@ -106,7 +105,7 @@ impl IdToken {
             }
         }
 
-        Err(Error::Unauthorized(
+        Err(GlobeliseError::Unauthorized(
             "Could not identify correct key for Google ID token",
         ))
     }
@@ -161,7 +160,7 @@ static OAUTH_KEY_CLIENT: Lazy<ClientWithMiddleware> = Lazy::new(|| {
 
 #[cfg(not(debug_assertions))]
 pub async fn login_page() -> Error {
-    Error::NotFound
+    GlobeliseError::NotFound
 }
 
 #[cfg(debug_assertions)]

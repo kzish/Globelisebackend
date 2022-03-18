@@ -51,22 +51,6 @@ CREATE TABLE public.auth_entities (
 ALTER TABLE public.auth_entities OWNER TO postgres;
 
 --
--- Name: auth_eor_admins; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.auth_eor_admins (
-    ulid uuid NOT NULL,
-    email character varying(254) NOT NULL,
-    password text,
-    is_google boolean NOT NULL,
-    is_outlook boolean NOT NULL,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
-ALTER TABLE public.auth_eor_admins OWNER TO postgres;
-
---
 -- Name: auth_individuals; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -141,29 +125,6 @@ CREATE TABLE public.onboard_entity_contractors (
 
 ALTER TABLE public.onboard_entity_contractors OWNER TO postgres;
 
---
--- Name: onboard_eor_admins; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.onboard_eor_admins (
-    ulid uuid NOT NULL,
-    first_name character varying(50),
-    last_name character varying(50),
-    dob date,
-    dial_code character varying(5),
-    phone_number character varying(16),
-    country character varying(100),
-    city character varying(50),
-    address character varying(250),
-    postal_code character varying(20),
-    tax_id character varying(50),
-    time_zone character varying(50),
-    profile_picture bytea,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
-ALTER TABLE public.onboard_eor_admins OWNER TO postgres;
 
 --
 -- Name: onboard_individual_clients; Type: TABLE; Schema: public; Owner: postgres
@@ -260,22 +221,6 @@ ALTER TABLE ONLY public.auth_entities
 
 
 --
--- Name: auth_eor_admins auth_eor_admins_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.auth_eor_admins
-    ADD CONSTRAINT auth_eor_admins_email_key UNIQUE (email);
-
-
---
--- Name: auth_eor_admins auth_eor_admins_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.auth_eor_admins
-    ADD CONSTRAINT auth_eor_admins_pkey PRIMARY KEY (ulid);
-
-
---
 -- Name: auth_individuals auth_individuals_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -355,13 +300,6 @@ CREATE TRIGGER mdt_auth_entities BEFORE UPDATE ON public.auth_entities FOR EACH 
 
 
 --
--- Name: auth_eor_admins mdt_auth_eor_admins; Type: TRIGGER; Schema: public; Owner: postgres
---
-
-CREATE TRIGGER mdt_auth_eor_admins BEFORE UPDATE ON public.auth_eor_admins FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
-
-
---
 -- Name: auth_individuals mdt_auth_individuals; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -424,14 +362,6 @@ ALTER TABLE ONLY public.onboard_entity_clients
 
 ALTER TABLE ONLY public.onboard_entity_contractors
     ADD CONSTRAINT onboard_entity_contractors_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid) ON DELETE CASCADE;
-
-
---
--- Name: onboard_eor_admins onboard_eor_admins_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.onboard_eor_admins
-    ADD CONSTRAINT onboard_eor_admins_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_eor_admins(ulid) ON DELETE CASCADE;
 
 
 --

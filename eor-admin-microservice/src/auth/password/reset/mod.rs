@@ -2,10 +2,11 @@ use std::str::FromStr;
 
 use argon2::{self, hash_encoded};
 use axum::{
-    extract::{Extension, Form},
+    extract::{Extension, Json},
     http::Uri,
     response::Redirect,
 };
+use common_utils::error::{GlobeliseError, GlobeliseResult};
 use email_address::EmailAddress;
 use lettre::{message::Mailbox, Message, SmtpTransport, Transport};
 use rand::Rng;
@@ -15,10 +16,9 @@ use serde::Deserialize;
 use crate::{
     auth::token::one_time::create_one_time_token,
     env::{
-        GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, PASSWORD_RESET_URL,
-        SMTP_CREDENTIAL,
+        EOR_ADMIN_MICROSERVICE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL,
+        PASSWORD_RESET_URL, SMTP_CREDENTIAL,
     },
-    error::Error,
 };
 
 use crate::auth::{
@@ -32,14 +32,14 @@ use token::{ChangePasswordToken, LostPasswordToken};
 
 /// Send email to the admin with the steps to recover their password.
 pub async fn send_email(
-    Form(request): Form<LostPasswordRequest>,
+    Json(request): Json<LostPasswordRequest>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<(), Error> {
+) -> GlobeliseResult<()> {
     let email_address = request
         .email
         .parse::<EmailAddress>()
-        .map_err(|_| Error::BadRequest("Not a valid email address"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
 
     let database = database.lock().await;
     let (admin_ulid, is_valid_attempt) = match database.admin_id(&email_address).await {
@@ -63,7 +63,7 @@ pub async fn send_email(
         // TODO: Get the name of the person associated to this email address
         .to_display("")
         .parse::<Mailbox>()
-        .map_err(|_| Error::BadRequest("Bad request"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Bad request"))?;
     let email = Message::builder()
         .from(GLOBELISE_SENDER_EMAIL.clone())
         .reply_to(GLOBELISE_SENDER_EMAIL.clone())
@@ -87,14 +87,16 @@ pub async fn send_email(
             </body>
             </html>
             "##,
-            (*GLOBELISE_DOMAIN_URL),
+            (*EOR_ADMIN_MICROSERVICE_DOMAIN_URL),
             one_time_token
         ))
-        .map_err(|_| Error::Internal("Could not create email for changing password".into()))?;
+        .map_err(|_| {
+            GlobeliseError::Internal("Could not create email for changing password".into())
+        })?;
 
     // Open a remote connection to gmail
     let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)
-        .map_err(|_| Error::Internal("Could not connect to SMTP server".into()))?
+        .map_err(|_| GlobeliseError::Internal("Could not connect to SMTP server".into()))?
         .credentials(SMTP_CREDENTIAL.clone())
         .build();
 
@@ -102,7 +104,7 @@ pub async fn send_email(
     if is_valid_attempt && created_valid_token {
         mailer
             .send(&email)
-            .map_err(|e| Error::Internal(e.to_string()))?;
+            .map_err(|e| GlobeliseError::Internal(e.to_string()))?;
     }
 
     Ok(())
@@ -112,7 +114,7 @@ pub async fn send_email(
 pub async fn initiate(
     OneTimeTokenParam(claims): OneTimeTokenParam<OneTimeToken<LostPasswordToken>>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<Redirect, Error> {
+) -> GlobeliseResult<Redirect> {
     let ulid: Ulid = claims.sub.parse().unwrap();
 
     let mut shared_state = shared_state.lock().await;
@@ -127,15 +129,15 @@ pub async fn initiate(
 
 /// Replace the password for a admin with the requested one.
 pub async fn execute(
-    Form(request): Form<ChangePasswordRequest>,
+    Json(request): Json<ChangePasswordRequest>,
     OneTimeTokenBearer(claims): OneTimeTokenBearer<OneTimeToken<ChangePasswordToken>>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<(), Error> {
+) -> GlobeliseResult<()> {
     let ulid: Ulid = claims.sub.parse().unwrap();
 
     if request.new_password != request.confirm_new_password {
-        return Err(Error::BadRequest("Passwords do not match"));
+        return Err(GlobeliseError::BadRequest("Passwords do not match"));
     }
 
     let database = database.lock().await;
@@ -145,7 +147,7 @@ pub async fn execute(
     // Either rely completely on SQL or use some kind of transaction commit.
     let salt: [u8; 16] = rand::thread_rng().gen();
     let hash = hash_encoded(request.new_password.as_bytes(), &salt, &HASH_CONFIG)
-        .map_err(|_| Error::Internal("Failed to hash password".into()))?;
+        .map_err(|_| GlobeliseError::Internal("Failed to hash password".into()))?;
 
     database.update_password(ulid, Some(hash)).await?;
     shared_state.revoke_all_sessions(ulid).await?;

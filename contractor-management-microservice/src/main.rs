@@ -1,19 +1,27 @@
 use std::{sync::Arc, time::Duration};
 
-use axum::{error_handling::HandleErrorLayer, http::StatusCode, routing::get, BoxError, Router};
+use axum::{
+    error_handling::HandleErrorLayer,
+    http::{HeaderValue, Method, StatusCode},
+    routing::{get, post},
+    BoxError, Router,
+};
+use common_utils::token::PublicKeys;
 use database::Database;
 use reqwest::Client;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
-use tower_http::add_extension::AddExtensionLayer;
+use tower_http::{
+    add_extension::AddExtensionLayer,
+    cors::{Any, CorsLayer, Origin},
+};
 
-mod auth;
 mod contracts;
 mod database;
 mod env;
-mod error;
+mod tax_report;
 
-use env::LISTENING_ADDRESS;
+use env::{FRONTEND_URL, LISTENING_ADDRESS};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -26,13 +34,39 @@ async fn main() {
         .build()
         .unwrap();
 
-    let database = Database::new().await;
-    let database = Arc::new(Mutex::new(database));
+    let database = Arc::new(Mutex::new(Database::new().await));
+
+    let public_keys = Arc::new(Mutex::new(PublicKeys::default()));
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
         .route("/users/index", get(contracts::user_index))
         .route("/contractors/index", get(contracts::contractor_index))
+        .route(
+            "/client/contract/index",
+            get(contracts::contract_for_client_index),
+        )
+        .route(
+            "/contractor/contract/index",
+            get(contracts::contract_for_contractor_index),
+        )
+        .route(
+            "/users/tax-report/index",
+            get(tax_report::user_tax_report_index),
+        )
+        // ========== ADMIN PAGES ==========
+        .route(
+            "/eor-admin/tax-report/create",
+            post(tax_report::eor_admin_create_tax_report),
+        )
+        .route(
+            "/eor-admin/tax-report/index",
+            get(tax_report::eor_admin_tax_report_index),
+        )
+        .route(
+            "/eor-admin/contract/index",
+            get(contracts::eor_admin_contract_index),
+        )
         // ========== DEBUG PAGES ==========
         .layer(
             ServiceBuilder::new()
@@ -40,8 +74,25 @@ async fn main() {
                 .load_shed()
                 .concurrency_limit(1024)
                 .timeout(Duration::from_secs(10))
+                .layer(
+                    CorsLayer::new()
+                        .allow_origin(Origin::predicate(|origin: &HeaderValue, _| {
+                            let mut is_valid = origin == *FRONTEND_URL;
+
+                            #[cfg(debug_assertions)]
+                            {
+                                is_valid |= origin.as_bytes().starts_with(b"http://localhost:");
+                            }
+
+                            is_valid
+                        }))
+                        .allow_methods(vec![Method::GET, Method::POST])
+                        .allow_credentials(true)
+                        .allow_headers(Any),
+                )
                 .layer(AddExtensionLayer::new(database))
-                .layer(AddExtensionLayer::new(reqwest_client)),
+                .layer(AddExtensionLayer::new(reqwest_client))
+                .layer(AddExtensionLayer::new(public_keys)),
         );
 
     axum::Server::bind(

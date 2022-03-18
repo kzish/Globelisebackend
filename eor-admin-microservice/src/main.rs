@@ -1,23 +1,27 @@
 use std::{sync::Arc, time::Duration};
 
+use auth::token::KEYS;
 use axum::{
     error_handling::HandleErrorLayer,
-    http::StatusCode,
+    http::{HeaderValue, Method, StatusCode},
     routing::{get, post},
     BoxError, Router,
 };
+use common_utils::token::PublicKeys;
 use database::Database;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
-use tower_http::add_extension::AddExtensionLayer;
+use tower_http::{
+    add_extension::AddExtensionLayer,
+    cors::{Any, CorsLayer, Origin},
+};
 
 mod auth;
 mod database;
 mod env;
-mod error;
 mod onboard;
 
-use env::LISTENING_ADDRESS;
+use env::{FRONTEND_URL, LISTENING_ADDRESS};
 
 #[tokio::main]
 async fn main() {
@@ -26,8 +30,9 @@ async fn main() {
     let shared_state = auth::State::new().await.expect("Could not connect to Dapr");
     let shared_state = Arc::new(Mutex::new(shared_state));
 
-    let database = Database::new().await;
-    let database = Arc::new(Mutex::new(database));
+    let database = Arc::new(Mutex::new(Database::new().await));
+
+    let public_keys = Arc::new(Mutex::new(PublicKeys::default()));
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
@@ -46,7 +51,10 @@ async fn main() {
             "/auth/password/reset/execute",
             post(auth::password::reset::execute),
         )
-        .route("/onboard/admin-details", post(onboard::account_details))
+        .route(
+            "/onboard/admin-details",
+            post(onboard::individual::account_details),
+        )
         .route("/auth/access-token", post(auth::access_token))
         .route("/auth/public-key", get(auth::public_key))
         .layer(
@@ -55,8 +63,26 @@ async fn main() {
                 .load_shed()
                 .concurrency_limit(1024)
                 .timeout(Duration::from_secs(10))
+                .layer(
+                    CorsLayer::new()
+                        .allow_origin(Origin::predicate(|origin: &HeaderValue, _| {
+                            let mut is_valid = origin == *FRONTEND_URL;
+
+                            #[cfg(debug_assertions)]
+                            {
+                                is_valid |= origin.as_bytes().starts_with(b"http://localhost:");
+                            }
+
+                            is_valid
+                        }))
+                        .allow_methods(vec![Method::GET, Method::POST])
+                        .allow_credentials(true)
+                        .allow_headers(Any),
+                )
                 .layer(AddExtensionLayer::new(database))
-                .layer(AddExtensionLayer::new(shared_state)),
+                .layer(AddExtensionLayer::new(shared_state))
+                .layer(AddExtensionLayer::new(KEYS.decoding.clone()))
+                .layer(AddExtensionLayer::new(public_keys)),
         );
 
     axum::Server::bind(

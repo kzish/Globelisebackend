@@ -1,24 +1,21 @@
-use axum::extract::{Extension, Form};
+use axum::extract::{Extension, Json};
+use common_utils::{error::GlobeliseResult, token::Token};
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 
 use crate::{
     auth::{token::AccessToken, user::UserType},
     database::SharedDatabase,
-    error::Error,
 };
 
 pub async fn bank_details(
-    claims: AccessToken,
-    Form(details): Form<BankDetails>,
+    claims: Token<AccessToken>,
+    Json(details): Json<BankDetails>,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<(), Error> {
-    let user_type: UserType = claims.user_type.parse().unwrap();
-    if !matches!(user_type, UserType::Individual | UserType::Entity) {
-        return Err(Error::Forbidden);
-    }
+) -> GlobeliseResult<()> {
+    let user_type = claims.payload.user_type.parse::<UserType>().unwrap();
 
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
     let database = database.lock().await;
     database
         .onboard_bank_details(ulid, user_type, details)
@@ -26,6 +23,7 @@ pub async fn bank_details(
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct BankDetails {
     pub bank_name: String,
     pub account_name: String,

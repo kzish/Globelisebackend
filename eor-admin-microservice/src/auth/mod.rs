@@ -1,7 +1,11 @@
 //! Endpoints for admin authentication and authorization.
 
 use argon2::{self, hash_encoded, verify_encoded, Config};
-use axum::extract::{Extension, Form};
+use axum::extract::{Extension, Json};
+use common_utils::{
+    error::{GlobeliseError, GlobeliseResult},
+    token::{create_token, Token},
+};
 use email_address::EmailAddress;
 use once_cell::sync::Lazy;
 use rand::Rng;
@@ -9,7 +13,7 @@ use rusty_ulid::Ulid;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 
-use crate::{database::SharedDatabase, error::Error};
+use crate::database::SharedDatabase;
 
 pub mod admin;
 pub mod google;
@@ -18,16 +22,18 @@ mod state;
 pub mod token;
 
 use admin::Admin;
-use token::{create_access_token, RefreshToken};
+use token::RefreshToken;
 
 pub use state::{SharedState, State};
 
+use self::token::{AccessToken, KEYS};
+
 /// Creates an account.
 pub async fn signup(
-    Form(request): Form<CreateAccountRequest>,
+    Json(request): Json<CreateAccountRequest>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<String, Error> {
+) -> GlobeliseResult<String> {
     // Credentials should be normalized for maximum compatibility.
     let email: String = request.email.trim().nfc().collect();
     let password: String = request.password.nfc().collect();
@@ -37,19 +43,19 @@ pub async fn signup(
     // in the backend as well.
     let email = email
         .parse::<EmailAddress>()
-        .map_err(|_| Error::BadRequest("Not a valid email address"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
     if password.len() < 8 {
-        return Err(Error::BadRequest(
+        return Err(GlobeliseError::BadRequest(
             "Password must be at least 8 characters long",
         ));
     }
     if password != confirm_password {
-        return Err(Error::BadRequest("Passwords do not match"));
+        return Err(GlobeliseError::BadRequest("Passwords do not match"));
     }
 
     let salt: [u8; 16] = rand::thread_rng().gen();
     let hash = hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG)
-        .map_err(|_| Error::Internal("Failed to hash password".into()))?;
+        .map_err(|_| GlobeliseError::Internal("Failed to hash password".into()))?;
 
     let admin = Admin {
         email,
@@ -67,17 +73,17 @@ pub async fn signup(
 
 /// Logs a admin in.
 pub async fn login(
-    Form(request): Form<LoginRequest>,
+    Json(request): Json<LoginRequest>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
-) -> Result<String, Error> {
+) -> GlobeliseResult<String> {
     // Credentials should be normalized for maximum compatibility.
     let email: String = request.email.trim().nfc().collect();
     let password: String = request.password.nfc().collect();
 
     let email: EmailAddress = email
         .parse()
-        .map_err(|_| Error::BadRequest("Not a valid email address"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
 
     // NOTE: A timing attack can detect registered emails.
     // Mitigating this is not strictly necessary, as attackers can still find out
@@ -97,22 +103,47 @@ pub async fn login(
         }
     }
 
-    Err(Error::Unauthorized("Email login failed"))
+    Err(GlobeliseError::Unauthorized("Email login failed"))
 }
 
 /// Gets a new access token.
 pub async fn access_token(
-    claims: RefreshToken,
+    claims: Token<RefreshToken>,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<String, Error> {
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    Extension(shared_state): Extension<SharedState>,
+) -> GlobeliseResult<String> {
+    let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
+
+    let mut shared_state = shared_state.lock().await;
+    let mut is_session_valid = false;
+    let _ = shared_state.clear_expired_sessions(ulid).await;
+    if let Some(sessions) = shared_state.sessions(ulid).await? {
+        let encoded_claims = jsonwebtoken::encode(
+            &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::EdDSA),
+            &claims,
+            &KEYS.encoding,
+        )?;
+        for (hash, _) in sessions.iter() {
+            if let Ok(true) = verify_encoded(hash, encoded_claims.as_bytes()) {
+                is_session_valid = true;
+                break;
+            }
+        }
+    }
+    if !is_session_valid {
+        return Err(GlobeliseError::Unauthorized("Refresh token rejected"));
+    }
 
     let database = database.lock().await;
     if let Some(Admin { email, .. }) = database.admin(ulid).await? {
-        let access_token = create_access_token(ulid, email)?;
+        let access = AccessToken {
+            ulid: claims.payload.ulid,
+            email: email.to_string(),
+        };
+        let (access_token, _) = create_token(access, &KEYS.encoding)?;
         Ok(access_token)
     } else {
-        Err(Error::Unauthorized("Invalid refresh token"))
+        Err(GlobeliseError::Unauthorized("Invalid refresh token"))
     }
 }
 

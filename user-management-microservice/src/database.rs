@@ -1,5 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
+use common_utils::error::{GlobeliseError, GlobeliseResult};
 use email_address::EmailAddress;
 use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
@@ -16,12 +17,10 @@ use crate::{
     },
 };
 
-use crate::error::Error;
-
-pub type SharedDatabase = Arc<Mutex<Database>>;
-
 /// Convenience wrapper around PostgreSQL.
 pub struct Database(Pool<Postgres>);
+
+pub type SharedDatabase = Arc<Mutex<Database>>;
 
 impl Database {
     /// Connects to PostgreSQL.
@@ -39,16 +38,18 @@ impl Database {
     }
 
     /// Creates and stores a new user.
-    pub async fn create_user(&self, user: User, user_type: UserType) -> Result<Ulid, Error> {
+    pub async fn create_user(&self, user: User, user_type: UserType) -> GlobeliseResult<Ulid> {
         if !user.has_authentication() {
-            return Err(Error::Unauthorized(
+            return Err(GlobeliseError::Unauthorized(
                 "Refused to create user: no authentication method provided",
             ));
         }
 
         // Avoid overwriting an existing user.
         match self.user_id(&user.email, user_type).await {
-            Ok(Some(_)) | Err(Error::WrongUserType) => return Err(Error::UnavailableEmail),
+            Ok(Some(_)) | Err(GlobeliseError::WrongUserType) => {
+                return Err(GlobeliseError::UnavailableEmail)
+            }
             Ok(None) => (),
             Err(e) => return Err(e),
         }
@@ -67,7 +68,7 @@ impl Database {
         .bind(user.outlook)
         .execute(&self.0)
         .await
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(ulid)
     }
@@ -79,7 +80,7 @@ impl Database {
         user_type: UserType,
         // TODO: Create a newtype to ensure only hashed password are inserted
         new_password_hash: Option<String>,
-    ) -> Result<(), Error> {
+    ) -> GlobeliseResult<()> {
         sqlx::query(&format!(
             "UPDATE {} SET password = $1 WHERE ulid = $2",
             user_type.db_auth_name()
@@ -88,7 +89,7 @@ impl Database {
         .bind(ulid_to_sql_uuid(ulid))
         .execute(&self.0)
         .await
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(())
     }
@@ -101,7 +102,7 @@ impl Database {
         &self,
         ulid: Ulid,
         user_type: Option<UserType>,
-    ) -> Result<Option<(User, UserType)>, Error> {
+    ) -> GlobeliseResult<Option<(User, UserType)>> {
         let types_to_check = match user_type {
             Some(t) => vec![t],
             None => UserType::iter().collect(),
@@ -117,13 +118,13 @@ impl Database {
             .bind(ulid_to_sql_uuid(ulid))
             .fetch_optional(&self.0)
             .await
-            .map_err(|e| Error::Database(e.to_string()))?;
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
             if let Some(user) = user {
                 return Ok(Some((
                     User {
                         email: user.get::<String, _>("email").parse().map_err(|_| {
-                            Error::Internal("Invalid email address from database".into())
+                            GlobeliseError::Internal("Invalid email address from database".into())
                         })?,
                         password_hash: user.get("password"),
                         google: user.get("is_google"),
@@ -148,7 +149,7 @@ impl Database {
         m_search_text: Option<String>,
         m_user_type: Option<UserType>,
         m_user_role: Option<Role>,
-    ) -> Result<Vec<UserIndex>, Error> {
+    ) -> GlobeliseResult<Vec<UserIndex>> {
         let page = m_page.unwrap_or(0);
         let per_page = m_per_page.unwrap_or(25);
         let query = create_eor_admin_user_index_query(
@@ -160,11 +161,10 @@ impl Database {
         );
         let result = sqlx::query(&query)
             .fetch_all(&self.0)
-            .await
-            .map_err(|e| Error::Database(e.to_string()))?
+            .await?
             .into_iter()
             .map(UserIndex::from_pg_row)
-            .collect::<Result<Vec<UserIndex>, _>>()?;
+            .collect::<GlobeliseResult<Vec<UserIndex>>>()?;
         Ok(result)
     }
 
@@ -173,7 +173,7 @@ impl Database {
         &self,
         email: &EmailAddress,
         user_type: UserType,
-    ) -> Result<Option<Ulid>, Error> {
+    ) -> GlobeliseResult<Option<Ulid>> {
         let mut ulid = None;
 
         for t in UserType::iter() {
@@ -184,13 +184,13 @@ impl Database {
             .bind(email.as_ref())
             .fetch_optional(&self.0)
             .await
-            .map_err(|e| Error::Database(e.to_string()))?;
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
             if let Some(id) = id {
                 if t == user_type {
                     ulid = Some(ulid_from_sql_uuid(id.get("ulid")));
                 } else {
-                    return Err(Error::WrongUserType);
+                    return Err(GlobeliseError::WrongUserType);
                 }
             }
         }
@@ -202,18 +202,14 @@ impl Database {
     pub async fn onboard_individual_details(
         &self,
         ulid: Ulid,
-        user_type: UserType,
         role: Role,
         details: IndividualDetails,
-    ) -> Result<(), Error> {
-        if !matches!(user_type, UserType::Individual | UserType::EorAdmin) {
-            return Err(Error::Forbidden);
-        }
-        if self.user(ulid, Some(user_type)).await?.is_none() {
-            return Err(Error::Forbidden);
+    ) -> GlobeliseResult<()> {
+        if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
+            return Err(GlobeliseError::Forbidden);
         }
 
-        let target_table = user_type.db_onboard_name(role);
+        let target_table = UserType::Individual.db_onboard_name(role);
         let query = format!(
             "
             INSERT INTO {target_table} 
@@ -241,7 +237,7 @@ impl Database {
             .bind(ulid_to_sql_uuid(ulid))
             .execute(&self.0)
             .await
-            .map_err(|e| Error::Database(e.to_string()))?;
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(())
     }
@@ -249,15 +245,11 @@ impl Database {
     pub async fn onboard_entity_details(
         &self,
         ulid: Ulid,
-        user_type: UserType,
         role: Role,
         details: EntityDetails,
-    ) -> Result<(), Error> {
-        if !matches!(user_type, UserType::Entity) {
-            return Err(Error::Forbidden);
-        }
-        if self.user(ulid, Some(user_type)).await?.is_none() {
-            return Err(Error::Forbidden);
+    ) -> GlobeliseResult<()> {
+        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+            return Err(GlobeliseError::Forbidden);
         }
 
         sqlx::query(&format!(
@@ -270,7 +262,7 @@ impl Database {
             company_name = $1, country = $2, entity_type = $3, registration_number = $4,
             tax_id = $5, company_address = $6, city = $7, postal_code = $8, time_zone = $9,
             logo = $10",
-            user_type.db_onboard_name(role)
+            UserType::Entity.db_onboard_name(role)
         ))
         .bind(details.company_name)
         .bind(details.country)
@@ -285,7 +277,7 @@ impl Database {
         .bind(ulid_to_sql_uuid(ulid))
         .execute(&self.0)
         .await
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(())
     }
@@ -293,18 +285,14 @@ impl Database {
     pub async fn onboard_pic_details(
         &self,
         ulid: Ulid,
-        user_type: UserType,
         role: Role,
         details: PicDetails,
-    ) -> Result<(), Error> {
-        if !matches!(user_type, UserType::Entity) {
-            return Err(Error::Forbidden);
-        }
-        if self.user(ulid, Some(user_type)).await?.is_none() {
-            return Err(Error::Forbidden);
+    ) -> GlobeliseResult<()> {
+        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+            return Err(GlobeliseError::Forbidden);
         }
 
-        let target_table = user_type.db_onboard_name(role);
+        let target_table = UserType::Entity.db_onboard_name(role);
         let query = format!(
             "
             INSERT INTO {target_table}
@@ -325,7 +313,7 @@ impl Database {
             .bind(ulid_to_sql_uuid(ulid))
             .execute(&self.0)
             .await
-            .map_err(|e| Error::Database(e.to_string()))?;
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(())
     }
@@ -335,12 +323,9 @@ impl Database {
         ulid: Ulid,
         user_type: UserType,
         details: BankDetails,
-    ) -> Result<(), Error> {
-        if !matches!(user_type, UserType::Individual | UserType::Entity) {
-            return Err(Error::Forbidden);
-        }
+    ) -> GlobeliseResult<()> {
         if self.user(ulid, Some(user_type)).await?.is_none() {
-            return Err(Error::Forbidden);
+            return Err(GlobeliseError::Forbidden);
         }
 
         let target_table = user_type.db_onboard_name(Role::Contractor);
@@ -359,7 +344,7 @@ impl Database {
             .bind(ulid_to_sql_uuid(ulid))
             .execute(&self.0)
             .await
-            .map_err(|e| Error::Database(e.to_string()))?;
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(())
     }
@@ -500,7 +485,7 @@ impl Database {
         &self,
         email: String,
         details: IndividualDetails,
-    ) -> Result<(), Error> {
+    ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO  prefilled_onboard_individual_contractors
             (email, first_name, last_name, dob, dial_code, phone_number, country, city, address,
@@ -527,7 +512,7 @@ impl Database {
             .bind(email)
             .execute(&self.0)
             .await
-            .map_err(|e| Error::Database(e.to_string()))?;
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(())
     }

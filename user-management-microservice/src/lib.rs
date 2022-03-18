@@ -5,22 +5,28 @@ mod auth;
 mod database;
 mod env;
 mod eor_admin;
-mod error;
 mod onboard;
 
+use common_utils::{
+    error::{GlobeliseError, GlobeliseResult},
+    DaprAppId,
+};
 use derive_builder::Builder;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, StatusCode,
 };
+use serde::{Deserialize, Serialize};
 
 pub use crate::{
-    auth::user::{Role, UserType},
+    auth::{
+        token::AccessToken,
+        user::{Role, UserType},
+    },
     eor_admin::UserIndex,
-    error::Error,
 };
 
-#[derive(Default, Builder, Debug)]
+#[derive(Default, Builder, Debug, Serialize, Deserialize)]
 pub struct GetUserInfoRequest {
     #[builder(setter(strip_option), default)]
     pub page: Option<u64>,
@@ -39,8 +45,9 @@ pub async fn get_users_info(
     base_url: &str,
     access_token: String,
     request: GetUserInfoRequest,
-) -> Result<Vec<UserIndex>, Error> {
+) -> GlobeliseResult<Vec<UserIndex>> {
     let mut query: Vec<(&'static str, String)> = vec![];
+    // TODO: Turn this into a derive_macro
     if let Some(page) = request.page {
         query.push(("page", page.to_string()))
     }
@@ -57,12 +64,12 @@ pub async fn get_users_info(
         query.push(("user_role", user_role.to_string()))
     }
     let response = client
-        .get(format!("{base_url}/users/index"))
+        .get(format!("{base_url}/eor-admin/users/index"))
         .headers({
             let mut headers = HeaderMap::new();
             headers.insert(
                 "dapr-app-id",
-                HeaderValue::from_static("user-management-microservice"),
+                HeaderValue::from_static(DaprAppId::UserManagementMicroservice.as_str()),
             );
             headers
         })
@@ -72,6 +79,9 @@ pub async fn get_users_info(
         .await?;
     match response.status() {
         StatusCode::OK => Ok(response.json().await?),
-        _ => Err(Error::Internal(response.status().to_string())),
+        StatusCode::UNAUTHORIZED => Err(GlobeliseError::Unauthorized(
+            "Not authorised to make the request",
+        )),
+        _ => Err(GlobeliseError::Internal(response.status().to_string())),
     }
 }

@@ -1,7 +1,12 @@
 use std::{collections::HashMap, str::FromStr};
 
-use axum::extract::{Extension, Form, Json, Query};
+use axum::extract::{Extension, Json, Query};
+use common_utils::{
+    error::{GlobeliseError, GlobeliseResult},
+    token::Token,
+};
 use email_address::EmailAddress;
+use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
@@ -9,13 +14,12 @@ use sqlx::{postgres::PgRow, Row};
 use time::{format_description, OffsetDateTime};
 
 use crate::{
-    auth::{
-        token::AdminAccessToken,
-        user::{Role, UserType},
-    },
+    auth::user::{Role, UserType},
     database::{ulid_from_sql_uuid, SharedDatabase},
-    env::{GLOBELISE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL},
-    error::Error,
+    env::{
+        GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
+        USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
+    },
 };
 
 /// Stores information associated with a user id.
@@ -30,7 +34,7 @@ pub struct UserIndex {
 }
 
 impl UserIndex {
-    pub fn from_pg_row(row: PgRow) -> Result<Self, Error> {
+    pub fn from_pg_row(row: PgRow) -> GlobeliseResult<Self> {
         let ulid = ulid_from_sql_uuid(row.try_get("ulid")?);
         let name = row.try_get("name")?;
         let role_str: String = row.try_get("user_role")?;
@@ -54,31 +58,31 @@ impl UserIndex {
 
 pub async fn user_index(
     // Only for validation
-    _: AdminAccessToken,
+    _: Token<AdminAccessToken>,
     Query(query): Query<HashMap<String, String>>,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<Json<Vec<UserIndex>>, Error> {
+) -> GlobeliseResult<Json<Vec<UserIndex>>> {
     let page = query
         .get("page")
         .map(|v| v.parse::<i64>())
         .transpose()
-        .map_err(|_| Error::BadRequest("Invalid page param passed"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Invalid page param passed"))?;
     let per_page = query
         .get("per_page")
         .map(|v| v.parse::<i64>())
         .transpose()
-        .map_err(|_| Error::BadRequest("Invalid per_page param passed"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Invalid per_page param passed"))?;
     let search_text = query.get("search_text").map(|v| v.to_owned());
     let user_type = query
         .get("user_type")
         .map(|r| UserType::from_str(r))
         .transpose()
-        .map_err(|_| Error::BadRequest("Invalid user_type param passed"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Invalid user_type param passed"))?;
     let user_role = query
         .get("user_role")
         .map(|r| Role::from_str(r))
         .transpose()
-        .map_err(|_| Error::BadRequest("Invalid user_role param passed"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Invalid user_role param passed"))?;
     let database = database.lock().await;
     let result = database
         .user_index(page, per_page, search_text, user_type, user_role)
@@ -93,14 +97,14 @@ pub struct AddUserRequest {
 
 pub async fn add_individual_contractor(
     // Only for validation
-    _: AdminAccessToken,
-    Form(request): Form<AddUserRequest>,
+    _: Token<AdminAccessToken>,
+    Json(request): Json<AddUserRequest>,
     Extension(database): Extension<SharedDatabase>,
-) -> Result<(), Error> {
+) -> GlobeliseResult<()> {
     let email_address: EmailAddress = request
         .email
         .parse()
-        .map_err(|_| Error::BadRequest("Not a valid email address"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
 
     let database = database.lock().await;
     if (database
@@ -108,14 +112,14 @@ pub async fn add_individual_contractor(
         .await?)
         .is_some()
     {
-        return Err(Error::UnavailableEmail);
+        return Err(GlobeliseError::UnavailableEmail);
     };
 
     let receiver_email = email_address
         // TODO: Get the name of the person associated to this email address
         .to_display("")
         .parse()
-        .map_err(|_| Error::BadRequest("Bad request"))?;
+        .map_err(|_| GlobeliseError::BadRequest("Bad request"))?;
     let email = Message::builder()
         .from(GLOBELISE_SENDER_EMAIL.clone())
         // TODO: Remove this because this is supposed to be a no-reply email?
@@ -139,20 +143,22 @@ pub async fn add_individual_contractor(
             </body>
             </html>
             "##,
-            (*GLOBELISE_DOMAIN_URL),
+            (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
         ))
-        .map_err(|_| Error::Internal("Could not create email for changing password".into()))?;
+        .map_err(|_| {
+            GlobeliseError::Internal("Could not create email for changing password".into())
+        })?;
 
     // Open a remote connection to gmail
     let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)
-        .map_err(|_| Error::Internal("Could not connect to SMTP server".into()))?
+        .map_err(|_| GlobeliseError::Internal("Could not connect to SMTP server".into()))?
         .credentials(SMTP_CREDENTIAL.clone())
         .build();
 
     // Send the email
     mailer
         .send(&email)
-        .map_err(|e| Error::Internal(e.to_string()))?;
+        .map_err(|e| GlobeliseError::Internal(e.to_string()))?;
 
     Ok(())
 }
