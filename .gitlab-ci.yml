@@ -8,5 +8,5 @@ stages:
 test:
   stage: test
   trigger:
-    include:
-      - local: .gitlab/ci/test.yml
+    include: .gitlab/ci/test.yml
+    strategy: depend
