@@ -1,0 +1,88 @@
+image: rust:latest
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
+
+stages:
+  - prepare
+  - test
+
+variables:
+  CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
+
+.default-cache: 
+  paths:
+    - .cargo/registry/index/
+    - .cargo/registry/cache/
+    - .cargo/git/db/
+    - target/
+
+.cargo-install-cache:
+  paths:
+    - .cargo/bin/
+    - .cargo/.crates.toml
+    - .cargo/.crates2.json
+
+default:
+  cache:
+    paths:
+      - !reference [.default-cache, paths]
+      - !reference [.cargo-install-cache, paths]
+    policy: pull
+  before_script:
+    - rustup component add rustfmt
+
+build:
+  stage: prepare
+  extends: default
+  cache:
+    paths:
+      - !reference [.default-cache, paths]
+    policy: pull-push
+  script:
+    - cargo build
+
+install-tools:
+  stage: prepare
+  cache:
+    paths:
+      - !reference [.default-cache, paths]
+      - !reference [.cargo-install-cache, paths]
+    policy: pull-push
+  script:
+    - cargo install cargo-nextest
+    - cargo install cargo-tarpaulin
+    - cargo install cargo-deny
+
+test:
+  stage: test
+  script:
+    - cargo nextest run --no-fail-fast
+
+coverage:
+  stage: test
+  cache:
+    paths:
+      - !reference [.default-cache, paths]
+    policy: pull-push
+  script:
+    - cargo tarpaulin --ignore-tests --skip-clean --target-dir target/coverage/
+  coverage: '/^\d+.\d+% coverage/'
+
+lint:
+  stage: test
+  script:
+    - rustup component add clippy
+    - cargo clippy -- -D warnings
+    
+format:
+  stage: test
+  script:
+    - cargo fmt --check
+
+audit:
+  stage: test
+  script:
+    - cargo deny check
