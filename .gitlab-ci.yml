@@ -13,4 +13,5 @@ include: .gitlab/ci/test.yml
 build:
   stage: build
   script:
+    - cargo clean
     - cargo build

@@ -34,8 +34,17 @@ test:
 
 coverage:
   stage: test
+  cache:
+    paths:
+      - .cargo/registry/index/
+      - .cargo/registry/cache/
+      - .cargo/git/db/
+      - target-coverage/
+      - .cargo/bin/
+      - .cargo/.crates.toml
+      - .cargo/.crates2.json
   script:
-    - cargo tarpaulin --ignore-tests --skip-clean --target-dir target/coverage/
+    - cargo tarpaulin --ignore-tests --skip-clean --target-dir target-coverage/
   coverage: '/^\d+.\d+% coverage/'
 
 lint:
