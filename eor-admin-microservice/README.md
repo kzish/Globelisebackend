@@ -30,9 +30,9 @@ See [API](API.md).
   - `GLOBELISE_SMTP_URL`: SMTP server URL
   - `FRONTEND_URL`: URL of frontend
   - `PASSWORD_RESET_URL`: URL of frontend password reset page
-  - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for user management microservice
-  - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for contractor management microservice
-  - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for eor admin microservice
+  - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the Dapr sidecar for user management microservice
+  - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the Dapr sidecar for contractor management microservice
+  - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: URL of the Dapr sidecar for EOR admin microservice
 
 ## Build
 

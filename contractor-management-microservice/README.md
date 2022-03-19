@@ -14,6 +14,6 @@ Microservice for the management of contractors
   - `DATABASE_URL`: URL for connecting to the PostgreSQL database
     - e.g. `postgres://postgres:<password>@localhost/globelise_eor_admin_management`
   - `FRONTEND_URL`: URL of frontend
-  - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for user management microservice
-  - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for contractor management microservice
-  - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for eor admin microservice
+  - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the Dapr sidecar for user management microservice
+  - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the Dapr sidecar for contractor management microservice
+  - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: URL of the Dapr sidecar for EOR admin microservice
