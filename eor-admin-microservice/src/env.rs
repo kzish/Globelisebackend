@@ -25,7 +25,7 @@ pub static FRONTEND_URL: Lazy<HeaderValue> = Lazy::new(|| {
 
 pub static GLOBELISE_SENDER_EMAIL: Lazy<Mailbox> = Lazy::new(|| {
     std::env::var("GLOBELISE_SENDER_EMAIL")
-        .expect("GLOBELISE_SMTP_USERNAME not set")
+        .expect("GLOBELISE_SENDER_EMAIL not set")
         .parse()
         .expect("GLOBELISE_SENDER_EMAIL not set properly")
 });
