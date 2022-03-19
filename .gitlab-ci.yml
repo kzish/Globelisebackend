@@ -1,0 +1,16 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
+
+stages:
+  - build
+  - install-test-tools
+  - test
+
+include: .gitlab/ci/test.yml
+
+build:
+  stage: build
+  script:
+    - cargo build
