@@ -19,7 +19,7 @@ See [API](API.md).
     ```
 - Environment variables:
   - `LISTENING_ADDRESS`: IP address and port that the server will listen on
-    - e.g. `localhost:3000`
+    - e.g. `localhost:4000`
     - All occurences of `localhost` will be replaced by `127.0.0.1`
   - `DATABASE_URL`: URL for connecting to the PostgreSQL database
     - e.g. `postgres://postgres:<password>@localhost/globelise_user_management`
@@ -45,7 +45,7 @@ cargo build
 ## Run
 
 ```
-dapr run --app-id user-management-microservice --app-port <app port> --dapr-http-port <dapr http port> --components-path ./components ../target/debug/user-management-microservice
+dapr run --app-id user-management-microservice --app-port 4000 --dapr-http-port 3990 --components-path ./components ../target/debug/user-management-microservice
 ```
 
 If it is not starting, you may have to run Dapr using `sudo` for it to work properly.

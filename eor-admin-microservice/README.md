@@ -19,7 +19,7 @@ See [API](API.md).
   ```
 - Environment variables:
   - `LISTENING_ADDRESS`: IP address and port that the server will listen on
-    - e.g. `localhost:3002`
+    - e.g. `localhost:4002`
     - All occurences of `localhost` will be replaced by `127.0.0.1`
   - `DATABASE_URL`: URL for connecting to the PostgreSQL database
     - e.g. `postgres://postgres:<password>@localhost/globelise_eor_admin_management`
@@ -45,7 +45,7 @@ cargo build
 Inside the project's root directory, run the following command:
 
 ```
-dapr run --app-id eor-admin-microservice --app-port 3002 --dapr-http-port 3502 --components-path ./components target/debug/eor-admin-microservice
+dapr run --app-id eor-admin-microservice --app-port 4002 --dapr-http-port 3992 --components-path ./components target/debug/eor-admin-microservice
 ```
 
 If it is not starting, you may have to run Dapr using `sudo` for it to work properly.
