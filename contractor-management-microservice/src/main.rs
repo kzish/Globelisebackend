@@ -6,7 +6,6 @@ use axum::{
     routing::{get, post},
     BoxError, Router,
 };
-use common_utils::token::PublicKeys;
 use database::Database;
 use reqwest::Client;
 use tokio::sync::Mutex;
@@ -35,8 +34,6 @@ async fn main() {
         .unwrap();
 
     let database = Arc::new(Mutex::new(Database::new().await));
-
-    let public_keys = Arc::new(Mutex::new(PublicKeys::default()));
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
@@ -91,8 +88,7 @@ async fn main() {
                         .allow_headers(Any),
                 )
                 .layer(AddExtensionLayer::new(database))
-                .layer(AddExtensionLayer::new(reqwest_client))
-                .layer(AddExtensionLayer::new(public_keys)),
+                .layer(AddExtensionLayer::new(reqwest_client)),
         );
 
     axum::Server::bind(

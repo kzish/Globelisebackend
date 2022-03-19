@@ -6,7 +6,6 @@ use axum::{
     routing::{get, post},
     BoxError, Router,
 };
-use common_utils::token::PublicKeys;
 use database::Database;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
@@ -21,7 +20,6 @@ mod env;
 mod eor_admin;
 mod onboard;
 
-use crate::auth::token::KEYS;
 use env::{FRONTEND_URL, LISTENING_ADDRESS};
 
 #[tokio::main]
@@ -32,8 +30,6 @@ async fn main() {
     let shared_state = Arc::new(Mutex::new(shared_state));
 
     let database = Arc::new(Mutex::new(Database::new().await));
-
-    let public_keys = Arc::new(Mutex::new(PublicKeys::default()));
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
@@ -102,9 +98,7 @@ async fn main() {
                         .allow_headers(Any),
                 )
                 .layer(AddExtensionLayer::new(database))
-                .layer(AddExtensionLayer::new(shared_state))
-                .layer(AddExtensionLayer::new(KEYS.decoding.clone()))
-                .layer(AddExtensionLayer::new(public_keys)),
+                .layer(AddExtensionLayer::new(shared_state)),
         );
 
     axum::Server::bind(
