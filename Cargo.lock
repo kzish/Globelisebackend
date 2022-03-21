@@ -502,15 +502,12 @@ name = "common-utils"
 version = "0.1.0"
 dependencies = [
  "axum",
- "email_address",
  "http-cache-reqwest",
  "image",
  "jsonwebtoken",
  "once_cell",
  "reqwest",
  "reqwest-middleware",
- "rust-argon2",
- "rusty_ulid",
  "serde",
  "sqlx",
  "strum",
