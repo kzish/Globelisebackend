@@ -150,7 +150,7 @@ CREATE TABLE public.tax_report (
     begin_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     end_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     country text NOT NULL,
-    tax_report_file bytea,
+    tax_report_file bytea NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
