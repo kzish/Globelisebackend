@@ -81,10 +81,11 @@ impl Database {
                 contractor_index
             WHERE
                 client_ulid = $1 AND
-                ($2 IS NULL OR (name ~* $2))
-            LIMIT $2 OFFSET $3",
+                ($2 IS NULL OR (contractor_name ~* $2))
+            LIMIT $3 OFFSET $4",
         )
         .bind(ulid_to_sql_uuid(client_ulid))
+        .bind(query.search_text)
         .bind(query.per_page)
         .bind((query.page - 1) * query.per_page)
         .fetch_all(&self.0)
