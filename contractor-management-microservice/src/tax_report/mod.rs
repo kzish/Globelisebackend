@@ -78,17 +78,13 @@ pub struct TaxReportIndex {
 
 impl TaxReportIndex {
     pub fn from_pg_row(row: PgRow) -> GlobeliseResult<Self> {
-        Ok(Self {
-            ulid: row.try_get::<String, _>("ulid")?.parse::<Ulid>()?,
-            client_ulid: row.try_get::<String, _>("client_ulid")?.parse::<Ulid>()?,
-            client_name: row.try_get::<String, _>("client_name")?,
-            contractor_ulid: row
-                .try_get::<String, _>("contractor_ulid")?
-                .parse::<Ulid>()?,
-            contractor_name: row.try_get::<String, _>("contractor_name")?,
-            tax_interval: row
-                .try_get::<String, _>("tax_interval")?
-                .parse::<TaxInterval>()?,
+        Ok(TaxReportIndex {
+            ulid: row.try_get::<String, _>("ulid")?.parse()?,
+            client_ulid: row.try_get::<String, _>("client_ulid")?.parse()?,
+            client_name: row.try_get::<String, _>("client_name")?.parse()?,
+            contractor_ulid: row.try_get::<String, _>("contractor_ulid")?.parse()?,
+            contractor_name: row.try_get::<String, _>("contractor_name")?.parse()?,
+            tax_interval: row.try_get::<String, _>("tax_interval")?.parse()?,
         })
     }
 }
