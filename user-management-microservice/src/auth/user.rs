@@ -38,13 +38,8 @@ impl UserType {
         }
     }
 
-    pub fn db_onboard_name(&self, role: Role) -> &'static str {
-        match (self, role) {
-            (UserType::Individual, Role::Client) => "onboard_individual_clients",
-            (UserType::Individual, Role::Contractor) => "onboard_individual_contractors",
-            (UserType::Entity, Role::Client) => "onboard_entity_clients",
-            (UserType::Entity, Role::Contractor) => "onboard_entity_contractors",
-        }
+    pub fn db_onboard_details_prefix(&self, role: Role) -> String {
+        UserTypeAndRole::from((*self, role)).to_string() + "s"
     }
 }
 
@@ -57,4 +52,25 @@ impl UserType {
 pub enum Role {
     Client,
     Contractor,
+}
+
+/// Possible user type and role combinations.
+#[derive(Debug, Display)]
+#[strum(serialize_all = "snake_case")]
+enum UserTypeAndRole {
+    IndividualClient,
+    IndividualContractor,
+    EntityClient,
+    EntityContractor,
+}
+
+impl From<(UserType, Role)> for UserTypeAndRole {
+    fn from(value: (UserType, Role)) -> Self {
+        match value {
+            (UserType::Individual, Role::Client) => UserTypeAndRole::IndividualClient,
+            (UserType::Individual, Role::Contractor) => UserTypeAndRole::IndividualContractor,
+            (UserType::Entity, Role::Client) => UserTypeAndRole::EntityClient,
+            (UserType::Entity, Role::Contractor) => UserTypeAndRole::EntityContractor,
+        }
+    }
 }

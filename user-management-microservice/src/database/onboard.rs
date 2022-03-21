@@ -23,7 +23,7 @@ impl Database {
             return Err(GlobeliseError::Forbidden);
         }
 
-        let target_table = UserType::Individual.db_onboard_name(role);
+        let target_table = UserType::Individual.db_onboard_details_prefix(role) + "_account_details";
         let query = format!(
             "
             INSERT INTO {target_table} 
@@ -66,17 +66,17 @@ impl Database {
             return Err(GlobeliseError::Forbidden);
         }
 
+        let target_table = UserType::Entity.db_onboard_details_prefix(role) + "_account_details";
         sqlx::query(&format!(
             "
-            INSERT INTO {}
+            INSERT INTO {target_table}
             (ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
             city, postal_code, time_zone, logo)
             VALUES ($11, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT(ulid) DO UPDATE SET 
             company_name = $1, country = $2, entity_type = $3, registration_number = $4,
             tax_id = $5, company_address = $6, city = $7, postal_code = $8, time_zone = $9,
-            logo = $10",
-            UserType::Entity.db_onboard_name(role)
+            logo = $10"
         ))
         .bind(details.company_name)
         .bind(details.country)
@@ -106,7 +106,7 @@ impl Database {
             return Err(GlobeliseError::Forbidden);
         }
 
-        let target_table = UserType::Entity.db_onboard_name(role);
+        let target_table = UserType::Entity.db_onboard_details_prefix(role) + "_pic_details";
         let query = format!(
             "
             INSERT INTO {target_table}
@@ -142,7 +142,7 @@ impl Database {
             return Err(GlobeliseError::Forbidden);
         }
 
-        let target_table = user_type.db_onboard_name(Role::Contractor);
+        let target_table = user_type.db_onboard_details_prefix(Role::Contractor) + "_bank_details";
         let query = format!(
             "
             INSERT INTO {target_table}
