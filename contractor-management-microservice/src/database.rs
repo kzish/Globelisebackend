@@ -188,19 +188,19 @@ impl Database {
             Role::Client => None,
             Role::Contractor => Some(ulid_to_sql_uuid(*ulid)),
         };
-        let index = sqlx::query(&format!(
+        let index = sqlx::query(
             "
             SELECT
-                id, client_ulid, client_name, contractor_ulid, contractor_name,
+                ulid, client_ulid, client_name, contractor_ulid, contractor_name,
                 contract_name, tax_interval, tax_name, country, tax_report_file
             FROM
-                tax_report_full
+                tax_report_index
             WHERE
                 ($1 IS NULL OR client_ulid = $1) AND
                 ($2 IS NULL OR contractor_ulid = $2) AND
                 ($3 IS NULL OR (client_name ~* $3 OR contractor_name ~* $3))
-            LIMIT $4 OFFSET $5"
-        ))
+            LIMIT $4 OFFSET $5",
+        )
         .bind(client_ulid)
         .bind(contractor_ulid)
         .bind(query.search_text)
