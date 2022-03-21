@@ -226,7 +226,7 @@ LIMIT $2 OFFSET $3"##,
         .bind(query.begin_period)
         .bind(query.end_period)
         .bind(query.country)
-        .bind(query.tax_report_file.map(|b| b.as_ref().to_owned()))
+        .bind(query.tax_report_file)
         .execute(&self.0)
         .await?;
 

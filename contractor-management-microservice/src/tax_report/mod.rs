@@ -3,7 +3,7 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::GlobeliseResult,
     token::Token,
 };
@@ -78,17 +78,13 @@ pub struct TaxReportIndex {
 
 impl TaxReportIndex {
     pub fn from_pg_row(row: PgRow) -> GlobeliseResult<Self> {
-        Ok(Self {
-            ulid: row.try_get::<String, _>("ulid")?.parse::<Ulid>()?,
-            client_ulid: row.try_get::<String, _>("client_ulid")?.parse::<Ulid>()?,
-            client_name: row.try_get::<String, _>("client_name")?,
-            contractor_ulid: row
-                .try_get::<String, _>("contractor_ulid")?
-                .parse::<Ulid>()?,
-            contractor_name: row.try_get::<String, _>("contractor_name")?,
-            tax_interval: row
-                .try_get::<String, _>("tax_interval")?
-                .parse::<TaxInterval>()?,
+        Ok(TaxReportIndex {
+            ulid: row.try_get::<String, _>("ulid")?.parse()?,
+            client_ulid: row.try_get::<String, _>("client_ulid")?.parse()?,
+            client_name: row.try_get::<String, _>("client_name")?.parse()?,
+            contractor_ulid: row.try_get::<String, _>("contractor_ulid")?.parse()?,
+            contractor_name: row.try_get::<String, _>("contractor_name")?.parse()?,
+            tax_interval: row.try_get::<String, _>("tax_interval")?.parse()?,
         })
     }
 }
@@ -129,7 +125,6 @@ pub struct CreateTaxReportIndex {
     #[serde_as(as = "TryFromInto<DateWrapper>")]
     pub end_period: sqlx::types::time::Date,
     pub country: String,
-    #[serde_as(as = "Option<Base64>")]
-    #[serde(default)]
-    pub tax_report_file: Option<ImageData>,
+    #[serde_as(as = "Base64")]
+    pub tax_report_file: Vec<u8>,
 }
