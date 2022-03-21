@@ -50,15 +50,15 @@ impl Database {
             Role::Contractor => Some(ulid_to_sql_uuid(*ulid)),
         };
 
-        let result = sqlx::query_scalar(&format!(
+        let result = sqlx::query_scalar(
             "SELECT
                 COUNT(*)
             FROM
                 contracts
             WHERE
                 ($1 IS NULL OR (client_ulid = $1)) AND
-                ($2 IS NULL OR (contractor_ulid = $2))"
-        ))
+                ($2 IS NULL OR (contractor_ulid = $2))",
+        )
         .bind(client_ulid)
         .bind(contractor_ulid)
         .fetch_one(&self.0)
@@ -73,7 +73,7 @@ impl Database {
         client_ulid: Ulid,
         query: PaginationQuery,
     ) -> GlobeliseResult<Vec<ContractorIndex>> {
-        let index = sqlx::query_as(&format!(
+        let index = sqlx::query_as(
             "SELECT
                 contractor_name, contract_name, contract_status,
                 job_title, seniority
@@ -82,8 +82,8 @@ impl Database {
             WHERE
                 client_ulid = $1 AND
                 ($2 IS NULL OR (name ~* $2))
-            LIMIT $2 OFFSET $3"
-        ))
+            LIMIT $2 OFFSET $3",
+        )
         .bind(ulid_to_sql_uuid(client_ulid))
         .bind(query.per_page)
         .bind((query.page - 1) * query.per_page)
@@ -99,7 +99,7 @@ impl Database {
         contractor_ulid: Ulid,
         query: PaginationQuery,
     ) -> GlobeliseResult<Vec<ContractForContractorIndex>> {
-        let index = sqlx::query_as(&format!(
+        let index = sqlx::query_as(
             "
             SELECT
                 contractor_ulid, contract_name, job_title, seniority,
@@ -109,8 +109,8 @@ impl Database {
             WHERE
                 contractor_ulid = $1 AND
                 ($2 IS NULL OR (contract_name ~* $2 OR client_name ~* $2))
-            LIMIT $3 OFFSET $4"
-        ))
+            LIMIT $3 OFFSET $4",
+        )
         .bind(ulid_to_sql_uuid(contractor_ulid))
         .bind(query.search_text)
         .bind(query.per_page)
@@ -127,7 +127,7 @@ impl Database {
         client_ulid: Ulid,
         query: PaginationQuery,
     ) -> GlobeliseResult<Vec<ContractForClientIndex>> {
-        let index = sqlx::query_as(&format!(
+        let index = sqlx::query_as(
             "
             SELECT
                 client_ulid, contract_name, job_title, seniority,
@@ -137,8 +137,8 @@ impl Database {
             WHERE
                 client_ulid = $1 AND
                 ($2 IS NULL OR (contract_name ~* $2 OR client_name ~* $2))
-            LIMIT $3 OFFSET $4"
-        ))
+            LIMIT $3 OFFSET $4",
+        )
         .bind(ulid_to_sql_uuid(client_ulid))
         .bind(query.search_text)
         .bind(query.per_page)
@@ -154,7 +154,7 @@ impl Database {
         &self,
         query: PaginationQuery,
     ) -> GlobeliseResult<Vec<ContractForClientIndex>> {
-        let index = sqlx::query_as(&format!(
+        let index = sqlx::query_as(
             "
             SELECT
                 contract_name, job_title, seniority,
@@ -163,8 +163,8 @@ impl Database {
                 contract_index_for_eor_admin
             WHERE
                 ($1 IS NULL OR (contract_name ~* $1 OR client_name ~* $1))
-            LIMIT $2 OFFSET $3"
-        ))
+            LIMIT $2 OFFSET $3",
+        )
         .bind(query.search_text)
         .bind(query.per_page)
         .bind((query.page - 1) * query.per_page)
