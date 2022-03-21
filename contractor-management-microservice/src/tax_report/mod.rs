@@ -3,7 +3,7 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::GlobeliseResult,
     token::Token,
 };
@@ -125,7 +125,6 @@ pub struct CreateTaxReportIndex {
     #[serde_as(as = "TryFromInto<DateWrapper>")]
     pub end_period: sqlx::types::time::Date,
     pub country: String,
-    #[serde_as(as = "Option<Base64>")]
-    #[serde(default)]
-    pub tax_report_file: Option<ImageData>,
+    #[serde_as(as = "Base64")]
+    pub tax_report_file: Vec<u8>,
 }
