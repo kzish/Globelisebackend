@@ -23,7 +23,8 @@ impl Database {
             return Err(GlobeliseError::Forbidden);
         }
 
-        let target_table = UserType::Individual.db_onboard_details_prefix(role) + "_account_details";
+        let target_table =
+            UserType::Individual.db_onboard_details_prefix(role) + "_account_details";
         let query = format!(
             "
             INSERT INTO {target_table} 
