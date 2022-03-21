@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use common_utils::error::{GlobeliseError, GlobeliseResult};
+use common_utils::error::GlobeliseResult;
 use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
@@ -41,17 +41,29 @@ impl Database {
         ulid: &Ulid,
         role: &Role,
     ) -> GlobeliseResult<i64> {
-        let result = sqlx::query_scalar(&format!(
-            "SELECT COUNT(*) FROM contracts WHERE {} = $1",
-            match role {
-                Role::Client => "client_ulid",
-                Role::Contractor => "contractor_ulid",
-            }
-        ))
-        .bind(ulid_to_sql_uuid(*ulid))
+        let client_ulid = match role {
+            Role::Client => Some(ulid_to_sql_uuid(*ulid)),
+            Role::Contractor => None,
+        };
+        let contractor_ulid = match role {
+            Role::Client => None,
+            Role::Contractor => Some(ulid_to_sql_uuid(*ulid)),
+        };
+
+        let result = sqlx::query_scalar(
+            "SELECT
+                COUNT(*)
+            FROM
+                contracts
+            WHERE
+                ($1 IS NULL OR (client_ulid = $1)) AND
+                ($2 IS NULL OR (contractor_ulid = $2))",
+        )
+        .bind(client_ulid)
+        .bind(contractor_ulid)
         .fetch_one(&self.0)
-        .await
-        .map_err(|e| GlobeliseError::Internal(e.to_string()))?;
+        .await?;
+
         Ok(result)
     }
 
@@ -61,14 +73,19 @@ impl Database {
         client_ulid: Ulid,
         query: PaginationQuery,
     ) -> GlobeliseResult<Vec<ContractorIndex>> {
-        let index = sqlx::query_as(&format!(
-            "SELECT * FROM contractor_index WHERE client_ulid = $1 {} LIMIT $2 OFFSET $3",
-            match query.search_text {
-                Some(search_text) => format!("AND name ~* '{}'", search_text),
-                None => "".into(),
-            }
-        ))
+        let index = sqlx::query_as(
+            "SELECT
+                contractor_name, contract_name, contract_status,
+                job_title, seniority
+            FROM
+                contractor_index
+            WHERE
+                client_ulid = $1 AND
+                ($2 IS NULL OR (contractor_name ~* $2))
+            LIMIT $3 OFFSET $4",
+        )
         .bind(ulid_to_sql_uuid(client_ulid))
+        .bind(query.search_text)
         .bind(query.per_page)
         .bind((query.page - 1) * query.per_page)
         .fetch_all(&self.0)
@@ -83,24 +100,20 @@ impl Database {
         contractor_ulid: Ulid,
         query: PaginationQuery,
     ) -> GlobeliseResult<Vec<ContractForContractorIndex>> {
-        let index = sqlx::query_as(&format!(
-            r##"
-SELECT
-    contractor_ulid, contract_name, job_title, seniority, 
-    client_name, contract_status, contract_amount, end_at 
-FROM 
-    contract_index_for_contractor 
-WHERE 
-    contractor_ulid = $1 {}
-LIMIT $2 OFFSET $3"##,
-            match query.search_text {
-                Some(search_text) => format!(
-                    "AND (contract_name ~* '{search_text}' OR client_name ~* '{search_text}')",
-                ),
-                None => "".into(),
-            }
-        ))
+        let index = sqlx::query_as(
+            "
+            SELECT
+                contractor_ulid, contract_name, job_title, seniority,
+                client_name, contract_status, contract_amount, end_at
+            FROM
+                contract_index_for_contractor
+            WHERE
+                contractor_ulid = $1 AND
+                ($2 IS NULL OR (contract_name ~* $2 OR client_name ~* $2))
+            LIMIT $3 OFFSET $4",
+        )
         .bind(ulid_to_sql_uuid(contractor_ulid))
+        .bind(query.search_text)
         .bind(query.per_page)
         .bind((query.page - 1) * query.per_page)
         .fetch_all(&self.0)
@@ -115,24 +128,20 @@ LIMIT $2 OFFSET $3"##,
         client_ulid: Ulid,
         query: PaginationQuery,
     ) -> GlobeliseResult<Vec<ContractForClientIndex>> {
-        let index = sqlx::query_as(&format!(
-            r##"
-    SELECT
-        client_ulid, contract_name, job_title, seniority, 
-        contractor_name, contract_status, contract_amount, end_at 
-    FROM 
-        contract_index_for_client 
-    WHERE 
-        client_ulid = $1 {}
-    LIMIT $2 OFFSET $3"##,
-            match query.search_text {
-                Some(search_text) => format!(
-                    "AND (contract_name ~* '{search_text}' OR contractor_name ~* '{search_text}')",
-                ),
-                None => "".into(),
-            }
-        ))
+        let index = sqlx::query_as(
+            "
+            SELECT
+                client_ulid, contract_name, job_title, seniority,
+                contractor_name, contract_status, contract_amount, end_at
+            FROM
+                contract_index_for_client
+            WHERE
+                client_ulid = $1 AND
+                ($2 IS NULL OR (contract_name ~* $2 OR client_name ~* $2))
+            LIMIT $3 OFFSET $4",
+        )
         .bind(ulid_to_sql_uuid(client_ulid))
+        .bind(query.search_text)
         .bind(query.per_page)
         .bind((query.page - 1) * query.per_page)
         .fetch_all(&self.0)
@@ -146,23 +155,18 @@ LIMIT $2 OFFSET $3"##,
         &self,
         query: PaginationQuery,
     ) -> GlobeliseResult<Vec<ContractForClientIndex>> {
-        let index = sqlx::query_as(&format!(
-            r##"
-        SELECT
-            contract_name, job_title, seniority, 
-            client_name, contract_status, contract_amount, end_at 
-        FROM 
-        contract_index_for_eor_admin 
-        WHERE 
-            1 = 1 {}
-        LIMIT $1 OFFSET $2"##,
-            match query.search_text {
-                Some(search_text) => format!(
-                    "AND (contract_name ~* '{search_text}' OR client_name ~* '{search_text}')",
-                ),
-                None => "".into(),
-            }
-        ))
+        let index = sqlx::query_as(
+            "
+            SELECT
+                contract_name, job_title, seniority,
+                client_name, contract_status, contract_amount, end_at
+            FROM
+                contract_index_for_eor_admin
+            WHERE
+                ($1 IS NULL OR (contract_name ~* $1 OR client_name ~* $1))
+            LIMIT $2 OFFSET $3",
+        )
+        .bind(query.search_text)
         .bind(query.per_page)
         .bind((query.page - 1) * query.per_page)
         .fetch_all(&self.0)
@@ -177,26 +181,30 @@ LIMIT $2 OFFSET $3"##,
         ulid: &Ulid,
         query: TaxReportIndexQuery,
     ) -> GlobeliseResult<Vec<TaxReportIndex>> {
-        let index = sqlx::query(&format!(
-            r##"
-            SELECT 
-                id, client_ulid, client_name, contractor_ulid, contractor_name, 
-                contract_name, tax_interval, tax_name, country, tax_report_file 
-            FROM 
-                tax_report_full WHERE 1 = 1 AND {} = $1 {}
-            LIMIT $2 OFFSET $3"##,
-            match query.role {
-                Role::Client => "client_ulid",
-                Role::Contractor => "contractor_ulid",
-            },
-            match query.search_text {
-                Some(search_text) => format!(
-                    "AND (client_name ~* '{search_text}' OR contractor_name ~* '{search_text}')"
-                ),
-                None => "".to_string(),
-            }
-        ))
-        .bind(ulid_to_sql_uuid(*ulid))
+        let client_ulid = match query.role {
+            Role::Client => Some(ulid_to_sql_uuid(*ulid)),
+            Role::Contractor => None,
+        };
+        let contractor_ulid = match query.role {
+            Role::Client => None,
+            Role::Contractor => Some(ulid_to_sql_uuid(*ulid)),
+        };
+        let index = sqlx::query(
+            "
+            SELECT
+                ulid, client_ulid, client_name, contractor_ulid, contractor_name,
+                contract_name, tax_interval, tax_name, country, tax_report_file
+            FROM
+                tax_report_index
+            WHERE
+                ($1 IS NULL OR client_ulid = $1) AND
+                ($2 IS NULL OR contractor_ulid = $2) AND
+                ($3 IS NULL OR (client_name ~* $3 OR contractor_name ~* $3))
+            LIMIT $4 OFFSET $5",
+        )
+        .bind(client_ulid)
+        .bind(contractor_ulid)
+        .bind(query.search_text)
         .bind(query.per_page)
         .bind((query.page - 1) * query.per_page)
         .fetch_all(&self.0)
@@ -211,12 +219,12 @@ LIMIT $2 OFFSET $3"##,
     /// Create tax report
     pub async fn create_tax_report(&self, query: CreateTaxReportIndex) -> GlobeliseResult<()> {
         sqlx::query(
-            r##"
-            INSERT INTO tax_report 
-            (id, client_ulid, contractor_ulid, tax_interval, 
+            "
+            INSERT INTO tax_report
+            (id, client_ulid, contractor_ulid, tax_interval,
             tax_name, begin_period, end_period, country, tax_report_file)
-            VALUES 
-            ($2, $3, $4::interval_type, $5, $6, $7, $8, $9)"##,
+            VALUES
+            ($2, $3, $4::interval_type, $5, $6, $7, $8, $9)",
         )
         .bind(ulid_to_sql_uuid(Ulid::generate()))
         .bind(ulid_to_sql_uuid(query.client_ulid))

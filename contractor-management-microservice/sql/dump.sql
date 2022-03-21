@@ -159,11 +159,12 @@ CREATE TABLE public.tax_report (
 ALTER TABLE public.tax_report OWNER TO postgres;
 
 --
--- Name: tax_report_full; Type: VIEW; Schema: public; Owner: postgres
+-- Name: tax_report_index; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE VIEW public.tax_report_full AS
- SELECT contracts.client_ulid,
+CREATE VIEW public.tax_report_index AS
+ SELECT tax_report.ulid,
+    contracts.client_ulid,
     contracts.client_name,
     contracts.contractor_ulid,
     contracts.contractor_name,
@@ -176,7 +177,7 @@ CREATE VIEW public.tax_report_full AS
      JOIN public.contracts ON ((tax_report.ulid = contracts.ulid)));
 
 
-ALTER TABLE public.tax_report_full OWNER TO postgres;
+ALTER TABLE public.tax_report_index OWNER TO postgres;
 
 --
 -- Name: contracts contracts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
@@ -211,3 +212,4 @@ CREATE TRIGGER mdt_tax_report BEFORE UPDATE ON public.tax_report FOR EACH ROW EX
 --
 -- PostgreSQL database dump complete
 --
+
