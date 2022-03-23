@@ -16,9 +16,11 @@ use tower_http::{
     cors::{Any, CorsLayer, Origin},
 };
 
+mod common;
 mod contracts;
 mod database;
 mod env;
+mod invoice;
 mod tax_report;
 
 use env::{FRONTEND_URL, LISTENING_ADDRESS};
@@ -54,6 +56,10 @@ async fn main() {
             "/users/tax-report/index",
             get(tax_report::user_tax_report_index),
         )
+        .route(
+            "/users/invoice/index",
+            get(invoice::user_invoice_individual_index),
+        )
         // ========== ADMIN PAGES ==========
         .route(
             "/eor-admin/tax-report/create",
@@ -66,6 +72,10 @@ async fn main() {
         .route(
             "/eor-admin/contract/index",
             get(contracts::eor_admin_contract_index),
+        )
+        .route(
+            "/eor-admin/invoice/index",
+            get(invoice::eor_admin_invoice_individual_index),
         )
         // ========== DEBUG PAGES ==========
         .layer(

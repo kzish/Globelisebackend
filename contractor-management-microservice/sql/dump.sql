@@ -342,6 +342,7 @@ ALTER TABLE public.contracts_index_for_contractors OWNER TO postgres;
 
 CREATE TABLE public.invoice_group (
     ulid uuid NOT NULL,
+    invoice_name text NOT NULL,
     invoice_status text NOT NULL,
     invoice_due timestamp with time zone NOT NULL,
     invoice_date timestamp with time zone NOT NULL,
@@ -353,27 +354,14 @@ CREATE TABLE public.invoice_group (
 ALTER TABLE public.invoice_group OWNER TO postgres;
 
 --
--- Name: invoice_group_name; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.invoice_group_name (
-    invoice_ulid uuid,
-    invoice_group_name text NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
-ALTER TABLE public.invoice_group_name OWNER TO postgres;
-
---
 -- Name: invoice_individual; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.invoice_individual (
     ulid uuid NOT NULL,
-    invoice_group_ulid uuid,
-    contract_ulid uuid,
+    invoice_group_ulid uuid NOT NULL,
+    contractor_ulid uuid NOT NULL,
+    client_ulid uuid NOT NULL,
     invoice_id text NOT NULL,
     invoice_tax_amount integer NOT NULL,
     invoice_amount_paid integer NOT NULL,
@@ -393,7 +381,7 @@ ALTER TABLE public.invoice_individual OWNER TO postgres;
 
 CREATE TABLE public.invoice_items (
     ulid uuid NOT NULL,
-    invoice_ulid uuid,
+    invoice_ulid uuid NOT NULL,
     item_name text NOT NULL,
     item_unit_price integer NOT NULL,
     item_unit_quantity integer NOT NULL,
@@ -418,8 +406,10 @@ CREATE VIEW public.invoice_individual_index AS
         ), step_1 AS (
          SELECT invoice_individual.ulid,
             invoice_individual.invoice_group_ulid,
-            invoice_individual.contract_ulid,
+            invoice_individual.contractor_ulid,
+            invoice_individual.client_ulid,
             invoice_individual.invoice_id,
+            invoice_group.invoice_name,
             invoice_group.invoice_due,
             invoice_group.invoice_status
            FROM (public.invoice_group
@@ -427,8 +417,10 @@ CREATE VIEW public.invoice_individual_index AS
         ), step_2 AS (
          SELECT step_1.ulid,
             step_1.invoice_group_ulid,
-            step_1.contract_ulid,
+            step_1.contractor_ulid,
+            step_1.client_ulid,
             step_1.invoice_id,
+            step_1.invoice_name,
             step_1.invoice_due,
             step_1.invoice_status,
             COALESCE(total_amount.invoice_amount, (0)::bigint) AS invoice_amount
@@ -437,8 +429,10 @@ CREATE VIEW public.invoice_individual_index AS
         )
  SELECT step_2.ulid,
     step_2.invoice_group_ulid,
-    step_2.contract_ulid,
+    step_2.contractor_ulid,
+    step_2.client_ulid,
     step_2.invoice_id,
+    step_2.invoice_name,
     step_2.invoice_due,
     step_2.invoice_status,
     step_2.invoice_amount
@@ -446,6 +440,26 @@ CREATE VIEW public.invoice_individual_index AS
 
 
 ALTER TABLE public.invoice_individual_index OWNER TO postgres;
+
+--
+-- Name: invoice_group_index; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.invoice_group_index AS
+ SELECT array_agg(a.ulid ORDER BY a.ulid) AS ulid,
+    a.invoice_group_ulid,
+    array_agg(a.contractor_ulid ORDER BY a.ulid) AS contractor_ulid,
+    array_agg(a.client_ulid ORDER BY a.ulid) AS client_ulid,
+    array_agg(a.invoice_id ORDER BY a.ulid) AS invoice_id,
+    array_agg(a.invoice_name ORDER BY a.ulid) AS invoice_name,
+    array_agg(a.invoice_due ORDER BY a.ulid) AS invoice_due,
+    array_agg(a.invoice_status ORDER BY a.ulid) AS invoice_status,
+    array_agg(a.invoice_amount ORDER BY a.ulid) AS invoice_amount
+   FROM public.invoice_individual_index a
+  GROUP BY a.invoice_group_ulid;
+
+
+ALTER TABLE public.invoice_group_index OWNER TO postgres;
 
 --
 -- Name: tax_report; Type: TABLE; Schema: public; Owner: postgres
@@ -551,13 +565,6 @@ CREATE TRIGGER mdt_invoice_group BEFORE UPDATE ON public.invoice_group FOR EACH 
 
 
 --
--- Name: invoice_group_name mdt_invoice_group_name; Type: TRIGGER; Schema: public; Owner: postgres
---
-
-CREATE TRIGGER mdt_invoice_group_name BEFORE UPDATE ON public.invoice_group_name FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
-
-
---
 -- Name: invoice_items mdt_invoice_items; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -592,22 +599,6 @@ ALTER TABLE ONLY public.contracts
 
 ALTER TABLE ONLY public.contracts
     ADD CONSTRAINT contracts_contractor_ulid_fkey FOREIGN KEY (contractor_ulid) REFERENCES public.contractor_names(ulid) ON DELETE RESTRICT;
-
-
---
--- Name: invoice_group_name invoice_group_name_invoice_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.invoice_group_name
-    ADD CONSTRAINT invoice_group_name_invoice_ulid_fkey FOREIGN KEY (invoice_ulid) REFERENCES public.invoice_individual(ulid);
-
-
---
--- Name: invoice_individual invoice_individual_contract_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.invoice_individual
-    ADD CONSTRAINT invoice_individual_contract_ulid_fkey FOREIGN KEY (contract_ulid) REFERENCES public.contracts(ulid);
 
 
 --

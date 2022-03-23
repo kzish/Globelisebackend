@@ -124,7 +124,7 @@ pub async fn access_token(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
+    let ulid = claims.payload.ulid.parse::<Ulid>()?;
     let user_type = claims.payload.user_type.parse::<UserType>().unwrap();
 
     let mut shared_state = shared_state.lock().await;

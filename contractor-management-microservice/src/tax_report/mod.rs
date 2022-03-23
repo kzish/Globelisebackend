@@ -15,7 +15,78 @@ use sqlx::{postgres::PgRow, FromRow, Row};
 use strum::{Display, EnumIter, EnumString};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
 
-use crate::database::SharedDatabase;
+use crate::{
+    common::ulid_to_sql_uuid,
+    database::{Database, SharedDatabase},
+};
+
+impl Database {
+    /// Indexes tax report.
+    pub async fn tax_report_index(
+        &self,
+        ulid: &Ulid,
+        query: TaxReportIndexQuery,
+    ) -> GlobeliseResult<Vec<TaxReportIndex>> {
+        let client_ulid = match query.role {
+            Role::Client => Some(ulid_to_sql_uuid(*ulid)),
+            Role::Contractor => None,
+        };
+        let contractor_ulid = match query.role {
+            Role::Client => None,
+            Role::Contractor => Some(ulid_to_sql_uuid(*ulid)),
+        };
+        let index = sqlx::query(
+            "
+            SELECT
+                ulid, client_ulid, client_name, contractor_ulid, contractor_name,
+                contract_name, tax_interval, tax_name, country, tax_report_file
+            FROM
+                tax_report_index
+            WHERE
+                ($1 IS NULL OR client_ulid = $1) AND
+                ($2 IS NULL OR contractor_ulid = $2) AND
+                ($3 IS NULL OR (client_name ~* $3 OR contractor_name ~* $3))
+            LIMIT $4 OFFSET $5",
+        )
+        .bind(client_ulid)
+        .bind(contractor_ulid)
+        .bind(query.search_text)
+        .bind(query.per_page)
+        .bind((query.page - 1) * query.per_page)
+        .fetch_all(&self.0)
+        .await?
+        .into_iter()
+        .map(TaxReportIndex::from_pg_row)
+        .collect::<GlobeliseResult<Vec<TaxReportIndex>>>()?;
+
+        Ok(index)
+    }
+
+    /// Create tax report
+    pub async fn create_tax_report(&self, query: CreateTaxReportIndex) -> GlobeliseResult<()> {
+        sqlx::query(
+            "
+            INSERT INTO tax_report
+            (id, client_ulid, contractor_ulid, tax_interval,
+            tax_name, begin_period, end_period, country, tax_report_file)
+            VALUES
+            ($2, $3, $4::interval_type, $5, $6, $7, $8, $9)",
+        )
+        .bind(ulid_to_sql_uuid(Ulid::generate()))
+        .bind(ulid_to_sql_uuid(query.client_ulid))
+        .bind(ulid_to_sql_uuid(query.contractor_ulid))
+        .bind(query.tax_interval.to_string())
+        .bind(query.tax_name)
+        .bind(query.begin_period)
+        .bind(query.end_period)
+        .bind(query.country)
+        .bind(query.tax_report_file)
+        .execute(&self.0)
+        .await?;
+
+        Ok(())
+    }
+}
 
 /// List the tax reports
 pub async fn user_tax_report_index(

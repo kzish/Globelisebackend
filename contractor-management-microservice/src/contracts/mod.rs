@@ -13,7 +13,153 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, GetUserInfoRequest, Role};
 
-use crate::{database::SharedDatabase, env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL};
+use crate::{
+    common::{ulid_to_sql_uuid, PaginationQuery},
+    database::{Database, SharedDatabase},
+    env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
+};
+
+impl Database {
+    /// Counts the number of contracts.
+    pub async fn count_number_of_contracts(
+        &self,
+        ulid: &Ulid,
+        role: &Role,
+    ) -> GlobeliseResult<i64> {
+        let client_ulid = match role {
+            Role::Client => Some(ulid_to_sql_uuid(*ulid)),
+            Role::Contractor => None,
+        };
+        let contractor_ulid = match role {
+            Role::Client => None,
+            Role::Contractor => Some(ulid_to_sql_uuid(*ulid)),
+        };
+
+        let result = sqlx::query_scalar(
+            "SELECT
+                COUNT(*)
+            FROM
+                contracts
+            WHERE
+                ($1 IS NULL OR (client_ulid = $1)) AND
+                ($2 IS NULL OR (contractor_ulid = $2))",
+        )
+        .bind(client_ulid)
+        .bind(contractor_ulid)
+        .fetch_one(&self.0)
+        .await?;
+
+        Ok(result)
+    }
+
+    /// Indexes contracts working for a client.
+    pub async fn contractor_index(
+        &self,
+        client_ulid: Ulid,
+        query: PaginationQuery,
+    ) -> GlobeliseResult<Vec<ContractorIndex>> {
+        let index = sqlx::query_as(
+            "SELECT
+                contractor_name, contract_name, contract_status,
+                job_title, seniority
+            FROM
+                contractor_index
+            WHERE
+                client_ulid = $1 AND
+                ($2 IS NULL OR (contractor_name ~* $2))
+            LIMIT $3 OFFSET $4",
+        )
+        .bind(ulid_to_sql_uuid(client_ulid))
+        .bind(query.search_text)
+        .bind(query.per_page)
+        .bind((query.page - 1) * query.per_page)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(index)
+    }
+
+    /// Index contract of a given contractor
+    pub async fn contract_for_contractor_index(
+        &self,
+        contractor_ulid: Ulid,
+        query: PaginationQuery,
+    ) -> GlobeliseResult<Vec<ContractForContractorIndex>> {
+        let index = sqlx::query_as(
+            "
+            SELECT
+                contractor_ulid, contract_name, job_title, seniority,
+                client_name, contract_status, contract_amount, end_at
+            FROM
+                contract_index_for_contractor
+            WHERE
+                contractor_ulid = $1 AND
+                ($2 IS NULL OR (contract_name ~* $2 OR client_name ~* $2))
+            LIMIT $3 OFFSET $4",
+        )
+        .bind(ulid_to_sql_uuid(contractor_ulid))
+        .bind(query.search_text)
+        .bind(query.per_page)
+        .bind((query.page - 1) * query.per_page)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(index)
+    }
+
+    /// Index contract of a given contractor
+    pub async fn contract_for_client_index(
+        &self,
+        client_ulid: Ulid,
+        query: PaginationQuery,
+    ) -> GlobeliseResult<Vec<ContractForClientIndex>> {
+        let index = sqlx::query_as(
+            "
+            SELECT
+                client_ulid, contract_name, job_title, seniority,
+                contractor_name, contract_status, contract_amount, end_at
+            FROM
+                contract_index_for_client
+            WHERE
+                client_ulid = $1 AND
+                ($2 IS NULL OR (contract_name ~* $2 OR client_name ~* $2))
+            LIMIT $3 OFFSET $4",
+        )
+        .bind(ulid_to_sql_uuid(client_ulid))
+        .bind(query.search_text)
+        .bind(query.per_page)
+        .bind((query.page - 1) * query.per_page)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(index)
+    }
+
+    /// Index contract for EOR admin purposes
+    pub async fn eor_admin_contract_index(
+        &self,
+        query: PaginationQuery,
+    ) -> GlobeliseResult<Vec<ContractForClientIndex>> {
+        let index = sqlx::query_as(
+            "
+            SELECT
+                contract_name, job_title, seniority,
+                client_name, contract_status, contract_amount, end_at
+            FROM
+                contract_index_for_eor_admin
+            WHERE
+                ($1 IS NULL OR (contract_name ~* $1 OR client_name ~* $1))
+            LIMIT $2 OFFSET $3",
+        )
+        .bind(query.search_text)
+        .bind(query.per_page)
+        .bind((query.page - 1) * query.per_page)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(index)
+    }
+}
 
 /// Lists all the users plus some information about them.
 pub async fn user_index(
@@ -55,7 +201,7 @@ pub async fn contractor_index(
     Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractorIndex>>> {
-    let ulid = access_token.payload.ulid.parse::<Ulid>().unwrap();
+    let ulid = access_token.payload.ulid.parse::<Ulid>()?;
     let database = database.lock().await;
     Ok(Json(database.contractor_index(ulid, query).await?))
 }
@@ -65,7 +211,7 @@ pub async fn contract_for_contractor_index(
     Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractForContractorIndex>>> {
-    let ulid = access_token.payload.ulid.parse::<Ulid>().unwrap();
+    let ulid = access_token.payload.ulid.parse::<Ulid>()?;
     let database = database.lock().await;
     Ok(Json(
         database.contract_for_contractor_index(ulid, query).await?,
@@ -77,7 +223,7 @@ pub async fn contract_for_client_index(
     Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractForClientIndex>>> {
-    let ulid = access_token.payload.ulid.parse::<Ulid>().unwrap();
+    let ulid = access_token.payload.ulid.parse::<Ulid>()?;
     let database = database.lock().await;
     Ok(Json(database.contract_for_client_index(ulid, query).await?))
 }
@@ -99,25 +245,6 @@ pub struct UserIndex {
     pub contract_count: i64,
     pub created_at: String,
     pub email: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct PaginationQuery {
-    #[serde(default = "PaginationQuery::default_page")]
-    pub page: i64,
-    #[serde(default = "PaginationQuery::default_per_page")]
-    pub per_page: i64,
-    pub search_text: Option<String>,
-}
-
-impl PaginationQuery {
-    fn default_page() -> i64 {
-        1
-    }
-
-    fn default_per_page() -> i64 {
-        25
-    }
 }
 
 #[derive(Debug, FromRow, Deserialize, Serialize)]

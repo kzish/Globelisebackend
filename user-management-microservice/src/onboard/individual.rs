@@ -32,7 +32,7 @@ pub async fn account_details(
         return Err(GlobeliseError::Forbidden);
     }
 
-    let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
+    let ulid = claims.payload.ulid.parse::<Ulid>()?;
     let database = database.lock().await;
     database
         .onboard_individual_details(ulid, role, request)

@@ -15,7 +15,7 @@ pub async fn bank_details(
 ) -> GlobeliseResult<()> {
     let user_type = claims.payload.user_type.parse::<UserType>().unwrap();
 
-    let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
+    let ulid = claims.payload.ulid.parse::<Ulid>()?;
     let database = database.lock().await;
     database
         .onboard_bank_details(ulid, user_type, details)
