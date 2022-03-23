@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.1 (Debian 14.1-1.pgdg110+1)
--- Dumped by pg_dump version 14.1 (Debian 14.1-1.pgdg110+1)
+-- Dumped from database version 13.6
+-- Dumped by pg_dump version 13.6
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -289,10 +289,10 @@ CREATE VIEW public.contractors_index AS
 ALTER TABLE public.contractors_index OWNER TO postgres;
 
 --
--- Name: contracts_index_for_clients; Type: VIEW; Schema: public; Owner: postgres
+-- Name: contracts_index_for_client; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE VIEW public.contracts_index_for_clients AS
+CREATE VIEW public.contracts_index_for_client AS
  SELECT contractor_names.name AS contractor_name,
     contracts.client_ulid,
     contracts.contract_name,
@@ -310,13 +310,13 @@ CREATE VIEW public.contracts_index_for_clients AS
      JOIN public.contractor_names ON ((contracts.contractor_ulid = contractor_names.ulid)));
 
 
-ALTER TABLE public.contracts_index_for_clients OWNER TO postgres;
+ALTER TABLE public.contracts_index_for_client OWNER TO postgres;
 
 --
--- Name: contracts_index_for_contractors; Type: VIEW; Schema: public; Owner: postgres
+-- Name: contracts_index_for_contractor; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE VIEW public.contracts_index_for_contractors AS
+CREATE VIEW public.contracts_index_for_contractor AS
  SELECT client_names.name AS client_name,
     contracts.client_ulid,
     contracts.contract_name,
@@ -334,7 +334,7 @@ CREATE VIEW public.contracts_index_for_contractors AS
      JOIN public.client_names ON ((contracts.client_ulid = client_names.ulid)));
 
 
-ALTER TABLE public.contracts_index_for_contractors OWNER TO postgres;
+ALTER TABLE public.contracts_index_for_contractor OWNER TO postgres;
 
 --
 -- Name: invoice_group; Type: TABLE; Schema: public; Owner: postgres
