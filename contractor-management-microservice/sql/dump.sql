@@ -460,13 +460,13 @@ CREATE TABLE public.tax_reports (
     contract_ulid uuid,
     tax_interval public.interval_type NOT NULL,
     tax_name text NOT NULL,
-    begin_at timestamp with time zone NOT NULL,
-    end_at timestamp with time zone NOT NULL,
+    begin_period timestamp with time zone NOT NULL,
+    end_period timestamp with time zone NOT NULL,
     country text NOT NULL,
     tax_report_file bytea NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT tax_reports_begin_at_end_at_check CHECK ((begin_at <= end_at))
+    CONSTRAINT tax_reports_begin_period_end_period_check CHECK ((begin_period <= end_period))
 );
 
 
@@ -482,9 +482,9 @@ CREATE VIEW public.tax_reports_index AS
     tax_reports.contractor_ulid,
     tax_reports.tax_report_file,
     tax_reports.ulid,
-    tax_reports.end_at,
+    tax_reports.end_period,
     tax_reports.country,
-    tax_reports.begin_at,
+    tax_reports.begin_period,
     tax_reports.tax_name,
     client_names.name AS client_name,
     contractor_names.name AS contractor_name,

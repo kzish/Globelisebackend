@@ -86,8 +86,8 @@ struct TaxReportIndexSqlHelper {
     contract_name: Option<String>,
     tax_interval: TaxInterval,
     tax_name: String,
-    begin_at: String,
-    end_at: String,
+    begin_period: String,
+    end_period: String,
     country: String,
 }
 

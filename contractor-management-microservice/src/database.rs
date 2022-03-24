@@ -194,7 +194,7 @@ impl Database {
             "
             SELECT
                 ulid, client_name, contractor_name, contract_name, tax_interval,
-                tax_name, begin_at, end_at, country
+                tax_name, begin_period, end_period, country
             FROM
                 tax_reports_index
             WHERE
@@ -220,7 +220,7 @@ impl Database {
             "
             INSERT INTO tax_reports
             (ulid, client_ulid, contractor_ulid, contract_ulid, tax_interval,
-            tax_name, begin_at, end_at, country, tax_report_file)
+            tax_name, begin_period, end_period, country, tax_report_file)
             VALUES
             ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         )
