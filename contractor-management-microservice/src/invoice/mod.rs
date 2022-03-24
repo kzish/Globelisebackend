@@ -1,17 +1,14 @@
 use axum::{
-    extract::{Extension, Query},
+    extract::{Extension, Path, Query},
     Json,
 };
-use common_utils::{
-    error::{GlobeliseError, GlobeliseResult},
-    token::Token,
-};
+use common_utils::{error::GlobeliseResult, token::Token};
 use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use itertools::izip;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, Row};
-use user_management_microservice_sdk::{AccessToken as UserAccessToken, UserType};
+use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
 
 use crate::{
     common::ulid_to_sql_uuid,
@@ -90,23 +87,20 @@ impl Database {
 
 pub async fn user_invoice_individual_index(
     claims: Token<UserAccessToken>,
-    Query(query): Query<InvoiceIndividualIndexQuery>,
+    Path(role): Path<Role>,
+    Query(mut query): Query<InvoiceIndividualIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<InvoiceIndividualIndex>>> {
     let ulid = claims.payload.ulid;
-    let user_type = claims.payload.user_type;
-    if user_type == UserType::Individual && query.client_ulid == Some(ulid) {
-        return Err(GlobeliseError::Unauthorized(
-            "Contractor is not authorized to query other contractor's invoices",
-        ));
-    } else if user_type == UserType::Entity && query.contractor_ulid == Some(ulid) {
-        return Err(GlobeliseError::Unauthorized(
-            "Client is not authorized to query other client's invoices",
-        ));
-    } else {
-        let database = database.lock().await;
-        Ok(Json(database.invoice_individual_index(query).await?))
-    }
+
+    // Override the provided query with the ulid provided by the tokens.
+    match role {
+        Role::Client => query.client_ulid = Some(ulid),
+        Role::Contractor => query.contractor_ulid = Some(ulid),
+    };
+
+    let database = database.lock().await;
+    Ok(Json(database.invoice_individual_index(query).await?))
 }
 
 pub async fn eor_admin_invoice_individual_index(
@@ -120,23 +114,19 @@ pub async fn eor_admin_invoice_individual_index(
 
 pub async fn user_invoice_group_index(
     claims: Token<UserAccessToken>,
-    Query(query): Query<InvoiceGroupIndexQuery>,
+    Query(mut query): Query<InvoiceGroupIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<InvoiceGroupIndex>>> {
     let ulid = claims.payload.ulid;
-    let user_type = claims.payload.user_type;
-    if user_type == UserType::Individual && query.client_ulid == Some(ulid) {
-        return Err(GlobeliseError::Unauthorized(
-            "Contractor is not authorized to query other contractor's invoices",
-        ));
-    } else if user_type == UserType::Entity && query.contractor_ulid == Some(ulid) {
-        return Err(GlobeliseError::Unauthorized(
-            "Client is not authorized to query other client's invoices",
-        ));
-    } else {
-        let database = database.lock().await;
-        Ok(Json(database.invoice_group_index(query).await?))
-    }
+
+    // Override the provided query with the ulid provided by the tokens.
+    match query.role {
+        Role::Client => query.client_ulid = Some(ulid),
+        Role::Contractor => query.contractor_ulid = Some(ulid),
+    };
+
+    let database = database.lock().await;
+    Ok(Json(database.invoice_group_index(query).await?))
 }
 
 pub async fn eor_admin_invoice_group_index(
@@ -195,8 +185,9 @@ pub struct InvoiceGroupIndexQuery {
     pub contractor_ulid: Option<Ulid>,
     pub invoice_status: Option<String>,
     pub search_text: Option<String>,
-    page: i64,
-    per_page: i64,
+    pub page: i64,
+    pub per_page: i64,
+    pub role: Role,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

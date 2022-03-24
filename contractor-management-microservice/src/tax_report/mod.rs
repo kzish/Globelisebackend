@@ -23,17 +23,8 @@ impl Database {
     /// Indexes tax report.
     pub async fn tax_report_index(
         &self,
-        ulid: Ulid,
         query: TaxReportIndexQuery,
     ) -> GlobeliseResult<Vec<TaxReportIndex>> {
-        let client_ulid = match query.role {
-            Role::Client => Some(ulid_to_sql_uuid(ulid)),
-            Role::Contractor => None,
-        };
-        let contractor_ulid = match query.role {
-            Role::Client => None,
-            Role::Contractor => Some(ulid_to_sql_uuid(ulid)),
-        };
         let index = sqlx::query_as(
             "
             SELECT
@@ -47,8 +38,8 @@ impl Database {
                 ($3 IS NULL OR (client_name ~* $3 OR contractor_name ~* $3))
             LIMIT $4 OFFSET $5",
         )
-        .bind(client_ulid)
-        .bind(contractor_ulid)
+        .bind(query.client_ulid.map(ulid_to_sql_uuid))
+        .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
         .bind(query.search_text)
         .bind(query.per_page)
         .bind((query.page - 1) * query.per_page)
@@ -88,26 +79,28 @@ impl Database {
 /// List the tax reports
 pub async fn user_tax_report_index(
     claims: Token<UserAccessToken>,
-    Query(query): Query<TaxReportIndexQuery>,
+    Query(mut query): Query<TaxReportIndexQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<TaxReportIndex>>> {
     let database = shared_database.lock().await;
-    let result = database
-        .tax_report_index(claims.payload.ulid, query)
-        .await?;
+
+    match query.role {
+        Role::Client => query.client_ulid = Some(claims.payload.ulid),
+        Role::Contractor => query.contractor_ulid = Some(claims.payload.ulid),
+    };
+
+    let result = database.tax_report_index(query).await?;
     Ok(Json(result))
 }
 
 /// List the tax reports
 pub async fn eor_admin_tax_report_index(
-    claims: Token<AdminAccessToken>,
+    _: Token<AdminAccessToken>,
     Query(query): Query<TaxReportIndexQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<TaxReportIndex>>> {
     let database = shared_database.lock().await;
-    let result = database
-        .tax_report_index(claims.payload.ulid, query)
-        .await?;
+    let result = database.tax_report_index(query).await?;
     Ok(Json(result))
 }
 
@@ -173,6 +166,8 @@ pub struct TaxReportIndexQuery {
     // NOTE: The access token should have this information instead because
     // someone _could_ spoof if they have a similar ULID.
     pub role: Role,
+    pub contractor_ulid: Option<Ulid>,
+    pub client_ulid: Option<Ulid>,
 }
 
 impl TaxReportIndexQuery {

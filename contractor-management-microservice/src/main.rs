@@ -57,7 +57,7 @@ async fn main() {
             get(tax_report::user_tax_report_index),
         )
         .route(
-            "/users/invoice/individual/index",
+            "/users/invoice/individual/:role/index",
             get(invoice::user_invoice_individual_index),
         )
         .route(
