@@ -546,6 +546,7 @@ dependencies = [
  "dotenv",
  "eor-admin-microservice",
  "image",
+ "itertools",
  "jsonwebtoken",
  "once_cell",
  "rand",

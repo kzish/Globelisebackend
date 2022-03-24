@@ -34,3 +34,4 @@ user-management-microservice = { path = "../user-management-microservice" }
 eor-admin-microservice = { path = "../eor-admin-microservice" }
 common-utils = { path = "../common-utils" }
 image = "0.24.1"
+itertools = "0.10.3"

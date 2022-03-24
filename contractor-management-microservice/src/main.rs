@@ -57,8 +57,12 @@ async fn main() {
             get(tax_report::user_tax_report_index),
         )
         .route(
-            "/users/invoice/index",
+            "/users/invoice/individual/index",
             get(invoice::user_invoice_individual_index),
+        )
+        .route(
+            "/users/invoice/group/index",
+            get(invoice::user_invoice_group_index),
         )
         // ========== ADMIN PAGES ==========
         .route(
@@ -74,8 +78,12 @@ async fn main() {
             get(contracts::eor_admin_contract_index),
         )
         .route(
-            "/eor-admin/invoice/index",
+            "/eor-admin/invoice/individual/index",
             get(invoice::eor_admin_invoice_individual_index),
+        )
+        .route(
+            "/eor-admin/invoice/group/index",
+            get(invoice::eor_admin_invoice_group_index),
         )
         // ========== DEBUG PAGES ==========
         .layer(
