@@ -8,7 +8,7 @@ use user_management_microservice_sdk::Role;
 
 use crate::{
     common::{ulid_to_sql_uuid, PaginationQuery},
-    contracts::{ContractForClientIndex, ContractForContractorIndex, ContractorIndex},
+    contracts::{ContractorsIndex, ContractsIndexForClient, ContractsIndexForContractor},
     tax_report::{CreateTaxReportIndex, TaxReportIndex, TaxReportIndexQuery},
 };
 
@@ -35,22 +35,19 @@ impl Database {
 
 impl Database {
     /// Counts the number of contracts.
-    pub async fn count_number_of_contracts(
-        &self,
-        ulid: &Ulid,
-        role: &Role,
-    ) -> GlobeliseResult<i64> {
+    pub async fn count_number_of_contracts(&self, ulid: Ulid, role: Role) -> GlobeliseResult<i64> {
         let client_ulid = match role {
-            Role::Client => Some(ulid_to_sql_uuid(*ulid)),
+            Role::Client => Some(ulid_to_sql_uuid(ulid)),
             Role::Contractor => None,
         };
         let contractor_ulid = match role {
             Role::Client => None,
-            Role::Contractor => Some(ulid_to_sql_uuid(*ulid)),
+            Role::Contractor => Some(ulid_to_sql_uuid(ulid)),
         };
 
         let result = sqlx::query_scalar(
-            "SELECT
+            "
+            SELECT
                 COUNT(*)
             FROM
                 contracts
@@ -67,17 +64,18 @@ impl Database {
     }
 
     /// Indexes contracts working for a client.
-    pub async fn contractor_index(
+    pub async fn contractors_index(
         &self,
         client_ulid: Ulid,
         query: PaginationQuery,
-    ) -> GlobeliseResult<Vec<ContractorIndex>> {
+    ) -> GlobeliseResult<Vec<ContractorsIndex>> {
         let index = sqlx::query_as(
-            "SELECT
-                contractor_name, contract_name, contract_status,
+            "
+            SELECT
+                contractor_ulid, contractor_name, contract_name, contract_status,
                 job_title, seniority
             FROM
-                contractor_index
+                contractors_index
             WHERE
                 client_ulid = $1 AND
                 ($2 IS NULL OR (contractor_name ~* $2))
@@ -94,18 +92,48 @@ impl Database {
     }
 
     /// Index contract of a given contractor
-    pub async fn contract_for_contractor_index(
+    pub async fn contracts_index_for_client(
         &self,
-        contractor_ulid: Ulid,
+        client_ulid: Ulid,
         query: PaginationQuery,
-    ) -> GlobeliseResult<Vec<ContractForContractorIndex>> {
+    ) -> GlobeliseResult<Vec<ContractsIndexForClient>> {
         let index = sqlx::query_as(
             "
             SELECT
-                contractor_ulid, contract_name, job_title, seniority,
-                client_name, contract_status, contract_amount, end_at
+                ulid, contract_name, contract_type, contractor_ulid,
+                contractor_name, contract_status, contract_amount, currency,
+                begin_at, end_at
             FROM
-                contract_index_for_contractor
+                contracts_index_for_client
+            WHERE
+                client_ulid = $1 AND
+                ($2 IS NULL OR (contract_name ~* $2 OR contractor_name ~* $2))
+            LIMIT $3 OFFSET $4",
+        )
+        .bind(ulid_to_sql_uuid(client_ulid))
+        .bind(query.search_text)
+        .bind(query.per_page)
+        .bind((query.page - 1) * query.per_page)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(index)
+    }
+
+    /// Index contract of a given contractor
+    pub async fn contracts_index_for_contractor(
+        &self,
+        contractor_ulid: Ulid,
+        query: PaginationQuery,
+    ) -> GlobeliseResult<Vec<ContractsIndexForContractor>> {
+        let index = sqlx::query_as(
+            "
+            SELECT
+                ulid, contract_name, contract_type, client_ulid,
+                client_name, contract_status, contract_amount, currency,
+                begin_at, end_at
+            FROM
+                contracts_index_for_contractor
             WHERE
                 contractor_ulid = $1 AND
                 ($2 IS NULL OR (contract_name ~* $2 OR client_name ~* $2))
@@ -121,46 +149,19 @@ impl Database {
         Ok(index)
     }
 
-    /// Index contract of a given contractor
-    pub async fn contract_for_client_index(
-        &self,
-        client_ulid: Ulid,
-        query: PaginationQuery,
-    ) -> GlobeliseResult<Vec<ContractForClientIndex>> {
-        let index = sqlx::query_as(
-            "
-            SELECT
-                client_ulid, contract_name, job_title, seniority,
-                contractor_name, contract_status, contract_amount, end_at
-            FROM
-                contract_index_for_client
-            WHERE
-                client_ulid = $1 AND
-                ($2 IS NULL OR (contract_name ~* $2 OR client_name ~* $2))
-            LIMIT $3 OFFSET $4",
-        )
-        .bind(ulid_to_sql_uuid(client_ulid))
-        .bind(query.search_text)
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
-        .fetch_all(&self.0)
-        .await?;
-
-        Ok(index)
-    }
-
     /// Index contract for EOR admin purposes
     pub async fn eor_admin_contract_index(
         &self,
         query: PaginationQuery,
-    ) -> GlobeliseResult<Vec<ContractForClientIndex>> {
+    ) -> GlobeliseResult<Vec<ContractsIndexForClient>> {
         let index = sqlx::query_as(
             "
             SELECT
-                contract_name, job_title, seniority,
-                client_name, contract_status, contract_amount, end_at
+                ulid, contract_name, contract_type, client_ulid,
+                client_name, contract_status, contract_amount, currency,
+                begin_at, end_at
             FROM
-                contract_index_for_eor_admin
+                contracts_index_for_contractor
             WHERE
                 ($1 IS NULL OR (contract_name ~* $1 OR client_name ~* $1))
             LIMIT $2 OFFSET $3",
@@ -177,24 +178,24 @@ impl Database {
     /// Indexes tax report.
     pub async fn tax_report_index(
         &self,
-        ulid: &Ulid,
+        ulid: Ulid,
         query: TaxReportIndexQuery,
     ) -> GlobeliseResult<Vec<TaxReportIndex>> {
         let client_ulid = match query.role {
-            Role::Client => Some(ulid_to_sql_uuid(*ulid)),
+            Role::Client => Some(ulid_to_sql_uuid(ulid)),
             Role::Contractor => None,
         };
         let contractor_ulid = match query.role {
             Role::Client => None,
-            Role::Contractor => Some(ulid_to_sql_uuid(*ulid)),
+            Role::Contractor => Some(ulid_to_sql_uuid(ulid)),
         };
-        let index = sqlx::query(
+        let index = sqlx::query_as(
             "
             SELECT
-                ulid, client_ulid, client_name, contractor_ulid, contractor_name,
-                contract_name, tax_interval, tax_name, country, tax_report_file
+                ulid, client_name, contractor_name, contract_name, tax_interval,
+                tax_name, begin_period, end_period, country
             FROM
-                tax_report_index
+                tax_reports_index
             WHERE
                 ($1 IS NULL OR client_ulid = $1) AND
                 ($2 IS NULL OR contractor_ulid = $2) AND
@@ -207,10 +208,7 @@ impl Database {
         .bind(query.per_page)
         .bind((query.page - 1) * query.per_page)
         .fetch_all(&self.0)
-        .await?
-        .into_iter()
-        .map(TaxReportIndex::from_pg_row)
-        .collect::<GlobeliseResult<Vec<TaxReportIndex>>>()?;
+        .await?;
 
         Ok(index)
     }
@@ -219,16 +217,17 @@ impl Database {
     pub async fn create_tax_report(&self, query: CreateTaxReportIndex) -> GlobeliseResult<()> {
         sqlx::query(
             "
-            INSERT INTO tax_report
-            (id, client_ulid, contractor_ulid, tax_interval,
+            INSERT INTO tax_reports
+            (ulid, client_ulid, contractor_ulid, contract_ulid, tax_interval,
             tax_name, begin_period, end_period, country, tax_report_file)
             VALUES
-            ($2, $3, $4::interval_type, $5, $6, $7, $8, $9)",
+            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         )
         .bind(ulid_to_sql_uuid(Ulid::generate()))
         .bind(ulid_to_sql_uuid(query.client_ulid))
         .bind(ulid_to_sql_uuid(query.contractor_ulid))
-        .bind(query.tax_interval.to_string())
+        .bind(query.contract_ulid.map(ulid_to_sql_uuid))
+        .bind(query.tax_interval)
         .bind(query.tax_name)
         .bind(query.begin_period)
         .bind(query.end_period)

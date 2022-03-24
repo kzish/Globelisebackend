@@ -23,3 +23,7 @@ impl PaginationQuery {
 pub fn ulid_to_sql_uuid(ulid: Ulid) -> sqlx::types::Uuid {
     sqlx::types::Uuid::from_bytes(ulid.into())
 }
+
+pub fn ulid_from_sql_uuid(uuid: sqlx::types::Uuid) -> Ulid {
+    Ulid::from(*uuid.as_bytes())
+}

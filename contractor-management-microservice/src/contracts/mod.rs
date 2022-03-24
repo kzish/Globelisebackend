@@ -3,6 +3,7 @@ use axum::{
     Json,
 };
 use common_utils::{
+    custom_serde::DateWrapper,
     error::GlobeliseResult,
     token::{Token, TokenString},
 };
@@ -10,11 +11,14 @@ use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use reqwest::Client;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
+use serde_with::{serde_as, FromInto};
+use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, GetUserInfoRequest, Role};
 
 use crate::{
-    common::PaginationQuery, database::SharedDatabase, env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
+    common::{ulid_from_sql_uuid, PaginationQuery},
+    database::SharedDatabase,
+    env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
 };
 
 /// Lists all the users plus some information about them.
@@ -38,7 +42,7 @@ pub async fn user_index(
 
     for v in response {
         let count = database
-            .count_number_of_contracts(&v.ulid, &v.user_role)
+            .count_number_of_contracts(v.ulid, v.user_role)
             .await?;
         result.push(UserIndex {
             ulid: v.ulid,
@@ -52,48 +56,50 @@ pub async fn user_index(
     Ok(Json(result))
 }
 
-pub async fn contractor_index(
+pub async fn contractors_index(
     access_token: Token<UserAccessToken>,
     Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ContractorIndex>>> {
+) -> GlobeliseResult<Json<Vec<ContractorsIndex>>> {
     let ulid = access_token.payload.ulid.parse::<Ulid>()?;
     let database = database.lock().await;
-    Ok(Json(database.contractor_index(ulid, query).await?))
+    Ok(Json(database.contractors_index(ulid, query).await?))
 }
 
-pub async fn contract_for_contractor_index(
+pub async fn contracts_index_for_client(
     access_token: Token<UserAccessToken>,
     Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ContractForContractorIndex>>> {
+) -> GlobeliseResult<Json<Vec<ContractsIndexForClient>>> {
     let ulid = access_token.payload.ulid.parse::<Ulid>()?;
     let database = database.lock().await;
     Ok(Json(
-        database.contract_for_contractor_index(ulid, query).await?,
+        database.contracts_index_for_client(ulid, query).await?,
     ))
 }
 
-pub async fn contract_for_client_index(
+pub async fn contracts_index_for_contractor(
     access_token: Token<UserAccessToken>,
     Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ContractForClientIndex>>> {
+) -> GlobeliseResult<Json<Vec<ContractsIndexForContractor>>> {
     let ulid = access_token.payload.ulid.parse::<Ulid>()?;
     let database = database.lock().await;
-    Ok(Json(database.contract_for_client_index(ulid, query).await?))
+    Ok(Json(
+        database.contracts_index_for_contractor(ulid, query).await?,
+    ))
 }
 
 pub async fn eor_admin_contract_index(
     _: Token<AdminAccessToken>,
     Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ContractForClientIndex>>> {
+) -> GlobeliseResult<Json<Vec<ContractsIndexForClient>>> {
     let database = database.lock().await;
     Ok(Json(database.eor_admin_contract_index(query).await?))
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Serialize)]
 pub struct UserIndex {
     pub ulid: Ulid,
     pub name: String,
@@ -135,4 +141,275 @@ pub struct ContractForClientIndex {
     pub contract_status: String,
     pub contract_amount: String,
     pub end_at: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractorsIndex {
+    contractor_ulid: Ulid,
+    #[serde(flatten)]
+    other_fields: ContractorsIndexSqlHelper,
+}
+
+impl<'r> FromRow<'r, PgRow> for ContractorsIndex {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            contractor_ulid: ulid_from_sql_uuid(row.try_get("contractor_ulid")?),
+            other_fields: ContractorsIndexSqlHelper::from_row(row)?,
+        })
+    }
+}
+
+#[derive(Debug, FromRow, Serialize)]
+#[serde(rename_all = "kebab-case")]
+struct ContractorsIndexSqlHelper {
+    contractor_name: String,
+    contract_name: String,
+    contract_status: String,
+    job_title: String,
+    seniority: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractsIndexForClient {
+    contractor_ulid: Ulid,
+    contractor_name: String,
+    ulid: Ulid,
+    #[serde(flatten)]
+    common_info: ContractsIndexCommonInfoSqlHelper,
+}
+
+impl<'r> FromRow<'r, PgRow> for ContractsIndexForClient {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            contractor_ulid: ulid_from_sql_uuid(row.try_get("contractor_ulid")?),
+            contractor_name: row.try_get("contractor_name")?,
+            ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
+            common_info: ContractsIndexCommonInfoSqlHelper::from_row(row)?,
+        })
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractsIndexForContractor {
+    client_ulid: Ulid,
+    client_name: String,
+    ulid: Ulid,
+    #[serde(flatten)]
+    common_info: ContractsIndexCommonInfoSqlHelper,
+}
+
+impl<'r> FromRow<'r, PgRow> for ContractsIndexForContractor {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            client_ulid: ulid_from_sql_uuid(row.try_get("client_ulid")?),
+            client_name: row.try_get("client_name")?,
+            ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
+            common_info: ContractsIndexCommonInfoSqlHelper::from_row(row)?,
+        })
+    }
+}
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize)]
+#[serde(rename_all = "kebab-case")]
+struct ContractsIndexCommonInfoSqlHelper {
+    contract_name: String,
+    contract_type: String,
+    job_title: String,
+    contract_status: String,
+    contract_amount: sqlx::types::Decimal,
+    currency: Currency,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    begin_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    end_at: sqlx::types::time::Date,
+}
+
+#[derive(Debug, sqlx::Type, Deserialize, Serialize)]
+#[sqlx(type_name = "currency")]
+#[allow(clippy::upper_case_acronyms)]
+enum Currency {
+    AED,
+    AFN,
+    ALL,
+    AMD,
+    ANG,
+    AOA,
+    ARS,
+    AUD,
+    AWG,
+    AZN,
+    BAM,
+    BBD,
+    BDT,
+    BGN,
+    BHD,
+    BIF,
+    BMD,
+    BND,
+    BOB,
+    BOV,
+    BRL,
+    BSD,
+    BTN,
+    BWP,
+    BYN,
+    BZD,
+    CAD,
+    CDF,
+    CHE,
+    CHF,
+    CHW,
+    CLF,
+    CLP,
+    CNY,
+    COP,
+    COU,
+    CRC,
+    CUC,
+    CUP,
+    CVE,
+    CZK,
+    DJF,
+    DKK,
+    DOP,
+    DZD,
+    EGP,
+    ERN,
+    ETB,
+    EUR,
+    FJD,
+    FKP,
+    GBP,
+    GEL,
+    GHS,
+    GIP,
+    GMD,
+    GNF,
+    GTQ,
+    GYD,
+    HKD,
+    HNL,
+    HRK,
+    HTG,
+    HUF,
+    IDR,
+    ILS,
+    INR,
+    IQD,
+    IRR,
+    ISK,
+    JMD,
+    JOD,
+    JPY,
+    KES,
+    KGS,
+    KHR,
+    KMF,
+    KPW,
+    KRW,
+    KWD,
+    KYD,
+    KZT,
+    LAK,
+    LBP,
+    LKR,
+    LRD,
+    LSL,
+    LYD,
+    MAD,
+    MDL,
+    MGA,
+    MKD,
+    MMK,
+    MNT,
+    MOP,
+    MRU,
+    MUR,
+    MVR,
+    MWK,
+    MXN,
+    MXV,
+    MYR,
+    MZN,
+    NAD,
+    NGN,
+    NIO,
+    NOK,
+    NPR,
+    NZD,
+    OMR,
+    PAB,
+    PEN,
+    PGK,
+    PHP,
+    PKR,
+    PLN,
+    PYG,
+    QAR,
+    RON,
+    RSD,
+    RUB,
+    RWF,
+    SAR,
+    SBD,
+    SCR,
+    SDG,
+    SEK,
+    SGD,
+    SHP,
+    SLL,
+    SOS,
+    SRD,
+    SSP,
+    STN,
+    SVC,
+    SYP,
+    SZL,
+    THB,
+    TJS,
+    TMT,
+    TND,
+    TOP,
+    TRY,
+    TTD,
+    TWD,
+    TZS,
+    UAH,
+    UGX,
+    USD,
+    USN,
+    UYI,
+    UYU,
+    UYW,
+    UZS,
+    VED,
+    VES,
+    VND,
+    VUV,
+    WST,
+    XAF,
+    XAG,
+    XAU,
+    XBA,
+    XBB,
+    XBC,
+    XBD,
+    XCD,
+    XDR,
+    XOF,
+    XPD,
+    XPF,
+    XPT,
+    XSU,
+    XTS,
+    XUA,
+    XXX,
+    YER,
+    ZAR,
+    ZMW,
+    ZWL,
 }

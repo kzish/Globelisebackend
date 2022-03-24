@@ -43,14 +43,14 @@ async fn main() {
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
         .route("/users/index", get(contracts::user_index))
-        .route("/contractors/index", get(contracts::contractor_index))
+        .route("/contractors/index", get(contracts::contractors_index))
         .route(
             "/client/contract/index",
-            get(contracts::contract_for_client_index),
+            get(contracts::contracts_index_for_client),
         )
         .route(
             "/contractor/contract/index",
-            get(contracts::contract_for_contractor_index),
+            get(contracts::contracts_index_for_contractor),
         )
         .route(
             "/users/tax-report/index",
