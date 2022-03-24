@@ -116,40 +116,6 @@ pub struct UserIndex {
     pub email: String,
 }
 
-#[derive(Debug, FromRow, Deserialize, Serialize)]
-pub struct ContractorIndex {
-    #[sqlx(rename = "contractor_name")]
-    pub name: String,
-    pub contract_name: String,
-    pub contract_status: String,
-    pub job_title: String,
-    pub seniority: String,
-}
-
-#[derive(Debug, FromRow, Deserialize, Serialize)]
-pub struct ContractForContractorIndex {
-    pub contractor_ulid: String,
-    pub contract_name: String,
-    pub job_title: String,
-    pub seniority: String,
-    pub client_name: String,
-    pub contract_status: String,
-    pub contract_amount: String,
-    pub end_at: String,
-}
-
-#[derive(Debug, FromRow, Deserialize, Serialize)]
-pub struct ContractForClientIndex {
-    pub client_ulid: String,
-    pub contract_name: String,
-    pub job_title: String,
-    pub seniority: String,
-    pub contractor_name: String,
-    pub contract_status: String,
-    pub contract_amount: String,
-    pub end_at: String,
-}
-
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ContractorsIndex {
