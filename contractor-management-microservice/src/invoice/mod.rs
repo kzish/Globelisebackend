@@ -232,8 +232,7 @@ impl InvoiceGroupIndex {
         let vec_invoice_due = row
             .try_get::<Vec<sqlx::types::time::Date>, _>("invoice_due")?
             .into_iter()
-            .map(|s| s.format("%Y-%m-%d"))
-            .collect::<Vec<_>>();
+            .map(|s| s.format("%Y-%m-%d"));
         let vec_invoice_status = row.try_get::<Vec<String>, _>("invoice_status")?;
         let vec_invoice_amount = row.try_get::<Vec<i64>, _>("invoice_amount")?;
 
@@ -242,7 +241,7 @@ impl InvoiceGroupIndex {
             vec_client_ulid.into_iter(),
             vec_contractor_ulid.into_iter(),
             vec_invoice_id.into_iter(),
-            vec_invoice_due.into_iter(),
+            vec_invoice_due,
             vec_invoice_status.into_iter(),
             vec_invoice_amount.into_iter()
         )
@@ -258,7 +257,7 @@ impl InvoiceGroupIndex {
             )| {
                 InvoiceIndividualIndex {
                     ulid,
-                    invoice_group_ulid: invoice_group_ulid.clone(),
+                    invoice_group_ulid,
                     client_ulid,
                     contractor_ulid,
                     invoice_id,
