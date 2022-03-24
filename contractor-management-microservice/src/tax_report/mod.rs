@@ -10,71 +10,13 @@ use common_utils::{
 use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as, TryFromInto};
+use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
 
-use crate::{
-    common::{ulid_from_sql_uuid, ulid_to_sql_uuid},
-    database::{Database, SharedDatabase},
-};
+use crate::{common::ulid_from_sql_uuid, database::SharedDatabase};
 
-impl Database {
-    /// Indexes tax report.
-    pub async fn tax_report_index(
-        &self,
-        query: TaxReportIndexQuery,
-    ) -> GlobeliseResult<Vec<TaxReportIndex>> {
-        let index = sqlx::query_as(
-            "
-            SELECT
-                ulid, client_name, contractor_name, contract_name, tax_interval,
-                tax_name, begin_period, end_period, country
-            FROM
-                tax_reports_index
-            WHERE
-                ($1 IS NULL OR client_ulid = $1) AND
-                ($2 IS NULL OR contractor_ulid = $2) AND
-                ($3 IS NULL OR (client_name ~* $3 OR contractor_name ~* $3))
-            LIMIT $4 OFFSET $5",
-        )
-        .bind(query.client_ulid.map(ulid_to_sql_uuid))
-        .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
-        .bind(query.search_text)
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
-        .fetch_all(&self.0)
-        .await?;
-
-        Ok(index)
-    }
-
-    /// Create tax report
-    pub async fn create_tax_report(&self, query: CreateTaxReportIndex) -> GlobeliseResult<()> {
-        sqlx::query(
-            "
-            INSERT INTO tax_reports
-            (ulid, client_ulid, contractor_ulid, contract_ulid, tax_interval,
-            tax_name, begin_period, end_period, country, tax_report_file)
-            VALUES
-            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-        )
-        .bind(ulid_to_sql_uuid(Ulid::generate()))
-        .bind(ulid_to_sql_uuid(query.client_ulid))
-        .bind(ulid_to_sql_uuid(query.contractor_ulid))
-        .bind(query.contract_ulid.map(ulid_to_sql_uuid))
-        .bind(query.tax_interval)
-        .bind(query.tax_name)
-        .bind(query.begin_period)
-        .bind(query.end_period)
-        .bind(query.country)
-        .bind(query.tax_report_file)
-        .execute(&self.0)
-        .await?;
-
-        Ok(())
-    }
-}
+mod database;
 
 /// List the tax reports
 pub async fn user_tax_report_index(
@@ -143,15 +85,20 @@ impl<'r> FromRow<'r, PgRow> for TaxReportIndex {
     }
 }
 
+#[serde_as]
 #[derive(Debug, FromRow, Serialize)]
+#[serde(rename_all = "kebab-case")]
 struct TaxReportIndexSqlHelper {
     client_name: String,
     contractor_name: String,
+    #[serde(default)]
     contract_name: Option<String>,
     tax_interval: TaxInterval,
     tax_name: String,
-    begin_period: String,
-    end_period: String,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    pub begin_period: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    pub end_period: sqlx::types::time::Date,
     country: String,
 }
 
@@ -186,6 +133,7 @@ impl TaxReportIndexQuery {
 pub struct CreateTaxReportIndex {
     pub client_ulid: Ulid,
     pub contractor_ulid: Ulid,
+    #[serde(default)]
     pub contract_ulid: Option<Ulid>,
     pub tax_interval: TaxInterval,
     pub tax_name: String,
