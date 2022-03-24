@@ -91,6 +91,7 @@ impl<'r> FromRow<'r, PgRow> for TaxReportIndex {
 struct TaxReportIndexSqlHelper {
     client_name: String,
     contractor_name: String,
+    #[serde(default)]
     contract_name: Option<String>,
     tax_interval: TaxInterval,
     tax_name: String,
@@ -132,6 +133,7 @@ impl TaxReportIndexQuery {
 pub struct CreateTaxReportIndex {
     pub client_ulid: Ulid,
     pub contractor_ulid: Ulid,
+    #[serde(default)]
     pub contract_ulid: Option<Ulid>,
     pub tax_interval: TaxInterval,
     pub tax_name: String,
