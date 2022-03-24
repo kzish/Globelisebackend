@@ -12,10 +12,9 @@ use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
-use strum::{Display, EnumIter, EnumString};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
 
-use crate::database::SharedDatabase;
+use crate::database::{ulid_from_sql_uuid, SharedDatabase};
 
 /// List the tax reports
 pub async fn user_tax_report_index(
@@ -25,7 +24,7 @@ pub async fn user_tax_report_index(
 ) -> GlobeliseResult<Json<Vec<TaxReportIndex>>> {
     let ulid = claims.payload.ulid.parse::<Ulid>()?;
     let database = shared_database.lock().await;
-    let result = database.tax_report_index(&ulid, query).await?;
+    let result = database.tax_report_index(ulid, query).await?;
     Ok(Json(result))
 }
 
@@ -37,7 +36,7 @@ pub async fn eor_admin_tax_report_index(
 ) -> GlobeliseResult<Json<Vec<TaxReportIndex>>> {
     let ulid = claims.payload.ulid.parse::<Ulid>()?;
     let database = shared_database.lock().await;
-    let result = database.tax_report_index(&ulid, query).await?;
+    let result = database.tax_report_index(ulid, query).await?;
     Ok(Json(result))
 }
 
@@ -55,41 +54,44 @@ pub async fn eor_admin_create_tax_report(
     Ok(())
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, EnumIter, EnumString, Display, Deserialize, Serialize,
-)]
+#[derive(Debug, sqlx::Type, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
-#[strum(serialize_all = "kebab-case")]
+#[sqlx(type_name = "interval_type")]
 pub enum TaxInterval {
     Monthly,
     Yearly,
 }
 
-#[derive(Debug, FromRow, Deserialize, Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TaxReportIndex {
     ulid: Ulid,
-    client_ulid: Ulid,
-    client_name: String,
-    contractor_ulid: Ulid,
-    contractor_name: String,
-    tax_interval: TaxInterval,
+    #[serde(flatten)]
+    other_fields: TaxReportIndexSqlHelper,
 }
 
-impl TaxReportIndex {
-    pub fn from_pg_row(row: PgRow) -> GlobeliseResult<Self> {
-        Ok(TaxReportIndex {
-            ulid: row.try_get::<String, _>("ulid")?.parse()?,
-            client_ulid: row.try_get::<String, _>("client_ulid")?.parse()?,
-            client_name: row.try_get::<String, _>("client_name")?.parse()?,
-            contractor_ulid: row.try_get::<String, _>("contractor_ulid")?.parse()?,
-            contractor_name: row.try_get::<String, _>("contractor_name")?.parse()?,
-            tax_interval: row.try_get::<String, _>("tax_interval")?.parse()?,
+impl<'r> FromRow<'r, PgRow> for TaxReportIndex {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
+            other_fields: TaxReportIndexSqlHelper::from_row(row)?,
         })
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, FromRow, Serialize)]
+struct TaxReportIndexSqlHelper {
+    client_name: String,
+    contractor_name: String,
+    contract_name: Option<String>,
+    tax_interval: TaxInterval,
+    tax_name: String,
+    begin_period: String,
+    end_period: String,
+    country: String,
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TaxReportIndexQuery {
     #[serde(default = "TaxReportIndexQuery::default_page")]
@@ -118,6 +120,7 @@ impl TaxReportIndexQuery {
 pub struct CreateTaxReportIndex {
     pub client_ulid: Ulid,
     pub contractor_ulid: Ulid,
+    pub contract_ulid: Option<Ulid>,
     pub tax_interval: TaxInterval,
     pub tax_name: String,
     #[serde_as(as = "TryFromInto<DateWrapper>")]

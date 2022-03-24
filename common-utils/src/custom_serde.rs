@@ -1,8 +1,8 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::GlobeliseError;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct DateWrapper(String);
 
 impl TryFrom<DateWrapper> for sqlx::types::time::Date {
@@ -11,6 +11,12 @@ impl TryFrom<DateWrapper> for sqlx::types::time::Date {
     fn try_from(date: DateWrapper) -> Result<Self, Self::Error> {
         sqlx::types::time::Date::parse(date.0, "%F")
             .map_err(|_| GlobeliseError::BadRequest("Date must use YYYY-MM-DD format"))
+    }
+}
+
+impl From<sqlx::types::time::Date> for DateWrapper {
+    fn from(date: sqlx::types::time::Date) -> Self {
+        Self(date.format("%F"))
     }
 }
 
