@@ -41,7 +41,7 @@ pub async fn user_index(
 
     for v in response {
         let count = database
-            .count_number_of_contracts(&v.ulid, &v.user_role)
+            .count_number_of_contracts(v.ulid, v.user_role)
             .await?;
         result.push(UserIndex {
             ulid: v.ulid,
@@ -98,7 +98,7 @@ pub async fn eor_admin_contract_index(
     Ok(Json(database.eor_admin_contract_index(query).await?))
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Serialize)]
 pub struct UserIndex {
     pub ulid: Ulid,
     pub name: String,
@@ -108,7 +108,7 @@ pub struct UserIndex {
     pub email: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct PaginationQuery {
     #[serde(default = "PaginationQuery::default_page")]
     pub page: i64,

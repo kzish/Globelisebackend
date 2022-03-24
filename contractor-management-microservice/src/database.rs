@@ -36,18 +36,14 @@ impl Database {
 
 impl Database {
     /// Counts the number of contracts.
-    pub async fn count_number_of_contracts(
-        &self,
-        ulid: &Ulid,
-        role: &Role,
-    ) -> GlobeliseResult<i64> {
+    pub async fn count_number_of_contracts(&self, ulid: Ulid, role: Role) -> GlobeliseResult<i64> {
         let client_ulid = match role {
-            Role::Client => Some(ulid_to_sql_uuid(*ulid)),
+            Role::Client => Some(ulid_to_sql_uuid(ulid)),
             Role::Contractor => None,
         };
         let contractor_ulid = match role {
             Role::Client => None,
-            Role::Contractor => Some(ulid_to_sql_uuid(*ulid)),
+            Role::Contractor => Some(ulid_to_sql_uuid(ulid)),
         };
 
         let result = sqlx::query_scalar(
@@ -183,24 +179,24 @@ impl Database {
     /// Indexes tax report.
     pub async fn tax_report_index(
         &self,
-        ulid: &Ulid,
+        ulid: Ulid,
         query: TaxReportIndexQuery,
     ) -> GlobeliseResult<Vec<TaxReportIndex>> {
         let client_ulid = match query.role {
-            Role::Client => Some(ulid_to_sql_uuid(*ulid)),
+            Role::Client => Some(ulid_to_sql_uuid(ulid)),
             Role::Contractor => None,
         };
         let contractor_ulid = match query.role {
             Role::Client => None,
-            Role::Contractor => Some(ulid_to_sql_uuid(*ulid)),
+            Role::Contractor => Some(ulid_to_sql_uuid(ulid)),
         };
-        let index = sqlx::query(
+        let index = sqlx::query_as(
             "
             SELECT
-                ulid, client_ulid, client_name, contractor_ulid, contractor_name,
-                contract_name, tax_interval, tax_name, country, tax_report_file
+                ulid, client_name, contractor_name, contract_name, tax_interval,
+                tax_name, begin_at, end_at, country
             FROM
-                tax_report_index
+                tax_reports_index
             WHERE
                 ($1 IS NULL OR client_ulid = $1) AND
                 ($2 IS NULL OR contractor_ulid = $2) AND
@@ -213,10 +209,7 @@ impl Database {
         .bind(query.per_page)
         .bind((query.page - 1) * query.per_page)
         .fetch_all(&self.0)
-        .await?
-        .into_iter()
-        .map(TaxReportIndex::from_pg_row)
-        .collect::<GlobeliseResult<Vec<TaxReportIndex>>>()?;
+        .await?;
 
         Ok(index)
     }
@@ -225,16 +218,17 @@ impl Database {
     pub async fn create_tax_report(&self, query: CreateTaxReportIndex) -> GlobeliseResult<()> {
         sqlx::query(
             "
-            INSERT INTO tax_report
-            (id, client_ulid, contractor_ulid, tax_interval,
-            tax_name, begin_period, end_period, country, tax_report_file)
+            INSERT INTO tax_reports
+            (ulid, client_ulid, contractor_ulid, contract_ulid, tax_interval,
+            tax_name, begin_at, end_at, country, tax_report_file)
             VALUES
-            ($2, $3, $4::interval_type, $5, $6, $7, $8, $9)",
+            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         )
         .bind(ulid_to_sql_uuid(Ulid::generate()))
         .bind(ulid_to_sql_uuid(query.client_ulid))
         .bind(ulid_to_sql_uuid(query.contractor_ulid))
-        .bind(query.tax_interval.to_string())
+        .bind(query.contract_ulid.map(ulid_to_sql_uuid))
+        .bind(query.tax_interval)
         .bind(query.tax_name)
         .bind(query.begin_period)
         .bind(query.end_period)

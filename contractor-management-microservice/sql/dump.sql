@@ -227,7 +227,7 @@ SET default_table_access_method = heap;
 CREATE TABLE public.client_names (
     ulid uuid NOT NULL,
     name text NOT NULL,
-    updated_at timestamp with time zone NOT NULL
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -240,7 +240,7 @@ ALTER TABLE public.client_names OWNER TO postgres;
 CREATE TABLE public.contractor_names (
     ulid uuid NOT NULL,
     name text NOT NULL,
-    updated_at timestamp with time zone NOT NULL
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -264,7 +264,9 @@ CREATE TABLE public.contracts (
     begin_at timestamp with time zone NOT NULL,
     end_at timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT contracts_begin_at_end_at_check CHECK ((begin_at <= end_at)),
+    CONSTRAINT contracts_contract_amount_check CHECK ((contract_amount >= (0)::numeric))
 );
 
 
@@ -300,7 +302,7 @@ CREATE VIEW public.contracts_index_for_client AS
     contracts.contract_amount,
     contracts.contract_status,
     contracts.contractor_ulid,
-    contracts.ulid,
+    contracts.ulid AS contract_ulid,
     contracts.end_at,
     contracts.begin_at,
     contracts.currency,
@@ -324,7 +326,7 @@ CREATE VIEW public.contracts_index_for_contractor AS
     contracts.contract_amount,
     contracts.contract_status,
     contracts.contractor_ulid,
-    contracts.ulid,
+    contracts.ulid AS contract_ulid,
     contracts.end_at,
     contracts.begin_at,
     contracts.currency,
@@ -448,23 +450,52 @@ CREATE VIEW public.invoice_individual_index AS
 ALTER TABLE public.invoice_individual_index OWNER TO postgres;
 
 --
--- Name: tax_report; Type: TABLE; Schema: public; Owner: postgres
+-- Name: tax_reports; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.tax_report (
+CREATE TABLE public.tax_reports (
     ulid uuid NOT NULL,
+    client_ulid uuid NOT NULL,
+    contractor_ulid uuid NOT NULL,
+    contract_ulid uuid,
     tax_interval public.interval_type NOT NULL,
     tax_name text NOT NULL,
-    begin_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    end_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    begin_at timestamp with time zone NOT NULL,
+    end_at timestamp with time zone NOT NULL,
     country text NOT NULL,
     tax_report_file bytea NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT tax_reports_begin_at_end_at_check CHECK ((begin_at <= end_at))
 );
 
 
-ALTER TABLE public.tax_report OWNER TO postgres;
+ALTER TABLE public.tax_reports OWNER TO postgres;
+
+--
+-- Name: tax_reports_index; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.tax_reports_index AS
+ SELECT tax_reports.client_ulid,
+    tax_reports.tax_interval,
+    tax_reports.contractor_ulid,
+    tax_reports.tax_report_file,
+    tax_reports.ulid,
+    tax_reports.end_at,
+    tax_reports.country,
+    tax_reports.begin_at,
+    tax_reports.tax_name,
+    client_names.name AS client_name,
+    contractor_names.name AS contractor_name,
+    contracts.contract_name
+   FROM (((public.tax_reports
+     JOIN public.client_names ON ((tax_reports.client_ulid = client_names.ulid)))
+     JOIN public.contractor_names ON ((tax_reports.contractor_ulid = contractor_names.ulid)))
+     LEFT JOIN public.contracts ON ((tax_reports.contract_ulid = contracts.ulid)));
+
+
+ALTER TABLE public.tax_reports_index OWNER TO postgres;
 
 --
 -- Name: client_names client_names_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
@@ -488,6 +519,14 @@ ALTER TABLE ONLY public.contractor_names
 
 ALTER TABLE ONLY public.contracts
     ADD CONSTRAINT contracts_pkey PRIMARY KEY (ulid);
+
+
+--
+-- Name: contracts contracts_ulid_client_ulid_contractor_ulid_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.contracts
+    ADD CONSTRAINT contracts_ulid_client_ulid_contractor_ulid_key UNIQUE (ulid, client_ulid, contractor_ulid);
 
 
 --
@@ -515,11 +554,11 @@ ALTER TABLE ONLY public.invoice_items
 
 
 --
--- Name: tax_report tax_report_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: tax_reports tax_reports_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.tax_report
-    ADD CONSTRAINT tax_report_pkey PRIMARY KEY (ulid);
+ALTER TABLE ONLY public.tax_reports
+    ADD CONSTRAINT tax_reports_pkey PRIMARY KEY (ulid);
 
 
 --
@@ -572,10 +611,10 @@ CREATE TRIGGER mdt_invoices BEFORE UPDATE ON public.invoice_individual FOR EACH 
 
 
 --
--- Name: tax_report mdt_tax_report; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: tax_reports mdt_tax_reports; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER mdt_tax_report BEFORE UPDATE ON public.tax_report FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
+CREATE TRIGGER mdt_tax_reports BEFORE UPDATE ON public.tax_reports FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
 
 
 --
@@ -624,6 +663,30 @@ ALTER TABLE ONLY public.invoice_individual
 
 ALTER TABLE ONLY public.invoice_items
     ADD CONSTRAINT invoice_items_invoice_ulid_fkey FOREIGN KEY (invoice_ulid) REFERENCES public.invoice_individual(ulid);
+
+
+--
+-- Name: tax_reports tax_reports_client_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tax_reports
+    ADD CONSTRAINT tax_reports_client_ulid_fkey FOREIGN KEY (client_ulid) REFERENCES public.client_names(ulid) ON DELETE RESTRICT;
+
+
+--
+-- Name: tax_reports tax_reports_contract_ulid_client_ulid_contractor_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tax_reports
+    ADD CONSTRAINT tax_reports_contract_ulid_client_ulid_contractor_ulid_fkey FOREIGN KEY (contract_ulid, client_ulid, contractor_ulid) REFERENCES public.contracts(ulid, client_ulid, contractor_ulid) ON DELETE RESTRICT;
+
+
+--
+-- Name: tax_reports tax_reports_contractor_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tax_reports
+    ADD CONSTRAINT tax_reports_contractor_ulid_fkey FOREIGN KEY (contractor_ulid) REFERENCES public.contractor_names(ulid) ON DELETE RESTRICT;
 
 
 --
