@@ -4,7 +4,6 @@ use common_utils::{
     error::GlobeliseResult,
     token::Token,
 };
-use rusty_ulid::Ulid;
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 
@@ -18,9 +17,10 @@ pub async fn account_details(
     >,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    let ulid: Ulid = claims.payload.ulid.parse().unwrap();
     let database = database.lock().await;
-    database.onboard_admin_details(ulid, request).await
+    database
+        .onboard_admin_details(claims.payload.ulid, request)
+        .await
 }
 
 #[serde_as]

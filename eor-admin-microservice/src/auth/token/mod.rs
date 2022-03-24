@@ -7,6 +7,7 @@ use common_utils::{
     DaprAppId,
 };
 use once_cell::sync::Lazy;
+use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use time::Duration;
 
@@ -15,7 +16,7 @@ pub mod one_time;
 /// Claims for access tokens.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AccessToken {
-    pub ulid: String,
+    pub ulid: Ulid,
     pub email: String,
 }
 
@@ -36,7 +37,7 @@ impl TokenLike for AccessToken {
 /// Claims for refresh tokens.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RefreshToken {
-    pub ulid: String,
+    pub ulid: Ulid,
 }
 
 impl TokenLike for RefreshToken {

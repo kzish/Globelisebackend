@@ -1,24 +1,17 @@
 use axum::extract::{Extension, Json};
 use common_utils::{error::GlobeliseResult, token::Token};
-use rusty_ulid::Ulid;
 use serde::Deserialize;
 
-use crate::{
-    auth::{token::AccessToken, user::UserType},
-    database::SharedDatabase,
-};
+use crate::{auth::token::AccessToken, database::SharedDatabase};
 
 pub async fn bank_details(
     claims: Token<AccessToken>,
     Json(details): Json<BankDetails>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    let user_type = claims.payload.user_type.parse::<UserType>().unwrap();
-
-    let ulid = claims.payload.ulid.parse::<Ulid>()?;
     let database = database.lock().await;
     database
-        .onboard_bank_details(ulid, user_type, details)
+        .onboard_bank_details(claims.payload.ulid, claims.payload.user_type, details)
         .await
 }
 

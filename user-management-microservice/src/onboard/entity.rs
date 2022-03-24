@@ -4,7 +4,6 @@ use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
-use rusty_ulid::Ulid;
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 
@@ -25,15 +24,14 @@ pub async fn account_details(
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    let user_type: UserType = claims.payload.user_type.parse::<UserType>().unwrap();
-    if !matches!(user_type, UserType::Entity) {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
         return Err(GlobeliseError::Forbidden);
     }
 
-    let ulid: Ulid = claims.payload.ulid.parse().unwrap();
-
     let database = database.lock().await;
-    database.onboard_entity_details(ulid, role, request).await
+    database
+        .onboard_entity_details(claims.payload.ulid, role, request)
+        .await
 }
 
 pub async fn pic_details(
@@ -42,15 +40,14 @@ pub async fn pic_details(
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    let user_type = claims.payload.user_type.parse::<UserType>().unwrap();
-    if !matches!(user_type, UserType::Entity) {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
         return Err(GlobeliseError::Forbidden);
     }
 
-    let ulid: Ulid = claims.payload.ulid.parse().unwrap();
-
     let database = database.lock().await;
-    database.onboard_pic_details(ulid, role, request).await
+    database
+        .onboard_pic_details(claims.payload.ulid, role, request)
+        .await
 }
 
 #[serde_as]

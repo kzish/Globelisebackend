@@ -9,7 +9,6 @@ use common_utils::{
 use email_address::EmailAddress;
 use once_cell::sync::Lazy;
 use rand::Rng;
-use rusty_ulid::Ulid;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 
@@ -112,8 +111,7 @@ pub async fn access_token(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    let ulid = claims.payload.ulid.parse::<Ulid>()?;
-
+    let ulid = claims.payload.ulid;
     let mut shared_state = shared_state.lock().await;
     let mut is_session_valid = false;
     let _ = shared_state.clear_expired_sessions(ulid).await;

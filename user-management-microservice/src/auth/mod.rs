@@ -12,7 +12,6 @@ use common_utils::{
 use email_address::EmailAddress;
 use once_cell::sync::Lazy;
 use rand::Rng;
-use rusty_ulid::Ulid;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 
@@ -124,8 +123,8 @@ pub async fn access_token(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    let ulid = claims.payload.ulid.parse::<Ulid>()?;
-    let user_type = claims.payload.user_type.parse::<UserType>().unwrap();
+    let ulid = claims.payload.ulid;
+    let user_type = claims.payload.user_type;
 
     let mut shared_state = shared_state.lock().await;
     let mut is_session_valid = false;
@@ -150,9 +149,9 @@ pub async fn access_token(
     let database = database.lock().await;
     if let Some((User { email, .. }, _)) = database.user(ulid, Some(user_type)).await? {
         let access_token = AccessToken {
-            ulid: claims.payload.ulid,
+            ulid,
             email: email.to_string(),
-            user_type: claims.payload.user_type,
+            user_type,
         };
         let (access_token, _) = create_token(access_token, &KEYS.encoding)?;
         Ok(access_token)

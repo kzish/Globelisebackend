@@ -204,9 +204,12 @@ pub async fn contractors_index(
     Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractorsIndex>>> {
-    let ulid = access_token.payload.ulid.parse::<Ulid>()?;
     let database = database.lock().await;
-    Ok(Json(database.contractors_index(ulid, query).await?))
+    Ok(Json(
+        database
+            .contractors_index(access_token.payload.ulid, query)
+            .await?,
+    ))
 }
 
 pub async fn contracts_index_for_client(
@@ -214,10 +217,11 @@ pub async fn contracts_index_for_client(
     Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractsIndexForClient>>> {
-    let ulid = access_token.payload.ulid.parse::<Ulid>()?;
     let database = database.lock().await;
     Ok(Json(
-        database.contracts_index_for_client(ulid, query).await?,
+        database
+            .contracts_index_for_client(access_token.payload.ulid, query)
+            .await?,
     ))
 }
 
@@ -226,10 +230,11 @@ pub async fn contracts_index_for_contractor(
     Query(query): Query<PaginationQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractsIndexForContractor>>> {
-    let ulid = access_token.payload.ulid.parse::<Ulid>()?;
     let database = database.lock().await;
     Ok(Json(
-        database.contracts_index_for_contractor(ulid, query).await?,
+        database
+            .contracts_index_for_contractor(access_token.payload.ulid, query)
+            .await?,
     ))
 }
 

@@ -93,8 +93,8 @@ pub async fn user_invoice_individual_index(
     Query(query): Query<InvoiceIndividualIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<InvoiceIndividualIndex>>> {
-    let ulid = claims.payload.ulid.parse::<Ulid>()?;
-    let user_type = claims.payload.user_type.parse::<UserType>()?;
+    let ulid = claims.payload.ulid;
+    let user_type = claims.payload.user_type;
     if user_type == UserType::Individual && query.client_ulid == Some(ulid) {
         return Err(GlobeliseError::Unauthorized(
             "Contractor is not authorized to query other contractor's invoices",
@@ -123,8 +123,8 @@ pub async fn user_invoice_group_index(
     Query(query): Query<InvoiceGroupIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<InvoiceGroupIndex>>> {
-    let ulid = claims.payload.ulid.parse::<Ulid>()?;
-    let user_type = claims.payload.user_type.parse::<UserType>()?;
+    let ulid = claims.payload.ulid;
+    let user_type = claims.payload.user_type;
     if user_type == UserType::Individual && query.client_ulid == Some(ulid) {
         return Err(GlobeliseError::Unauthorized(
             "Contractor is not authorized to query other contractor's invoices",
