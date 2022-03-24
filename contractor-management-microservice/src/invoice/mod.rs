@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Extension, Path, Query},
+    extract::{Extension, Query},
     Json,
 };
 use common_utils::{error::GlobeliseResult, token::Token};
@@ -87,14 +87,13 @@ impl Database {
 
 pub async fn user_invoice_individual_index(
     claims: Token<UserAccessToken>,
-    Path(role): Path<Role>,
     Query(mut query): Query<InvoiceIndividualIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<InvoiceIndividualIndex>>> {
     let ulid = claims.payload.ulid;
 
     // Override the provided query with the ulid provided by the tokens.
-    match role {
+    match query.role {
         Role::Client => query.client_ulid = Some(ulid),
         Role::Contractor => query.contractor_ulid = Some(ulid),
     };
@@ -145,8 +144,9 @@ pub struct InvoiceIndividualIndexQuery {
     pub contractor_ulid: Option<Ulid>,
     pub invoice_status: Option<String>,
     pub search_text: Option<String>,
-    page: i64,
-    per_page: i64,
+    pub page: i64,
+    pub per_page: i64,
+    pub role: Role,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
