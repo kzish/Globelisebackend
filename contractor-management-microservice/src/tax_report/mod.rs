@@ -10,7 +10,7 @@ use common_utils::{
 use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as, TryFromInto};
+use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
 
@@ -85,15 +85,19 @@ impl<'r> FromRow<'r, PgRow> for TaxReportIndex {
     }
 }
 
+#[serde_as]
 #[derive(Debug, FromRow, Serialize)]
+#[serde(rename_all = "kebab-case")]
 struct TaxReportIndexSqlHelper {
     client_name: String,
     contractor_name: String,
     contract_name: Option<String>,
     tax_interval: TaxInterval,
     tax_name: String,
-    begin_period: String,
-    end_period: String,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    pub begin_period: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    pub end_period: sqlx::types::time::Date,
     country: String,
 }
 
