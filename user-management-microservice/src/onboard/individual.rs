@@ -6,7 +6,6 @@ use common_utils::{
 };
 use email_address::EmailAddress;
 use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
-use rusty_ulid::Ulid;
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 
@@ -27,12 +26,11 @@ pub async fn account_details(
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    let user_type: UserType = claims.payload.user_type.parse().unwrap();
-    if !matches!(user_type, UserType::Individual) {
+    if !matches!(claims.payload.user_type, UserType::Individual) {
         return Err(GlobeliseError::Forbidden);
     }
 
-    let ulid = claims.payload.ulid.parse::<Ulid>().unwrap();
+    let ulid = claims.payload.ulid;
     let database = database.lock().await;
     database
         .onboard_individual_details(ulid, role, request)

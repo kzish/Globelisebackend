@@ -5,17 +5,20 @@ use std::{fs::File, io::Read};
 use common_utils::{token::TokenLike, DaprAppId};
 use jsonwebtoken::{DecodingKey, EncodingKey};
 use once_cell::sync::Lazy;
+use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use time::Duration;
+
+use crate::auth::user::UserType;
 
 pub mod one_time;
 
 /// Claims for access tokens.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AccessToken {
-    pub ulid: String,
+    pub ulid: Ulid,
     pub email: String,
-    pub user_type: String,
+    pub user_type: UserType,
 }
 
 impl TokenLike for AccessToken {
@@ -35,8 +38,8 @@ impl TokenLike for AccessToken {
 /// Claims for refresh tokens.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RefreshToken {
-    pub ulid: String,
-    pub user_type: String,
+    pub ulid: Ulid,
+    pub user_type: UserType,
 }
 
 impl TokenLike for RefreshToken {
