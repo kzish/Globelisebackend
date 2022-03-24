@@ -29,7 +29,6 @@ pub async fn account_details(
     if !matches!(claims.payload.user_type, UserType::Individual) {
         return Err(GlobeliseError::Forbidden);
     }
-
     let ulid = claims.payload.ulid;
     let database = database.lock().await;
     database

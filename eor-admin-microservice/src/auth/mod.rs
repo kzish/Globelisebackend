@@ -112,7 +112,6 @@ pub async fn access_token(
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
     let ulid = claims.payload.ulid;
-
     let mut shared_state = shared_state.lock().await;
     let mut is_session_valid = false;
     let _ = shared_state.clear_expired_sessions(ulid).await;
