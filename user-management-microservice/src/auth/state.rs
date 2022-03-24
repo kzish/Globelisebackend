@@ -232,13 +232,8 @@ impl Sessions {
     ///
     /// Returns the refresh token for the session.
     fn open(&mut self, ulid: Ulid, user_type: UserType) -> GlobeliseResult<String> {
-        let (refresh_token, expiration) = create_token(
-            RefreshToken {
-                ulid: ulid.to_string(),
-                user_type: user_type.to_string(),
-            },
-            &KEYS.encoding,
-        )?;
+        let (refresh_token, expiration) =
+            create_token(RefreshToken { ulid, user_type }, &KEYS.encoding)?;
         let salt: [u8; 16] = rand::thread_rng().gen();
         let hash = hash_encoded(refresh_token.as_bytes(), &salt, &HASH_CONFIG)
             .map_err(|_| GlobeliseError::Internal("Failed to hash session".into()))?;

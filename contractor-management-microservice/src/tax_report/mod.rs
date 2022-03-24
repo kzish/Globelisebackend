@@ -22,9 +22,10 @@ pub async fn user_tax_report_index(
     Query(query): Query<TaxReportIndexQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<TaxReportIndex>>> {
-    let ulid = claims.payload.ulid.parse::<Ulid>()?;
     let database = shared_database.lock().await;
-    let result = database.tax_report_index(ulid, query).await?;
+    let result = database
+        .tax_report_index(claims.payload.ulid, query)
+        .await?;
     Ok(Json(result))
 }
 
@@ -34,9 +35,10 @@ pub async fn eor_admin_tax_report_index(
     Query(query): Query<TaxReportIndexQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<TaxReportIndex>>> {
-    let ulid = claims.payload.ulid.parse::<Ulid>()?;
     let database = shared_database.lock().await;
-    let result = database.tax_report_index(ulid, query).await?;
+    let result = database
+        .tax_report_index(claims.payload.ulid, query)
+        .await?;
     Ok(Json(result))
 }
 

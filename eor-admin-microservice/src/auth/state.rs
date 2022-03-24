@@ -69,9 +69,7 @@ impl State {
         if let Some(existing_sessions) = self.sessions(ulid).await? {
             sessions = existing_sessions;
         }
-        let refresh_token = sessions.open(RefreshToken {
-            ulid: ulid.to_string(),
-        })?;
+        let refresh_token = sessions.open(RefreshToken { ulid })?;
         self.serialize(Self::SESSION_CATEGORY, &ulid.to_string(), sessions)
             .await?;
         Ok(refresh_token)
