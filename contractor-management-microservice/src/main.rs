@@ -21,6 +21,7 @@ mod contracts;
 mod database;
 mod env;
 mod invoice;
+mod payslips;
 mod tax_report;
 
 use env::{FRONTEND_URL, LISTENING_ADDRESS};
@@ -52,6 +53,7 @@ async fn main() {
             "/contractor/contract/index",
             get(contracts::contracts_index_for_contractor),
         )
+        .route("/users/payslips/index", get(payslips::user_payslips_index))
         .route(
             "/users/tax-report/index",
             get(tax_report::user_tax_report_index),
@@ -65,6 +67,14 @@ async fn main() {
             get(invoice::user_invoice_group_index),
         )
         // ========== ADMIN PAGES ==========
+        .route(
+            "/eor-admin/payslips/create",
+            post(payslips::eor_admin_create_payslip),
+        )
+        .route(
+            "/eor-admin/payslips/index",
+            get(payslips::eor_admin_payslips_index),
+        )
         .route(
             "/eor-admin/tax-report/create",
             post(tax_report::eor_admin_create_tax_report),

@@ -506,8 +506,8 @@ ALTER TABLE public.payslips OWNER TO postgres;
 --
 
 CREATE VIEW public.payslips_index AS
- SELECT client_names.name,
-    contractor_names.name AS public_contractor_names_name2,
+ SELECT client_names.name AS client_name,
+    contractor_names.name AS contractor_name,
     payslips.end_period,
     payslips.client_ulid,
     payslips.begin_period,
