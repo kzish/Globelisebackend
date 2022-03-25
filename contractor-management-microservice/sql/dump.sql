@@ -689,6 +689,13 @@ CREATE TRIGGER mdt_invoices BEFORE UPDATE ON public.invoice_individual FOR EACH 
 
 
 --
+-- Name: payslips mdt_payslips; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER mdt_payslips BEFORE UPDATE ON public.payslips FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
+
+
+--
 -- Name: tax_reports mdt_tax_reports; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
