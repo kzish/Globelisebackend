@@ -480,6 +480,53 @@ CREATE VIEW public.invoice_group_index AS
 ALTER TABLE public.invoice_group_index OWNER TO postgres;
 
 --
+-- Name: payslips; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.payslips (
+    ulid uuid NOT NULL,
+    client_ulid uuid NOT NULL,
+    contractor_ulid uuid NOT NULL,
+    contract_ulid uuid,
+    payslip_title text NOT NULL,
+    payment_date date NOT NULL,
+    begin_period date NOT NULL,
+    end_period date NOT NULL,
+    payslip_file bytea NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT payslips_begin_period_end_period_check CHECK ((begin_period <= end_period))
+);
+
+
+ALTER TABLE public.payslips OWNER TO postgres;
+
+--
+-- Name: payslips_index; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.payslips_index AS
+ SELECT client_names.name,
+    contractor_names.name AS public_contractor_names_name2,
+    payslips.end_period,
+    payslips.client_ulid,
+    payslips.begin_period,
+    payslips.payment_date,
+    payslips.payslip_file,
+    payslips.contract_ulid,
+    payslips.payslip_title,
+    payslips.contractor_ulid,
+    payslips.ulid,
+    contracts.contract_name
+   FROM (((public.payslips
+     JOIN public.client_names ON ((payslips.client_ulid = client_names.ulid)))
+     JOIN public.contractor_names ON ((payslips.contractor_ulid = contractor_names.ulid)))
+     LEFT JOIN public.contracts ON ((payslips.contract_ulid = contracts.ulid)));
+
+
+ALTER TABLE public.payslips_index OWNER TO postgres;
+
+--
 -- Name: tax_reports; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -584,6 +631,14 @@ ALTER TABLE ONLY public.invoice_items
 
 
 --
+-- Name: payslips payslips_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.payslips
+    ADD CONSTRAINT payslips_pkey PRIMARY KEY (ulid);
+
+
+--
 -- Name: tax_reports tax_reports_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -670,6 +725,30 @@ ALTER TABLE ONLY public.invoice_individual
 
 ALTER TABLE ONLY public.invoice_items
     ADD CONSTRAINT invoice_items_invoice_ulid_fkey FOREIGN KEY (invoice_ulid) REFERENCES public.invoice_individual(ulid);
+
+
+--
+-- Name: payslips payslips_client_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.payslips
+    ADD CONSTRAINT payslips_client_ulid_fkey FOREIGN KEY (client_ulid) REFERENCES public.client_names(ulid) ON DELETE RESTRICT;
+
+
+--
+-- Name: payslips payslips_contract_ulid_client_ulid_contractor_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.payslips
+    ADD CONSTRAINT payslips_contract_ulid_client_ulid_contractor_ulid_fkey FOREIGN KEY (contract_ulid, client_ulid, contractor_ulid) REFERENCES public.contracts(ulid, client_ulid, contractor_ulid) ON DELETE RESTRICT;
+
+
+--
+-- Name: payslips payslips_contractor_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.payslips
+    ADD CONSTRAINT payslips_contractor_ulid_fkey FOREIGN KEY (contractor_ulid) REFERENCES public.contractor_names(ulid) ON DELETE RESTRICT;
 
 
 --
