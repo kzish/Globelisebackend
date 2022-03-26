@@ -8,7 +8,7 @@ pub struct PaginatedQuery {
     pub page: NonZeroU32,
     #[serde(default = "PaginatedQuery::default_per_page")]
     pub per_page: NonZeroU32,
-    pub search_text: Option<String>,
+    pub query: Option<String>,
 }
 
 impl PaginatedQuery {

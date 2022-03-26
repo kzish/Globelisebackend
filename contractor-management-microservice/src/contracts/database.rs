@@ -60,7 +60,7 @@ impl Database {
             LIMIT $3 OFFSET $4",
         )
         .bind(ulid_to_sql_uuid(client_ulid))
-        .bind(query.search_text)
+        .bind(query.query)
         .bind(query.per_page.get())
         .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)
@@ -89,7 +89,7 @@ impl Database {
             LIMIT $3 OFFSET $4",
         )
         .bind(ulid_to_sql_uuid(client_ulid))
-        .bind(query.search_text)
+        .bind(query.query)
         .bind(query.per_page.get())
         .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)
@@ -118,7 +118,7 @@ impl Database {
             LIMIT $3 OFFSET $4",
         )
         .bind(ulid_to_sql_uuid(contractor_ulid))
-        .bind(query.search_text)
+        .bind(query.query)
         .bind(query.per_page.get())
         .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)
@@ -144,7 +144,7 @@ impl Database {
                 ($1 IS NULL OR (contract_name ~* $1 OR client_name ~* $1))
             LIMIT $2 OFFSET $3",
         )
-        .bind(query.search_text)
+        .bind(query.query)
         .bind(query.per_page.get())
         .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)

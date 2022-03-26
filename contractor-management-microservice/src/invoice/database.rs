@@ -27,7 +27,7 @@ impl Database {
                 LIMIT $3 OFFSET $4",
         )
         .bind(ulid_to_sql_uuid(query.invoice_group_ulid))
-        .bind(query.paginated_search.search_text)
+        .bind(query.paginated_search.query)
         .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
         .bind(query.client_ulid.map(ulid_to_sql_uuid))
         .bind(query.paginated_search.per_page.get())
@@ -61,7 +61,7 @@ impl Database {
                 LIMIT $3 OFFSET $4",
         )
         .bind(ulid_to_sql_uuid(query.invoice_group_ulid))
-        .bind(query.paginated_search.search_text)
+        .bind(query.paginated_search.query)
         .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
         .bind(query.client_ulid.map(ulid_to_sql_uuid))
         .bind(query.paginated_search.per_page.get())
