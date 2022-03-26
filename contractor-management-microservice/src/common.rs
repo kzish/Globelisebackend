@@ -1,7 +1,7 @@
 use rusty_ulid::Ulid;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct PaginationQuery {
     #[serde(default = "PaginationQuery::default_page")]
     pub page: i64,

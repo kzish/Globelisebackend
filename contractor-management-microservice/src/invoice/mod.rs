@@ -66,7 +66,7 @@ pub async fn eor_admin_invoice_group_index(
     Ok(Json(database.invoice_group_index(query).await?))
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct InvoiceIndividualIndexQuery {
     pub invoice_group_ulid: Ulid,
     pub client_ulid: Option<Ulid>,
@@ -77,7 +77,7 @@ pub struct InvoiceIndividualIndexQuery {
     pub role: Role,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct InvoiceIndividualIndex {
     pub ulid: Ulid,
     pub invoice_group_ulid: Ulid,
@@ -106,7 +106,7 @@ impl InvoiceIndividualIndex {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct InvoiceGroupIndexQuery {
     pub invoice_group_ulid: Ulid,
     pub client_ulid: Option<Ulid>,
@@ -117,13 +117,13 @@ pub struct InvoiceGroupIndexQuery {
     pub role: Role,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub enum InvoiceGroupIndex {
     Single(InvoiceIndividualIndex),
     Bulk(Vec<InvoiceIndividualIndex>),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct InvoiceGroupSingle {
     pub ulid: Ulid,
     pub invoice_group_ulid: Ulid,
