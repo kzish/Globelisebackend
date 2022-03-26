@@ -61,8 +61,8 @@ impl Database {
         )
         .bind(ulid_to_sql_uuid(client_ulid))
         .bind(query.search_text)
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
+        .bind(query.per_page.get())
+        .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)
         .await?;
 
@@ -90,8 +90,8 @@ impl Database {
         )
         .bind(ulid_to_sql_uuid(client_ulid))
         .bind(query.search_text)
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
+        .bind(query.per_page.get())
+        .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)
         .await?;
 
@@ -119,8 +119,8 @@ impl Database {
         )
         .bind(ulid_to_sql_uuid(contractor_ulid))
         .bind(query.search_text)
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
+        .bind(query.per_page.get())
+        .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)
         .await?;
 
@@ -145,8 +145,8 @@ impl Database {
             LIMIT $2 OFFSET $3",
         )
         .bind(query.search_text)
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
+        .bind(query.per_page.get())
+        .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)
         .await?;
 
