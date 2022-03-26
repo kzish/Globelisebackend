@@ -64,7 +64,7 @@ pub async fn get_users_info(
         query.push(("user_role", user_role.to_string()))
     }
     let response = client
-        .get(format!("{base_url}/eor-admin/users/index"))
+        .get(format!("{base_url}/eor-admin/users"))
         .headers({
             let mut headers = HeaderMap::new();
             headers.insert(

@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use axum::{
     error_handling::HandleErrorLayer,
     http::{HeaderValue, Method, StatusCode},
-    routing::{get, post},
+    routing::get,
     BoxError, Router,
 };
 use common_utils::token::PublicKeys;
@@ -43,56 +43,43 @@ async fn main() {
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
-        .route("/users/index", get(contracts::user_index))
-        .route("/contractors/index", get(contracts::contractors_index))
+        .route("/contractors", get(contracts::contractors_index))
         .route(
-            "/client/contract/index",
+            "/contracts/client",
             get(contracts::contracts_index_for_client),
         )
         .route(
-            "/contractor/contract/index",
+            "/contracts/contractor",
             get(contracts::contracts_index_for_contractor),
         )
-        .route("/users/payslips/index", get(payslips::user_payslips_index))
+        .route("/payslips", get(payslips::user_payslips_index))
+        .route("/tax-reports", get(tax_report::user_tax_report_index))
         .route(
-            "/users/tax-report/index",
-            get(tax_report::user_tax_report_index),
-        )
-        .route(
-            "/users/invoice/individual/index",
+            "/invoices/individual",
             get(invoice::user_invoice_individual_index),
         )
-        .route(
-            "/users/invoice/group/index",
-            get(invoice::user_invoice_group_index),
-        )
+        .route("/invoices/group", get(invoice::user_invoice_group_index))
         // ========== ADMIN PAGES ==========
+        .route("/eor-admin/users", get(contracts::user_index))
         .route(
-            "/eor-admin/payslips/create",
-            post(payslips::eor_admin_create_payslip),
+            "/eor-admin/payslips",
+            get(payslips::eor_admin_payslips_index).post(payslips::eor_admin_create_payslip),
         )
         .route(
-            "/eor-admin/payslips/index",
-            get(payslips::eor_admin_payslips_index),
+            "/eor-admin/tax-reports",
+            get(tax_report::eor_admin_tax_report_index)
+                .post(tax_report::eor_admin_create_tax_report),
         )
         .route(
-            "/eor-admin/tax-report/create",
-            post(tax_report::eor_admin_create_tax_report),
-        )
-        .route(
-            "/eor-admin/tax-report/index",
-            get(tax_report::eor_admin_tax_report_index),
-        )
-        .route(
-            "/eor-admin/contract/index",
+            "/eor-admin/contracts",
             get(contracts::eor_admin_contract_index),
         )
         .route(
-            "/eor-admin/invoice/individual/index",
+            "/eor-admin/invoices/individual",
             get(invoice::eor_admin_invoice_individual_index),
         )
         .route(
-            "/eor-admin/invoice/group/index",
+            "/eor-admin/invoices/group",
             get(invoice::eor_admin_invoice_group_index),
         )
         // ========== DEBUG PAGES ==========
