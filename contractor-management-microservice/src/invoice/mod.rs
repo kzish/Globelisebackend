@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
 
-use crate::database::SharedDatabase;
+use crate::{common::PaginationQuery, database::SharedDatabase};
 
 mod database;
 
@@ -72,9 +72,8 @@ pub struct InvoiceIndividualIndexQuery {
     pub client_ulid: Option<Ulid>,
     pub contractor_ulid: Option<Ulid>,
     pub invoice_status: Option<String>,
-    pub search_text: Option<String>,
-    pub page: i64,
-    pub per_page: i64,
+    #[serde(flatten)]
+    pub paginated_search: PaginationQuery,
     pub role: Role,
 }
 
@@ -113,9 +112,8 @@ pub struct InvoiceGroupIndexQuery {
     pub client_ulid: Option<Ulid>,
     pub contractor_ulid: Option<Ulid>,
     pub invoice_status: Option<String>,
-    pub search_text: Option<String>,
-    pub page: i64,
-    pub per_page: i64,
+    #[serde(flatten)]
+    pub paginated_search: PaginationQuery,
     pub role: Role,
 }
 

@@ -27,9 +27,9 @@ impl Database {
         )
         .bind(query.client_ulid.map(ulid_to_sql_uuid))
         .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
-        .bind(query.search_text)
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
+        .bind(query.paginated_search.search_text)
+        .bind(query.paginated_search.per_page)
+        .bind((query.paginated_search.page - 1) * query.paginated_search.per_page)
         .fetch_all(&self.0)
         .await?;
 

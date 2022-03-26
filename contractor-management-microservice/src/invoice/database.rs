@@ -27,11 +27,11 @@ impl Database {
                 LIMIT $3 OFFSET $4",
         )
         .bind(ulid_to_sql_uuid(query.invoice_group_ulid))
-        .bind(query.search_text)
+        .bind(query.paginated_search.search_text)
         .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
         .bind(query.client_ulid.map(ulid_to_sql_uuid))
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
+        .bind(query.paginated_search.per_page)
+        .bind((query.paginated_search.page - 1) * query.paginated_search.per_page)
         .fetch_all(&self.0)
         .await?
         .into_iter()
@@ -61,11 +61,11 @@ impl Database {
                 LIMIT $3 OFFSET $4",
         )
         .bind(ulid_to_sql_uuid(query.invoice_group_ulid))
-        .bind(query.search_text)
+        .bind(query.paginated_search.search_text)
         .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
         .bind(query.client_ulid.map(ulid_to_sql_uuid))
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
+        .bind(query.paginated_search.per_page)
+        .bind((query.paginated_search.page - 1) * query.paginated_search.per_page)
         .fetch_all(&self.0)
         .await?
         .into_iter()

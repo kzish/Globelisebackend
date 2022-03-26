@@ -14,7 +14,10 @@ use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
 
-use crate::{common::ulid_from_sql_uuid, database::SharedDatabase};
+use crate::{
+    common::{ulid_from_sql_uuid, PaginationQuery},
+    database::SharedDatabase,
+};
 
 mod database;
 
@@ -97,26 +100,13 @@ struct PayslipsIndexSqlHelper {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PayslipsIndexQuery {
-    #[serde(default = "PayslipsIndexQuery::default_page")]
-    pub page: i64,
-    #[serde(default = "PayslipsIndexQuery::default_per_page")]
-    pub per_page: i64,
-    pub search_text: Option<String>,
+    #[serde(flatten)]
+    pub paginated_search: PaginationQuery,
     // NOTE: The access token should have this information instead because
     // someone _could_ spoof if they have a similar ULID.
     pub role: Role,
     pub contractor_ulid: Option<Ulid>,
     pub client_ulid: Option<Ulid>,
-}
-
-impl PayslipsIndexQuery {
-    fn default_page() -> i64 {
-        1
-    }
-
-    fn default_per_page() -> i64 {
-        25
-    }
 }
 
 #[serde_as]
