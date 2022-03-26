@@ -3,15 +3,15 @@ use serde::Deserialize;
 use std::num::NonZeroU32;
 
 #[derive(Debug, Deserialize)]
-pub struct PaginationQuery {
-    #[serde(default = "PaginationQuery::default_page")]
+pub struct PaginatedQuery {
+    #[serde(default = "PaginatedQuery::default_page")]
     pub page: NonZeroU32,
-    #[serde(default = "PaginationQuery::default_per_page")]
+    #[serde(default = "PaginatedQuery::default_per_page")]
     pub per_page: NonZeroU32,
     pub search_text: Option<String>,
 }
 
-impl PaginationQuery {
+impl PaginatedQuery {
     fn default_page() -> NonZeroU32 {
         NonZeroU32::new(1).unwrap()
     }

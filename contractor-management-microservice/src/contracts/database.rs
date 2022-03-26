@@ -5,7 +5,7 @@ use rusty_ulid::Ulid;
 use user_management_microservice_sdk::Role;
 
 use crate::{
-    common::{ulid_to_sql_uuid, PaginationQuery},
+    common::{ulid_to_sql_uuid, PaginatedQuery},
     database::Database,
 };
 
@@ -45,7 +45,7 @@ impl Database {
     pub async fn contractors_index(
         &self,
         client_ulid: Ulid,
-        query: PaginationQuery,
+        query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractorsIndex>> {
         let index = sqlx::query_as(
             "
@@ -73,7 +73,7 @@ impl Database {
     pub async fn contracts_index_for_client(
         &self,
         client_ulid: Ulid,
-        query: PaginationQuery,
+        query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractsIndexForClient>> {
         let index = sqlx::query_as(
             "
@@ -102,7 +102,7 @@ impl Database {
     pub async fn contracts_index_for_contractor(
         &self,
         contractor_ulid: Ulid,
-        query: PaginationQuery,
+        query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractsIndexForContractor>> {
         let index = sqlx::query_as(
             "
@@ -130,7 +130,7 @@ impl Database {
     /// Index contract for EOR admin purposes
     pub async fn eor_admin_contract_index(
         &self,
-        query: PaginationQuery,
+        query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractsIndexForClient>> {
         let index = sqlx::query_as(
             "

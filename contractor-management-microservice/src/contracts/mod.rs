@@ -16,7 +16,7 @@ use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, GetUserInfoRequest, Role};
 
 use crate::{
-    common::{ulid_from_sql_uuid, PaginationQuery},
+    common::{ulid_from_sql_uuid, PaginatedQuery},
     database::SharedDatabase,
     env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
 };
@@ -60,7 +60,7 @@ pub async fn user_index(
 
 pub async fn contractors_index(
     access_token: Token<UserAccessToken>,
-    Query(query): Query<PaginationQuery>,
+    Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractorsIndex>>> {
     let database = database.lock().await;
@@ -73,7 +73,7 @@ pub async fn contractors_index(
 
 pub async fn contracts_index_for_client(
     access_token: Token<UserAccessToken>,
-    Query(query): Query<PaginationQuery>,
+    Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractsIndexForClient>>> {
     let database = database.lock().await;
@@ -86,7 +86,7 @@ pub async fn contracts_index_for_client(
 
 pub async fn contracts_index_for_contractor(
     access_token: Token<UserAccessToken>,
-    Query(query): Query<PaginationQuery>,
+    Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractsIndexForContractor>>> {
     let database = database.lock().await;
@@ -99,7 +99,7 @@ pub async fn contracts_index_for_contractor(
 
 pub async fn eor_admin_contract_index(
     _: Token<AdminAccessToken>,
-    Query(query): Query<PaginationQuery>,
+    Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractsIndexForClient>>> {
     let database = database.lock().await;

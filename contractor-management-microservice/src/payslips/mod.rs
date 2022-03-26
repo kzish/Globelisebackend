@@ -15,7 +15,7 @@ use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
 
 use crate::{
-    common::{ulid_from_sql_uuid, PaginationQuery},
+    common::{ulid_from_sql_uuid, PaginatedQuery},
     database::SharedDatabase,
 };
 
@@ -101,7 +101,7 @@ struct PayslipsIndexSqlHelper {
 #[serde(rename_all = "kebab-case")]
 pub struct PayslipsIndexQuery {
     #[serde(flatten)]
-    pub paginated_search: PaginationQuery,
+    pub paginated_search: PaginatedQuery,
     // NOTE: The access token should have this information instead because
     // someone _could_ spoof if they have a similar ULID.
     pub role: Role,
