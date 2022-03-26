@@ -16,7 +16,7 @@ impl PaginationQuery {
     }
 
     fn default_per_page() -> i64 {
-        25
+        50
     }
 }
 
