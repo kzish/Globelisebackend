@@ -152,7 +152,7 @@ pub enum ContractsIndex {
 pub struct ContractsIndexForClient {
     contractor_ulid: Ulid,
     contractor_name: String,
-    ulid: Ulid,
+    contract_ulid: Ulid,
     #[serde(flatten)]
     common_info: ContractsIndexCommonInfoSqlHelper,
 }
@@ -162,7 +162,7 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForClient {
         Ok(Self {
             contractor_ulid: ulid_from_sql_uuid(row.try_get("contractor_ulid")?),
             contractor_name: row.try_get("contractor_name")?,
-            ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
+            contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
             common_info: ContractsIndexCommonInfoSqlHelper::from_row(row)?,
         })
     }
@@ -173,7 +173,7 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForClient {
 pub struct ContractsIndexForContractor {
     client_ulid: Ulid,
     client_name: String,
-    ulid: Ulid,
+    contract_ulid: Ulid,
     #[serde(flatten)]
     common_info: ContractsIndexCommonInfoSqlHelper,
 }
@@ -183,7 +183,7 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForContractor {
         Ok(Self {
             client_ulid: ulid_from_sql_uuid(row.try_get("client_ulid")?),
             client_name: row.try_get("client_name")?,
-            ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
+            contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
             common_info: ContractsIndexCommonInfoSqlHelper::from_row(row)?,
         })
     }
