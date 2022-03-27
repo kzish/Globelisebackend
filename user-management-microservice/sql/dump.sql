@@ -229,23 +229,23 @@ ALTER TABLE public.individual_contractors_bank_details OWNER TO postgres;
 --
 
 CREATE VIEW public.onboard_entity_clients AS
- SELECT entity_clients_pic_details.first_name,
-    entity_clients_pic_details.phone_number,
-    entity_clients_pic_details.profile_picture,
+ SELECT entity_clients_account_details.ulid,
+    entity_clients_account_details.company_name,
+    entity_clients_account_details.country,
+    entity_clients_account_details.entity_type,
+    entity_clients_account_details.registration_number,
+    entity_clients_account_details.tax_id,
+    entity_clients_account_details.company_address,
+    entity_clients_account_details.city,
+    entity_clients_account_details.postal_code,
+    entity_clients_account_details.time_zone,
+    entity_clients_account_details.logo,
+    entity_clients_pic_details.first_name,
+    entity_clients_pic_details.last_name,
     entity_clients_pic_details.dob,
     entity_clients_pic_details.dial_code,
-    entity_clients_pic_details.last_name,
-    entity_clients_account_details.entity_type,
-    entity_clients_account_details.postal_code,
-    entity_clients_account_details.company_name,
-    entity_clients_account_details.company_address,
-    entity_clients_account_details.registration_number,
-    entity_clients_account_details.city,
-    entity_clients_account_details.logo,
-    entity_clients_account_details.ulid,
-    entity_clients_account_details.tax_id,
-    entity_clients_account_details.country,
-    entity_clients_account_details.time_zone
+    entity_clients_pic_details.phone_number,
+    entity_clients_pic_details.profile_picture
    FROM (public.entity_clients_pic_details
      JOIN public.entity_clients_account_details ON ((entity_clients_pic_details.ulid = entity_clients_account_details.ulid)));
 
@@ -257,26 +257,26 @@ ALTER TABLE public.onboard_entity_clients OWNER TO postgres;
 --
 
 CREATE VIEW public.onboard_entity_contractors AS
- SELECT entity_contractors_pic_details.first_name,
-    entity_contractors_pic_details.phone_number,
-    entity_contractors_pic_details.profile_picture,
+ SELECT entity_contractors_account_details.ulid,
+    entity_contractors_account_details.company_name,
+    entity_contractors_account_details.country,
+    entity_contractors_account_details.entity_type,
+    entity_contractors_account_details.registration_number,
+    entity_contractors_account_details.tax_id,
+    entity_contractors_account_details.company_address,
+    entity_contractors_account_details.city,
+    entity_contractors_account_details.postal_code,
+    entity_contractors_account_details.time_zone,
+    entity_contractors_account_details.logo,
+    entity_contractors_pic_details.first_name,
+    entity_contractors_pic_details.last_name,
     entity_contractors_pic_details.dob,
     entity_contractors_pic_details.dial_code,
-    entity_contractors_pic_details.last_name,
-    entity_contractors_bank_details.bank_account_name,
-    entity_contractors_bank_details.bank_account_number,
+    entity_contractors_pic_details.phone_number,
+    entity_contractors_pic_details.profile_picture,
     entity_contractors_bank_details.bank_name,
-    entity_contractors_account_details.entity_type,
-    entity_contractors_account_details.postal_code,
-    entity_contractors_account_details.company_name,
-    entity_contractors_account_details.company_address,
-    entity_contractors_account_details.registration_number,
-    entity_contractors_account_details.city,
-    entity_contractors_account_details.logo,
-    entity_contractors_account_details.ulid,
-    entity_contractors_account_details.tax_id,
-    entity_contractors_account_details.country,
-    entity_contractors_account_details.time_zone
+    entity_contractors_bank_details.bank_account_name,
+    entity_contractors_bank_details.bank_account_number
    FROM ((public.entity_contractors_bank_details
      JOIN public.entity_contractors_pic_details ON ((entity_contractors_bank_details.ulid = entity_contractors_pic_details.ulid)))
      JOIN public.entity_contractors_account_details ON ((entity_contractors_pic_details.ulid = entity_contractors_account_details.ulid)));
@@ -289,19 +289,19 @@ ALTER TABLE public.onboard_entity_contractors OWNER TO postgres;
 --
 
 CREATE VIEW public.onboard_individual_clients AS
- SELECT individual_clients_account_details.first_name,
-    individual_clients_account_details.postal_code,
-    individual_clients_account_details.phone_number,
-    individual_clients_account_details.profile_picture,
-    individual_clients_account_details.dob,
-    individual_clients_account_details.city,
-    individual_clients_account_details.ulid,
-    individual_clients_account_details.tax_id,
-    individual_clients_account_details.address,
-    individual_clients_account_details.country,
-    individual_clients_account_details.dial_code,
+ SELECT individual_clients_account_details.ulid,
+    individual_clients_account_details.first_name,
     individual_clients_account_details.last_name,
-    individual_clients_account_details.time_zone
+    individual_clients_account_details.dob,
+    individual_clients_account_details.dial_code,
+    individual_clients_account_details.phone_number,
+    individual_clients_account_details.country,
+    individual_clients_account_details.city,
+    individual_clients_account_details.address,
+    individual_clients_account_details.postal_code,
+    individual_clients_account_details.tax_id,
+    individual_clients_account_details.time_zone,
+    individual_clients_account_details.profile_picture
    FROM public.individual_clients_account_details;
 
 
@@ -312,22 +312,22 @@ ALTER TABLE public.onboard_individual_clients OWNER TO postgres;
 --
 
 CREATE VIEW public.onboard_individual_contractors AS
- SELECT individual_contractors_bank_details.bank_account_name,
-    individual_contractors_bank_details.bank_account_number,
-    individual_contractors_bank_details.bank_name,
+ SELECT individual_contractors_account_details.ulid,
     individual_contractors_account_details.first_name,
-    individual_contractors_account_details.postal_code,
-    individual_contractors_account_details.phone_number,
-    individual_contractors_account_details.profile_picture,
-    individual_contractors_account_details.dob,
-    individual_contractors_account_details.city,
-    individual_contractors_account_details.ulid,
-    individual_contractors_account_details.tax_id,
-    individual_contractors_account_details.address,
-    individual_contractors_account_details.country,
-    individual_contractors_account_details.dial_code,
     individual_contractors_account_details.last_name,
-    individual_contractors_account_details.time_zone
+    individual_contractors_account_details.dob,
+    individual_contractors_account_details.dial_code,
+    individual_contractors_account_details.phone_number,
+    individual_contractors_account_details.country,
+    individual_contractors_account_details.city,
+    individual_contractors_account_details.address,
+    individual_contractors_account_details.postal_code,
+    individual_contractors_account_details.tax_id,
+    individual_contractors_account_details.time_zone,
+    individual_contractors_account_details.profile_picture,
+    individual_contractors_bank_details.bank_name,
+    individual_contractors_bank_details.bank_account_name,
+    individual_contractors_bank_details.bank_account_number
    FROM (public.individual_contractors_bank_details
      JOIN public.individual_contractors_account_details ON ((individual_contractors_bank_details.ulid = individual_contractors_account_details.ulid)));
 

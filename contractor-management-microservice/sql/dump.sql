@@ -293,11 +293,11 @@ ALTER TABLE public.contracts OWNER TO postgres;
 --
 
 CREATE VIEW public.contractors_index AS
- SELECT contractor_names.name AS contractor_name,
-    contracts.client_ulid,
+ SELECT contracts.client_ulid,
+    contracts.contractor_ulid,
+    contractor_names.name AS contractor_name,
     contracts.contract_name,
     contracts.contract_status,
-    contracts.contractor_ulid,
     contracts.job_title,
     contracts.seniority
    FROM (public.contracts
@@ -311,17 +311,17 @@ ALTER TABLE public.contractors_index OWNER TO postgres;
 --
 
 CREATE VIEW public.contracts_index_for_client AS
- SELECT contractor_names.name AS contractor_name,
+ SELECT contracts.ulid AS contract_ulid,
     contracts.client_ulid,
+    contracts.contractor_ulid,
+    contractor_names.name AS contractor_name,
     contracts.contract_name,
     contracts.contract_type,
-    contracts.contract_amount,
     contracts.contract_status,
-    contracts.contractor_ulid,
-    contracts.ulid AS contract_ulid,
-    contracts.end_at,
-    contracts.begin_at,
+    contracts.contract_amount,
     contracts.currency,
+    contracts.begin_at,
+    contracts.end_at,
     contracts.job_title,
     contracts.seniority
    FROM (public.contracts
@@ -335,17 +335,17 @@ ALTER TABLE public.contracts_index_for_client OWNER TO postgres;
 --
 
 CREATE VIEW public.contracts_index_for_contractor AS
- SELECT client_names.name AS client_name,
+ SELECT contracts.ulid AS contract_ulid,
     contracts.client_ulid,
+    client_names.name AS client_name,
+    contracts.contractor_ulid,
     contracts.contract_name,
     contracts.contract_type,
-    contracts.contract_amount,
     contracts.contract_status,
-    contracts.contractor_ulid,
-    contracts.ulid AS contract_ulid,
-    contracts.end_at,
-    contracts.begin_at,
+    contracts.contract_amount,
     contracts.currency,
+    contracts.begin_at,
+    contracts.end_at,
     contracts.job_title,
     contracts.seniority
    FROM (public.contracts
@@ -506,18 +506,18 @@ ALTER TABLE public.payslips OWNER TO postgres;
 --
 
 CREATE VIEW public.payslips_index AS
- SELECT client_names.name AS client_name,
-    contractor_names.name AS contractor_name,
-    payslips.end_period,
+ SELECT payslips.ulid,
     payslips.client_ulid,
-    payslips.begin_period,
-    payslips.payment_date,
-    payslips.payslip_file,
-    payslips.contract_ulid,
-    payslips.payslip_title,
+    client_names.name AS client_name,
     payslips.contractor_ulid,
-    payslips.ulid,
-    contracts.contract_name
+    contractor_names.name AS contractor_name,
+    payslips.contract_ulid,
+    contracts.contract_name,
+    payslips.payslip_title,
+    payslips.payment_date,
+    payslips.begin_period,
+    payslips.end_period,
+    payslips.payslip_file
    FROM (((public.payslips
      JOIN public.client_names ON ((payslips.client_ulid = client_names.ulid)))
      JOIN public.contractor_names ON ((payslips.contractor_ulid = contractor_names.ulid)))
@@ -554,18 +554,18 @@ ALTER TABLE public.tax_reports OWNER TO postgres;
 --
 
 CREATE VIEW public.tax_reports_index AS
- SELECT tax_reports.client_ulid,
-    tax_reports.tax_interval,
+ SELECT tax_reports.ulid,
+    tax_reports.client_ulid,
+    client_names.name AS client_name,
     tax_reports.contractor_ulid,
-    tax_reports.tax_report_file,
-    tax_reports.ulid,
+    contractor_names.name AS contractor_name,
+    contracts.contract_name,
+    tax_reports.tax_interval,
+    tax_reports.tax_name,
+    tax_reports.begin_period,
     tax_reports.end_period,
     tax_reports.country,
-    tax_reports.begin_period,
-    tax_reports.tax_name,
-    client_names.name AS client_name,
-    contractor_names.name AS contractor_name,
-    contracts.contract_name
+    tax_reports.tax_report_file
    FROM (((public.tax_reports
      JOIN public.client_names ON ((tax_reports.client_ulid = client_names.ulid)))
      JOIN public.contractor_names ON ((tax_reports.contractor_ulid = contractor_names.ulid)))
