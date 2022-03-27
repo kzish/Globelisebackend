@@ -107,11 +107,11 @@ impl<'r> FromRow<'r, PgRow> for InvoiceIndividualIndex {
 #[serde_as]
 #[derive(Debug, FromRow, Serialize)]
 pub struct InvoiceIndividualIndexSqlHelper {
-    invoice_id: String,
+    invoice_id: i64,
     #[serde_as(as = "FromInto<DateWrapper>")]
     invoice_due: sqlx::types::time::Date,
     invoice_status: String,
-    invoice_amount: i64,
+    invoice_amount: sqlx::types::Decimal,
 }
 
 #[derive(Debug, Deserialize)]
@@ -226,8 +226,8 @@ impl<'r> FromRow<'r, PgRow> for InvoiceGroupIndexInternal {
 
 #[derive(Debug, FromRow)]
 struct InvoiceGroupIndexInternalSqlHelper {
-    invoice_id: Vec<String>,
+    invoice_id: Vec<i64>,
     invoice_due: Vec<sqlx::types::time::Date>,
     invoice_status: Vec<String>,
-    invoice_amount: Vec<i64>,
+    invoice_amount: Vec<sqlx::types::Decimal>,
 }

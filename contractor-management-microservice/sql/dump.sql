@@ -362,8 +362,8 @@ CREATE TABLE public.invoice_group (
     ulid uuid NOT NULL,
     invoice_name text NOT NULL,
     invoice_status text NOT NULL,
-    invoice_due timestamp with time zone NOT NULL,
-    invoice_date timestamp with time zone NOT NULL,
+    invoice_due date NOT NULL,
+    invoice_date date NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -380,9 +380,9 @@ CREATE TABLE public.invoice_individual (
     invoice_group_ulid uuid NOT NULL,
     contractor_ulid uuid NOT NULL,
     client_ulid uuid NOT NULL,
-    invoice_id text NOT NULL,
-    invoice_tax_amount integer NOT NULL,
-    invoice_amount_paid integer NOT NULL,
+    invoice_id bigint NOT NULL,
+    invoice_tax_amount numeric NOT NULL,
+    invoice_amount_paid numeric NOT NULL,
     terms_and_instructions text NOT NULL,
     bill_to_name text NOT NULL,
     bill_to_address text NOT NULL,
@@ -401,8 +401,8 @@ CREATE TABLE public.invoice_items (
     ulid uuid NOT NULL,
     invoice_ulid uuid NOT NULL,
     item_name text NOT NULL,
-    item_unit_price integer NOT NULL,
-    item_unit_quantity integer NOT NULL,
+    item_unit_price numeric NOT NULL,
+    item_unit_quantity bigint NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -417,7 +417,7 @@ ALTER TABLE public.invoice_items OWNER TO postgres;
 CREATE VIEW public.invoice_individual_index AS
  WITH total_amount AS (
          SELECT invoice_items.invoice_ulid,
-            sum((invoice_items.item_unit_quantity * invoice_items.item_unit_price)) AS invoice_amount
+            sum(((invoice_items.item_unit_quantity)::numeric * invoice_items.item_unit_price)) AS invoice_amount
            FROM (public.invoice_individual
              JOIN public.invoice_items ON ((invoice_individual.ulid = invoice_items.invoice_ulid)))
           GROUP BY invoice_items.invoice_ulid
@@ -441,7 +441,7 @@ CREATE VIEW public.invoice_individual_index AS
             step_1.invoice_name,
             step_1.invoice_due,
             step_1.invoice_status,
-            COALESCE(total_amount.invoice_amount, (0)::bigint) AS invoice_amount
+            COALESCE(total_amount.invoice_amount, (0)::numeric) AS invoice_amount
            FROM (step_1
              LEFT JOIN total_amount ON ((step_1.ulid = total_amount.invoice_ulid)))
         )
