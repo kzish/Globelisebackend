@@ -293,11 +293,11 @@ ALTER TABLE public.contracts OWNER TO postgres;
 --
 
 CREATE VIEW public.contractors_index AS
- SELECT contractor_names.name AS contractor_name,
-    contracts.client_ulid,
+ SELECT contracts.client_ulid,
+    contracts.contractor_ulid,
+    contractor_names.name AS contractor_name,
     contracts.contract_name,
     contracts.contract_status,
-    contracts.contractor_ulid,
     contracts.job_title,
     contracts.seniority
    FROM (public.contracts
