@@ -130,18 +130,6 @@ pub enum InvoiceGroupIndex {
     Bulk(Vec<InvoiceIndividualIndex>),
 }
 
-#[derive(Debug, Serialize)]
-pub struct InvoiceGroupSingle {
-    pub ulid: Ulid,
-    pub invoice_group_ulid: Ulid,
-    pub client_ulid: Ulid,
-    pub contractor_ulid: Ulid,
-    pub invoice_id: String,
-    pub invoice_due: String,
-    pub invoice_status: String,
-    pub invoice_amount: i64,
-}
-
 impl<'r> FromRow<'r, PgRow> for InvoiceGroupIndex {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         let results = InvoiceGroupIndexInternal::from_row(row)?;
