@@ -506,7 +506,7 @@ ALTER TABLE public.payslips OWNER TO postgres;
 --
 
 CREATE VIEW public.payslips_index AS
- SELECT payslips.ulid,
+ SELECT payslips.ulid AS payslip_ulid,
     payslips.client_ulid,
     client_names.name AS client_name,
     payslips.contractor_ulid,
@@ -554,7 +554,7 @@ ALTER TABLE public.tax_reports OWNER TO postgres;
 --
 
 CREATE VIEW public.tax_reports_index AS
- SELECT tax_reports.ulid,
+ SELECT tax_reports.ulid AS tax_report_ulid,
     tax_reports.client_ulid,
     client_names.name AS client_name,
     tax_reports.contractor_ulid,

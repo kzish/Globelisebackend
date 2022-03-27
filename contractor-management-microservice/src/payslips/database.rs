@@ -18,7 +18,7 @@ impl Database {
         let index = sqlx::query_as(
             "
             SELECT
-                ulid, client_name, contractor_name, contract_name, payslip_title,
+                payslip_ulid, client_name, contractor_name, contract_name, payslip_title,
                 payment_date, begin_period, end_period
             FROM
                 payslips_index

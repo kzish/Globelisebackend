@@ -67,7 +67,7 @@ pub async fn eor_admin_create_payslip(
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PayslipsIndex {
-    ulid: Ulid,
+    payslip_ulid: Ulid,
     #[serde(flatten)]
     other_fields: PayslipsIndexSqlHelper,
 }
@@ -75,7 +75,7 @@ pub struct PayslipsIndex {
 impl<'r> FromRow<'r, PgRow> for PayslipsIndex {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
-            ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
+            payslip_ulid: ulid_from_sql_uuid(row.try_get("payslip_ulid")?),
             other_fields: PayslipsIndexSqlHelper::from_row(row)?,
         })
     }

@@ -75,7 +75,7 @@ pub enum TaxInterval {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TaxReportIndex {
-    ulid: Ulid,
+    tax_report_ulid: Ulid,
     #[serde(flatten)]
     other_fields: TaxReportIndexSqlHelper,
 }
@@ -83,7 +83,7 @@ pub struct TaxReportIndex {
 impl<'r> FromRow<'r, PgRow> for TaxReportIndex {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
-            ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
+            tax_report_ulid: ulid_from_sql_uuid(row.try_get("tax_report_ulid")?),
             other_fields: TaxReportIndexSqlHelper::from_row(row)?,
         })
     }
