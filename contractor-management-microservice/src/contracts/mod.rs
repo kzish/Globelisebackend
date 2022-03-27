@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Extension, Query},
+    extract::{Extension, Path, Query},
     Json,
 };
 use common_utils::{
@@ -16,7 +16,7 @@ use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, GetUserInfoRequest, Role};
 
 use crate::{
-    common::{ulid_from_sql_uuid, PaginationQuery},
+    common::{ulid_from_sql_uuid, PaginatedQuery},
     database::SharedDatabase,
     env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
 };
@@ -60,7 +60,7 @@ pub async fn user_index(
 
 pub async fn contractors_index(
     access_token: Token<UserAccessToken>,
-    Query(query): Query<PaginationQuery>,
+    Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractorsIndex>>> {
     let database = database.lock().await;
@@ -71,35 +71,32 @@ pub async fn contractors_index(
     ))
 }
 
-pub async fn contracts_index_for_client(
+pub async fn contracts_index(
     access_token: Token<UserAccessToken>,
-    Query(query): Query<PaginationQuery>,
+    Path(role): Path<Role>,
+    Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ContractsIndexForClient>>> {
+) -> GlobeliseResult<Json<ContractsIndex>> {
     let database = database.lock().await;
-    Ok(Json(
-        database
-            .contracts_index_for_client(access_token.payload.ulid, query)
-            .await?,
-    ))
-}
+    let results = match role {
+        Role::Client => ContractsIndex::Client(
+            database
+                .contracts_index_for_client(access_token.payload.ulid, query)
+                .await?,
+        ),
+        Role::Contractor => ContractsIndex::Contractor(
+            database
+                .contracts_index_for_contractor(access_token.payload.ulid, query)
+                .await?,
+        ),
+    };
 
-pub async fn contracts_index_for_contractor(
-    access_token: Token<UserAccessToken>,
-    Query(query): Query<PaginationQuery>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ContractsIndexForContractor>>> {
-    let database = database.lock().await;
-    Ok(Json(
-        database
-            .contracts_index_for_contractor(access_token.payload.ulid, query)
-            .await?,
-    ))
+    Ok(Json(results))
 }
 
 pub async fn eor_admin_contract_index(
     _: Token<AdminAccessToken>,
-    Query(query): Query<PaginationQuery>,
+    Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractsIndexForClient>>> {
     let database = database.lock().await;
@@ -141,6 +138,13 @@ struct ContractorsIndexSqlHelper {
     contract_status: String,
     job_title: String,
     seniority: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+pub enum ContractsIndex {
+    Client(Vec<ContractsIndexForClient>),
+    Contractor(Vec<ContractsIndexForContractor>),
 }
 
 #[derive(Debug, Serialize)]

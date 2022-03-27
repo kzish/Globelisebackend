@@ -1,5 +1,5 @@
 use axum::{
-    extract::{ContentLengthLimit, Extension, Query},
+    extract::{ContentLengthLimit, Extension, Path, Query},
     Json,
 };
 use common_utils::{
@@ -14,19 +14,23 @@ use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
 
-use crate::{common::ulid_from_sql_uuid, database::SharedDatabase};
+use crate::{
+    common::{ulid_from_sql_uuid, PaginatedQuery},
+    database::SharedDatabase,
+};
 
 mod database;
 
 /// List the payslips.
 pub async fn user_payslips_index(
     claims: Token<UserAccessToken>,
+    Path(role): Path<Role>,
     Query(mut query): Query<PayslipsIndexQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<PayslipsIndex>>> {
     let database = shared_database.lock().await;
 
-    match query.role {
+    match role {
         Role::Client => query.client_ulid = Some(claims.payload.ulid),
         Role::Contractor => query.contractor_ulid = Some(claims.payload.ulid),
     };
@@ -97,26 +101,10 @@ struct PayslipsIndexSqlHelper {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PayslipsIndexQuery {
-    #[serde(default = "PayslipsIndexQuery::default_page")]
-    pub page: i64,
-    #[serde(default = "PayslipsIndexQuery::default_per_page")]
-    pub per_page: i64,
-    pub search_text: Option<String>,
-    // NOTE: The access token should have this information instead because
-    // someone _could_ spoof if they have a similar ULID.
-    pub role: Role,
+    #[serde(flatten)]
+    pub paginated_search: PaginatedQuery,
     pub contractor_ulid: Option<Ulid>,
     pub client_ulid: Option<Ulid>,
-}
-
-impl PayslipsIndexQuery {
-    fn default_page() -> i64 {
-        1
-    }
-
-    fn default_per_page() -> i64 {
-        25
-    }
 }
 
 #[serde_as]

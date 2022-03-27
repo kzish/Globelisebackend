@@ -351,7 +351,7 @@ This endpoint is intended for backend use.
 **Endpoint**
 
 ```
-<domain>/users/index
+<domain>/eor-admin/users
 ```
 
 **Request**

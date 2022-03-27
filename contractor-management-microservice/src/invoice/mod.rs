@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Extension, Query},
+    extract::{Extension, Path, Query},
     Json,
 };
 use common_utils::{error::GlobeliseResult, token::Token};
@@ -10,19 +10,20 @@ use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
 
-use crate::database::SharedDatabase;
+use crate::{common::PaginatedQuery, database::SharedDatabase};
 
 mod database;
 
 pub async fn user_invoice_individual_index(
     claims: Token<UserAccessToken>,
+    Path(role): Path<Role>,
     Query(mut query): Query<InvoiceIndividualIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<InvoiceIndividualIndex>>> {
     let ulid = claims.payload.ulid;
 
     // Override the provided query with the ulid provided by the tokens.
-    match query.role {
+    match role {
         Role::Client => query.client_ulid = Some(ulid),
         Role::Contractor => query.contractor_ulid = Some(ulid),
     };
@@ -42,13 +43,14 @@ pub async fn eor_admin_invoice_individual_index(
 
 pub async fn user_invoice_group_index(
     claims: Token<UserAccessToken>,
+    Path(role): Path<Role>,
     Query(mut query): Query<InvoiceGroupIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<InvoiceGroupIndex>>> {
     let ulid = claims.payload.ulid;
 
     // Override the provided query with the ulid provided by the tokens.
-    match query.role {
+    match role {
         Role::Client => query.client_ulid = Some(ulid),
         Role::Contractor => query.contractor_ulid = Some(ulid),
     };
@@ -66,19 +68,17 @@ pub async fn eor_admin_invoice_group_index(
     Ok(Json(database.invoice_group_index(query).await?))
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct InvoiceIndividualIndexQuery {
     pub invoice_group_ulid: Ulid,
     pub client_ulid: Option<Ulid>,
     pub contractor_ulid: Option<Ulid>,
     pub invoice_status: Option<String>,
-    pub search_text: Option<String>,
-    pub page: i64,
-    pub per_page: i64,
-    pub role: Role,
+    #[serde(flatten)]
+    pub paginated_search: PaginatedQuery,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct InvoiceIndividualIndex {
     pub ulid: Ulid,
     pub invoice_group_ulid: Ulid,
@@ -107,25 +107,23 @@ impl InvoiceIndividualIndex {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct InvoiceGroupIndexQuery {
     pub invoice_group_ulid: Ulid,
     pub client_ulid: Option<Ulid>,
     pub contractor_ulid: Option<Ulid>,
     pub invoice_status: Option<String>,
-    pub search_text: Option<String>,
-    pub page: i64,
-    pub per_page: i64,
-    pub role: Role,
+    #[serde(flatten)]
+    pub paginated_search: PaginatedQuery,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub enum InvoiceGroupIndex {
     Single(InvoiceIndividualIndex),
     Bulk(Vec<InvoiceIndividualIndex>),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct InvoiceGroupSingle {
     pub ulid: Ulid,
     pub invoice_group_ulid: Ulid,

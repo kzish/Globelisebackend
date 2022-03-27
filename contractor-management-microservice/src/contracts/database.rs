@@ -5,7 +5,7 @@ use rusty_ulid::Ulid;
 use user_management_microservice_sdk::Role;
 
 use crate::{
-    common::{ulid_to_sql_uuid, PaginationQuery},
+    common::{ulid_to_sql_uuid, PaginatedQuery},
     database::Database,
 };
 
@@ -45,7 +45,7 @@ impl Database {
     pub async fn contractors_index(
         &self,
         client_ulid: Ulid,
-        query: PaginationQuery,
+        query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractorsIndex>> {
         let index = sqlx::query_as(
             "
@@ -60,9 +60,9 @@ impl Database {
             LIMIT $3 OFFSET $4",
         )
         .bind(ulid_to_sql_uuid(client_ulid))
-        .bind(query.search_text)
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
+        .bind(query.query)
+        .bind(query.per_page.get())
+        .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)
         .await?;
 
@@ -73,7 +73,7 @@ impl Database {
     pub async fn contracts_index_for_client(
         &self,
         client_ulid: Ulid,
-        query: PaginationQuery,
+        query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractsIndexForClient>> {
         let index = sqlx::query_as(
             "
@@ -89,9 +89,9 @@ impl Database {
             LIMIT $3 OFFSET $4",
         )
         .bind(ulid_to_sql_uuid(client_ulid))
-        .bind(query.search_text)
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
+        .bind(query.query)
+        .bind(query.per_page.get())
+        .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)
         .await?;
 
@@ -102,7 +102,7 @@ impl Database {
     pub async fn contracts_index_for_contractor(
         &self,
         contractor_ulid: Ulid,
-        query: PaginationQuery,
+        query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractsIndexForContractor>> {
         let index = sqlx::query_as(
             "
@@ -118,9 +118,9 @@ impl Database {
             LIMIT $3 OFFSET $4",
         )
         .bind(ulid_to_sql_uuid(contractor_ulid))
-        .bind(query.search_text)
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
+        .bind(query.query)
+        .bind(query.per_page.get())
+        .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)
         .await?;
 
@@ -130,7 +130,7 @@ impl Database {
     /// Index contract for EOR admin purposes
     pub async fn eor_admin_contract_index(
         &self,
-        query: PaginationQuery,
+        query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractsIndexForClient>> {
         let index = sqlx::query_as(
             "
@@ -144,9 +144,9 @@ impl Database {
                 ($1 IS NULL OR (contract_name ~* $1 OR client_name ~* $1))
             LIMIT $2 OFFSET $3",
         )
-        .bind(query.search_text)
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
+        .bind(query.query)
+        .bind(query.per_page.get())
+        .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)
         .await?;
 
