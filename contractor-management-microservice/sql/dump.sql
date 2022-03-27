@@ -311,17 +311,17 @@ ALTER TABLE public.contractors_index OWNER TO postgres;
 --
 
 CREATE VIEW public.contracts_index_for_client AS
- SELECT contractor_names.name AS contractor_name,
+ SELECT contracts.ulid AS contract_ulid,
     contracts.client_ulid,
+    contracts.contractor_ulid,
+    contractor_names.name AS contractor_name,
     contracts.contract_name,
     contracts.contract_type,
-    contracts.contract_amount,
     contracts.contract_status,
-    contracts.contractor_ulid,
-    contracts.ulid AS contract_ulid,
-    contracts.end_at,
-    contracts.begin_at,
+    contracts.contract_amount,
     contracts.currency,
+    contracts.begin_at,
+    contracts.end_at,
     contracts.job_title,
     contracts.seniority
    FROM (public.contracts
@@ -335,17 +335,17 @@ ALTER TABLE public.contracts_index_for_client OWNER TO postgres;
 --
 
 CREATE VIEW public.contracts_index_for_contractor AS
- SELECT client_names.name AS client_name,
+ SELECT contracts.ulid AS contract_ulid,
     contracts.client_ulid,
+    client_names.name AS client_name,
+    contracts.contractor_ulid,
     contracts.contract_name,
     contracts.contract_type,
-    contracts.contract_amount,
     contracts.contract_status,
-    contracts.contractor_ulid,
-    contracts.ulid AS contract_ulid,
-    contracts.end_at,
-    contracts.begin_at,
+    contracts.contract_amount,
     contracts.currency,
+    contracts.begin_at,
+    contracts.end_at,
     contracts.job_title,
     contracts.seniority
    FROM (public.contracts
