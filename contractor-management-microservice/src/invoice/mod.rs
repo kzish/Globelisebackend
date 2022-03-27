@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Extension, Query},
+    extract::{Extension, Path, Query},
     Json,
 };
 use common_utils::{error::GlobeliseResult, token::Token};
@@ -16,13 +16,14 @@ mod database;
 
 pub async fn user_invoice_individual_index(
     claims: Token<UserAccessToken>,
+    Path(role): Path<Role>,
     Query(mut query): Query<InvoiceIndividualIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<InvoiceIndividualIndex>>> {
     let ulid = claims.payload.ulid;
 
     // Override the provided query with the ulid provided by the tokens.
-    match query.role {
+    match role {
         Role::Client => query.client_ulid = Some(ulid),
         Role::Contractor => query.contractor_ulid = Some(ulid),
     };
@@ -42,13 +43,14 @@ pub async fn eor_admin_invoice_individual_index(
 
 pub async fn user_invoice_group_index(
     claims: Token<UserAccessToken>,
+    Path(role): Path<Role>,
     Query(mut query): Query<InvoiceGroupIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<InvoiceGroupIndex>>> {
     let ulid = claims.payload.ulid;
 
     // Override the provided query with the ulid provided by the tokens.
-    match query.role {
+    match role {
         Role::Client => query.client_ulid = Some(ulid),
         Role::Contractor => query.contractor_ulid = Some(ulid),
     };
@@ -74,7 +76,6 @@ pub struct InvoiceIndividualIndexQuery {
     pub invoice_status: Option<String>,
     #[serde(flatten)]
     pub paginated_search: PaginatedQuery,
-    pub role: Role,
 }
 
 #[derive(Debug, Serialize)]
@@ -114,7 +115,6 @@ pub struct InvoiceGroupIndexQuery {
     pub invoice_status: Option<String>,
     #[serde(flatten)]
     pub paginated_search: PaginatedQuery,
-    pub role: Role,
 }
 
 #[derive(Debug, Serialize)]

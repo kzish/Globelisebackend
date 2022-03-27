@@ -48,10 +48,13 @@ async fn main() {
         .route("/payslips/:role", get(payslips::user_payslips_index))
         .route("/tax-reports/:role", get(tax_report::user_tax_report_index))
         .route(
-            "/invoices/individual",
+            "/invoices/individual/:role",
             get(invoice::user_invoice_individual_index),
         )
-        .route("/invoices/group", get(invoice::user_invoice_group_index))
+        .route(
+            "/invoices/group/:role",
+            get(invoice::user_invoice_group_index),
+        )
         // ========== ADMIN PAGES ==========
         .route("/eor-admin/users", get(contracts::user_index))
         .route(
