@@ -554,18 +554,18 @@ ALTER TABLE public.tax_reports OWNER TO postgres;
 --
 
 CREATE VIEW public.tax_reports_index AS
- SELECT tax_reports.client_ulid,
-    tax_reports.tax_interval,
+ SELECT tax_reports.ulid,
+    tax_reports.client_ulid,
+    client_names.name AS client_name,
     tax_reports.contractor_ulid,
-    tax_reports.tax_report_file,
-    tax_reports.ulid,
+    contractor_names.name AS contractor_name,
+    contracts.contract_name,
+    tax_reports.tax_interval,
+    tax_reports.tax_name,
+    tax_reports.begin_period,
     tax_reports.end_period,
     tax_reports.country,
-    tax_reports.begin_period,
-    tax_reports.tax_name,
-    client_names.name AS client_name,
-    contractor_names.name AS contractor_name,
-    contracts.contract_name
+    tax_reports.tax_report_file
    FROM (((public.tax_reports
      JOIN public.client_names ON ((tax_reports.client_ulid = client_names.ulid)))
      JOIN public.contractor_names ON ((tax_reports.contractor_ulid = contractor_names.ulid)))
