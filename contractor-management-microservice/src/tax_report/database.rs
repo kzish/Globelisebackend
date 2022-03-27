@@ -2,15 +2,18 @@ use common_utils::error::GlobeliseResult;
 
 use rusty_ulid::Ulid;
 
-use crate::{common::ulid_to_sql_uuid, database::Database};
+use crate::{
+    common::{ulid_to_sql_uuid, PaginatedQuery},
+    database::Database,
+};
 
-use super::{CreateTaxReportIndex, TaxReportIndex, TaxReportIndexQuery};
+use super::{CreateTaxReportIndex, TaxReportIndex};
 
 impl Database {
     /// Indexes tax report.
     pub async fn tax_report_index(
         &self,
-        query: TaxReportIndexQuery,
+        query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<TaxReportIndex>> {
         let index = sqlx::query_as(
             "
@@ -27,9 +30,9 @@ impl Database {
         )
         .bind(query.client_ulid.map(ulid_to_sql_uuid))
         .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
-        .bind(query.paginated_search.query)
-        .bind(query.paginated_search.per_page.get())
-        .bind((query.paginated_search.page.get() - 1) * query.paginated_search.per_page.get())
+        .bind(query.query)
+        .bind(query.per_page.get())
+        .bind((query.page.get() - 1) * query.per_page.get())
         .fetch_all(&self.0)
         .await?;
 

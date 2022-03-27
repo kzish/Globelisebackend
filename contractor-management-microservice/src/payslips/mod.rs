@@ -25,7 +25,7 @@ mod database;
 pub async fn user_payslips_index(
     claims: Token<UserAccessToken>,
     Path(role): Path<Role>,
-    Query(mut query): Query<PayslipsIndexQuery>,
+    Query(mut query): Query<PaginatedQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<PayslipsIndex>>> {
     let database = shared_database.lock().await;
@@ -42,7 +42,7 @@ pub async fn user_payslips_index(
 /// List the payslips.
 pub async fn eor_admin_payslips_index(
     _: Token<AdminAccessToken>,
-    Query(query): Query<PayslipsIndexQuery>,
+    Query(query): Query<PaginatedQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<PayslipsIndex>>> {
     let database = shared_database.lock().await;
@@ -96,15 +96,6 @@ struct PayslipsIndexSqlHelper {
     begin_period: sqlx::types::time::Date,
     #[serde_as(as = "FromInto<DateWrapper>")]
     end_period: sqlx::types::time::Date,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct PayslipsIndexQuery {
-    #[serde(flatten)]
-    pub paginated_search: PaginatedQuery,
-    pub contractor_ulid: Option<Ulid>,
-    pub client_ulid: Option<Ulid>,
 }
 
 #[serde_as]

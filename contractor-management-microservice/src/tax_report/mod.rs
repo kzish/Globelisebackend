@@ -25,7 +25,7 @@ mod database;
 pub async fn user_tax_report_index(
     claims: Token<UserAccessToken>,
     Path(role): Path<Role>,
-    Query(mut query): Query<TaxReportIndexQuery>,
+    Query(mut query): Query<PaginatedQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<TaxReportIndex>>> {
     let database = shared_database.lock().await;
@@ -42,7 +42,7 @@ pub async fn user_tax_report_index(
 /// List the tax reports
 pub async fn eor_admin_tax_report_index(
     _: Token<AdminAccessToken>,
-    Query(query): Query<TaxReportIndexQuery>,
+    Query(query): Query<PaginatedQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<TaxReportIndex>>> {
     let database = shared_database.lock().await;
@@ -104,15 +104,6 @@ struct TaxReportIndexSqlHelper {
     #[serde_as(as = "FromInto<DateWrapper>")]
     pub end_period: sqlx::types::time::Date,
     country: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct TaxReportIndexQuery {
-    #[serde(flatten)]
-    pub paginated_search: PaginatedQuery,
-    pub contractor_ulid: Option<Ulid>,
-    pub client_ulid: Option<Ulid>,
 }
 
 #[serde_as]
