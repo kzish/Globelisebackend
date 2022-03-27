@@ -12,7 +12,7 @@ impl Database {
         &self,
         query: InvoiceIndividualIndexQuery,
     ) -> GlobeliseResult<Vec<InvoiceIndividualIndex>> {
-        let index = sqlx::query(
+        let index = sqlx::query_as(
             "
                 SELECT
                     ulid, invoice_group_ulid, contract_ulid, invoice_id,
@@ -33,10 +33,7 @@ impl Database {
         .bind(query.paginated_search.per_page.get())
         .bind((query.paginated_search.page.get() - 1) * query.paginated_search.per_page.get())
         .fetch_all(&self.0)
-        .await?
-        .into_iter()
-        .map(InvoiceIndividualIndex::from_pg_row)
-        .collect::<GlobeliseResult<Vec<InvoiceIndividualIndex>>>()?;
+        .await?;
 
         Ok(index)
     }
@@ -46,7 +43,7 @@ impl Database {
         &self,
         query: InvoiceGroupIndexQuery,
     ) -> GlobeliseResult<Vec<InvoiceGroupIndex>> {
-        let index = sqlx::query(
+        let index = sqlx::query_as(
             "
                 SELECT
                     ulid, invoice_group_ulid, contract_ulid, invoice_id,
@@ -67,10 +64,7 @@ impl Database {
         .bind(query.paginated_search.per_page.get())
         .bind((query.paginated_search.page.get() - 1) * query.paginated_search.per_page.get())
         .fetch_all(&self.0)
-        .await?
-        .into_iter()
-        .map(InvoiceGroupIndex::from_pg_row)
-        .collect::<GlobeliseResult<Vec<InvoiceGroupIndex>>>()?;
+        .await?;
 
         Ok(index)
     }
