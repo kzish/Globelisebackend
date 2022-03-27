@@ -1,5 +1,5 @@
 use axum::{
-    extract::{ContentLengthLimit, Extension, Query},
+    extract::{ContentLengthLimit, Extension, Path, Query},
     Json,
 };
 use common_utils::{
@@ -24,12 +24,13 @@ mod database;
 /// List the tax reports
 pub async fn user_tax_report_index(
     claims: Token<UserAccessToken>,
+    Path(role): Path<Role>,
     Query(mut query): Query<TaxReportIndexQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<TaxReportIndex>>> {
     let database = shared_database.lock().await;
 
-    match query.role {
+    match role {
         Role::Client => query.client_ulid = Some(claims.payload.ulid),
         Role::Contractor => query.contractor_ulid = Some(claims.payload.ulid),
     };
@@ -110,9 +111,6 @@ struct TaxReportIndexSqlHelper {
 pub struct TaxReportIndexQuery {
     #[serde(flatten)]
     pub paginated_search: PaginatedQuery,
-    // NOTE: The access token should have this information instead because
-    // someone _could_ spoof if they have a similar ULID.
-    pub role: Role,
     pub contractor_ulid: Option<Ulid>,
     pub client_ulid: Option<Ulid>,
 }

@@ -1,5 +1,5 @@
 use axum::{
-    extract::{ContentLengthLimit, Extension, Query},
+    extract::{ContentLengthLimit, Extension, Path, Query},
     Json,
 };
 use common_utils::{
@@ -24,12 +24,13 @@ mod database;
 /// List the payslips.
 pub async fn user_payslips_index(
     claims: Token<UserAccessToken>,
+    Path(role): Path<Role>,
     Query(mut query): Query<PayslipsIndexQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<PayslipsIndex>>> {
     let database = shared_database.lock().await;
 
-    match query.role {
+    match role {
         Role::Client => query.client_ulid = Some(claims.payload.ulid),
         Role::Contractor => query.contractor_ulid = Some(claims.payload.ulid),
     };
@@ -102,9 +103,6 @@ struct PayslipsIndexSqlHelper {
 pub struct PayslipsIndexQuery {
     #[serde(flatten)]
     pub paginated_search: PaginatedQuery,
-    // NOTE: The access token should have this information instead because
-    // someone _could_ spoof if they have a similar ULID.
-    pub role: Role,
     pub contractor_ulid: Option<Ulid>,
     pub client_ulid: Option<Ulid>,
 }

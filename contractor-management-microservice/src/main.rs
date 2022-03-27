@@ -45,8 +45,8 @@ async fn main() {
         // ========== PUBLIC PAGES ==========
         .route("/contractors", get(contracts::contractors_index))
         .route("/contracts/:role", get(contracts::contracts_index))
-        .route("/payslips", get(payslips::user_payslips_index))
-        .route("/tax-reports", get(tax_report::user_tax_report_index))
+        .route("/payslips/:role", get(payslips::user_payslips_index))
+        .route("/tax-reports/:role", get(tax_report::user_tax_report_index))
         .route(
             "/invoices/individual",
             get(invoice::user_invoice_individual_index),
