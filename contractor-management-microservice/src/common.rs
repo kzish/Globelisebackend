@@ -9,6 +9,8 @@ pub struct PaginatedQuery {
     #[serde(default = "PaginatedQuery::default_per_page")]
     pub per_page: NonZeroU32,
     pub query: Option<String>,
+    pub contractor_ulid: Option<Ulid>,
+    pub client_ulid: Option<Ulid>,
 }
 
 impl PaginatedQuery {

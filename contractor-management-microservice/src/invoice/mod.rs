@@ -28,8 +28,8 @@ pub async fn user_invoice_individual_index(
 
     // Override the provided query with the ulid provided by the tokens.
     match role {
-        Role::Client => query.client_ulid = Some(ulid),
-        Role::Contractor => query.contractor_ulid = Some(ulid),
+        Role::Client => query.paginated_query.client_ulid = Some(ulid),
+        Role::Contractor => query.paginated_query.contractor_ulid = Some(ulid),
     };
 
     let database = database.lock().await;
@@ -55,8 +55,8 @@ pub async fn user_invoice_group_index(
 
     // Override the provided query with the ulid provided by the tokens.
     match role {
-        Role::Client => query.client_ulid = Some(ulid),
-        Role::Contractor => query.contractor_ulid = Some(ulid),
+        Role::Client => query.paginated_query.client_ulid = Some(ulid),
+        Role::Contractor => query.paginated_query.contractor_ulid = Some(ulid),
     };
 
     let database = database.lock().await;
@@ -75,11 +75,9 @@ pub async fn eor_admin_invoice_group_index(
 #[derive(Debug, Deserialize)]
 pub struct InvoiceIndividualIndexQuery {
     pub invoice_group_ulid: Ulid,
-    pub client_ulid: Option<Ulid>,
-    pub contractor_ulid: Option<Ulid>,
     pub invoice_status: Option<String>,
     #[serde(flatten)]
-    pub paginated_search: PaginatedQuery,
+    pub paginated_query: PaginatedQuery,
 }
 
 #[derive(Debug, Serialize)]
@@ -117,11 +115,9 @@ pub struct InvoiceIndividualIndexSqlHelper {
 #[derive(Debug, Deserialize)]
 pub struct InvoiceGroupIndexQuery {
     pub invoice_group_ulid: Ulid,
-    pub client_ulid: Option<Ulid>,
-    pub contractor_ulid: Option<Ulid>,
     pub invoice_status: Option<String>,
     #[serde(flatten)]
-    pub paginated_search: PaginatedQuery,
+    pub paginated_query: PaginatedQuery,
 }
 
 #[derive(Debug, Serialize)]
