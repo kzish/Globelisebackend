@@ -94,13 +94,13 @@ pub async fn contracts_index(
     Ok(Json(results))
 }
 
-pub async fn eor_admin_contract_index(
+pub async fn eor_admin_contracts_index(
     _: Token<AdminAccessToken>,
     Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ContractsIndexForClient>>> {
+) -> GlobeliseResult<Json<Vec<ContractsIndexForEorAdmin>>> {
     let database = database.lock().await;
-    Ok(Json(database.eor_admin_contract_index(query).await?))
+    Ok(Json(database.eor_admin_contracts_index(query).await?))
 }
 
 #[derive(Debug, Serialize)]
@@ -179,6 +179,27 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForContractor {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
             client_name: row.try_get("client_name")?,
+            contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
+            common_info: ContractsIndexCommonInfoSqlHelper::from_row(row)?,
+        })
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractsIndexForEorAdmin {
+    client_name: String,
+    contractor_name: String,
+    contract_ulid: Ulid,
+    #[serde(flatten)]
+    common_info: ContractsIndexCommonInfoSqlHelper,
+}
+
+impl<'r> FromRow<'r, PgRow> for ContractsIndexForEorAdmin {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            client_name: row.try_get("client_name")?,
+            contractor_name: row.try_get("contractor_name")?,
             contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
             common_info: ContractsIndexCommonInfoSqlHelper::from_row(row)?,
         })
