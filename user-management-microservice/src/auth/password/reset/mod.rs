@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use argon2::{self, hash_encoded};
 use axum::{
-    extract::{Extension, Json, Path},
+    extract::{Extension, Json},
     http::Uri,
     response::Redirect,
 };
@@ -35,7 +35,6 @@ use token::{ChangePasswordToken, LostPasswordToken};
 /// Send email to the user with the steps to recover their password.
 pub async fn send_email(
     Json(request): Json<LostPasswordRequest>,
-    Path(user_type): Path<UserType>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<()> {
@@ -45,9 +44,9 @@ pub async fn send_email(
         .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
 
     let database = database.lock().await;
-    let (user_ulid, is_valid_attempt) = match database.user_id(&email_address, user_type).await {
-        Ok(Some(ulid)) => (ulid, true),
-        _ => (Ulid::generate(), false),
+    let (user_ulid, user_type, is_valid_attempt) = match database.user_id(&email_address).await {
+        Ok(Some((ulid, user_type))) => (ulid, user_type, true),
+        _ => (Ulid::generate(), UserType::Individual, false),
     };
 
     let mut shared_state = shared_state.lock().await;

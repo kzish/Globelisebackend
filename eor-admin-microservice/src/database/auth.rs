@@ -1,33 +1,13 @@
-use std::{sync::Arc, time::Duration};
-
 use common_utils::error::{GlobeliseError, GlobeliseResult};
 use email_address::EmailAddress;
 use rusty_ulid::Ulid;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
-use tokio::sync::Mutex;
+use sqlx::Row;
 
-use crate::{auth::admin::Admin, onboard::individual::IndividualDetails};
+use crate::auth::admin::Admin;
 
-pub type SharedDatabase = Arc<Mutex<Database>>;
-
-/// Convenience wrapper around PostgreSQL.
-pub struct Database(Pool<Postgres>);
+use super::{ulid_from_sql_uuid, ulid_to_sql_uuid, Database};
 
 impl Database {
-    /// Connects to PostgreSQL.
-    pub async fn new() -> Self {
-        let connection_str = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-
-        let pool = PgPoolOptions::new()
-            .max_connections(1)
-            .connect_timeout(Duration::from_secs(3))
-            .connect(&connection_str)
-            .await
-            .expect("Cannot connect to database");
-
-        Self(pool)
-    }
-
     /// Creates and stores a new admin.
     pub async fn create_admin(&self, admin: Admin) -> GlobeliseResult<Ulid> {
         if !admin.has_authentication() {
@@ -104,49 +84,4 @@ impl Database {
             Ok(None)
         }
     }
-}
-
-impl Database {
-    pub async fn onboard_admin_details(
-        &self,
-        ulid: Ulid,
-        details: IndividualDetails,
-    ) -> GlobeliseResult<()> {
-        let query = "
-            INSERT INTO onboard_eor_admins 
-            (ulid, first_name, last_name, dob, dial_code, phone_number, country, city, address,
-            postal_code, tax_id, time_zone, profile_picture) 
-            VALUES ($13, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            ON CONFLICT(ulid) DO UPDATE SET 
-            first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
-            country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
-            time_zone = $11, profile_picture = $12"
-            .to_string();
-        sqlx::query(&query)
-            .bind(details.first_name)
-            .bind(details.last_name)
-            .bind(details.dob)
-            .bind(details.dial_code)
-            .bind(details.phone_number)
-            .bind(details.country)
-            .bind(details.city)
-            .bind(details.address)
-            .bind(details.postal_code)
-            .bind(details.tax_id)
-            .bind(details.time_zone)
-            .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
-            .bind(ulid_to_sql_uuid(ulid))
-            .execute(&self.0)
-            .await?;
-
-        Ok(())
-    }
-}
-
-pub fn ulid_to_sql_uuid(ulid: Ulid) -> sqlx::types::Uuid {
-    sqlx::types::Uuid::from_bytes(ulid.into())
-}
-
-pub fn ulid_from_sql_uuid(uuid: sqlx::types::Uuid) -> Ulid {
-    Ulid::from(*uuid.as_bytes())
 }
