@@ -52,7 +52,7 @@ pub async fn login(
         .map_err(|_| GlobeliseError::Internal("Could not get Google's public keys".into()))?;
 
     let claims = id_token.decode(&keys)?;
-    let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
+    let email = claims.email.parse::<EmailAddress>()?; // Google emails should be valid.
 
     let database = database.lock().await;
     let mut shared_state = shared_state.lock().await;

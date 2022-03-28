@@ -1,15 +1,18 @@
 use std::{collections::HashMap, str::FromStr};
 
-use axum::extract::{Extension, Json, Query};
+use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
+    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
+use csv::{ByteRecord, ReaderBuilder};
 use email_address::EmailAddress;
 use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
+use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, Row};
 use time::{format_description, OffsetDateTime};
 
@@ -20,6 +23,7 @@ use crate::{
         GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
         USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
     },
+    onboard::{bank::BankDetails, individual::IndividualDetails},
 };
 
 /// Stores information associated with a user id.
@@ -156,5 +160,120 @@ pub async fn add_individual_contractor(
         .send(&email)
         .map_err(|e| GlobeliseError::Internal(e.to_string()))?;
 
+    Ok(())
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct AddEmployeesInBulk {
+    #[serde_as(as = "Base64")]
+    pub uploaded_file: Vec<u8>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefillIndividualDetailsForBulkUpload {
+    #[serde(rename = "Email")]
+    pub email: String,
+    #[serde(rename = "Client Name")]
+    pub client_name: String,
+    #[serde(rename = "Full Name")]
+    pub full_name: String,
+    #[serde(rename = "Last Name")]
+    pub last_name: String,
+    #[serde(rename = "DOB")]
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub dob: sqlx::types::time::Date,
+    #[serde(rename = "Dial Code")]
+    pub dial_code: String,
+    #[serde(rename = "Phone Number")]
+    pub phone_number: String,
+    #[serde(rename = "Country")]
+    pub country: String,
+    #[serde(rename = "City")]
+    pub city: String,
+    #[serde(rename = "Address")]
+    pub address: String,
+    #[serde(rename = "ZIP/Postal Code")]
+    pub postal_code: String,
+    #[serde(rename = "Tax ID")]
+    pub tax_id: String,
+    #[serde(rename = "Timezone")]
+    pub time_zone: String,
+    #[serde(rename = "Profile Picture")]
+    #[serde_as(as = "Base64")]
+    pub profile_picture: ImageData,
+    #[serde(rename = "Bank Name")]
+    pub bank_name: String,
+    #[serde(rename = "Bank Account Number")]
+    pub bank_account_number: String,
+    #[serde(rename = "Bank Account Owner Name")]
+    pub bank_account_owner_name: String,
+}
+
+impl PrefillIndividualDetailsForBulkUpload {
+    fn split(self) -> GlobeliseResult<(EmailAddress, IndividualDetails, BankDetails)> {
+        Ok((
+            self.email.parse::<EmailAddress>()?,
+            IndividualDetails {
+                first_name: self.full_name,
+                last_name: self.last_name,
+                dob: self.dob,
+                dial_code: self.dial_code,
+                phone_number: self.phone_number,
+                country: self.country,
+                city: self.city,
+                address: self.address,
+                postal_code: self.postal_code,
+                tax_id: Some(self.tax_id),
+                time_zone: self.time_zone,
+                profile_picture: Some(self.profile_picture),
+            },
+            BankDetails {
+                bank_name: self.bank_name,
+                account_name: self.bank_account_owner_name,
+                account_number: self.bank_account_number,
+            },
+        ))
+    }
+}
+
+pub async fn eor_admin_add_employees_in_bulk(
+    // Only for validation
+    _: Token<AdminAccessToken>,
+    ContentLengthLimit(Json(request)): ContentLengthLimit<
+        Json<AddEmployeesInBulk>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    if let Ok(mut records) = ReaderBuilder::new()
+        .has_headers(false)
+        .from_reader(request.uploaded_file.as_slice())
+        .byte_records()
+        .collect::<Result<Vec<ByteRecord>, _>>()
+    {
+        if !records.is_empty() {
+            let header = records.swap_remove(0);
+            for record in records {
+                let value =
+                    record.deserialize::<PrefillIndividualDetailsForBulkUpload>(Some(&header))?;
+
+                let database = database.lock().await;
+
+                let (email, prefill_details, bank_details) = value.split()?;
+
+                database
+                    .prefill_onboard_individual_contractors_account_details(&email, prefill_details)
+                    .await?;
+
+                database
+                    .prefill_onboard_individual_contractors_bank_details(&email, bank_details)
+                    .await?
+            }
+        }
+    }
     Ok(())
 }

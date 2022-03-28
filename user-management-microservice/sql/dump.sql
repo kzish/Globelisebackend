@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 13.6
--- Dumped by pg_dump version 13.6
+-- Dumped from database version 14.1 (Debian 14.1-1.pgdg110+1)
+-- Dumped by pg_dump version 14.1 (Debian 14.1-1.pgdg110+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -362,6 +362,21 @@ CREATE TABLE public.prefilled_onboard_individual_contractors (
 ALTER TABLE public.prefilled_onboard_individual_contractors OWNER TO postgres;
 
 --
+-- Name: prefilled_onboard_individual_contractors_bank_details; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.prefilled_onboard_individual_contractors_bank_details (
+    email character varying(50) NOT NULL,
+    bank_name character varying(120) NOT NULL,
+    bank_account_name character varying(50) NOT NULL,
+    bank_account_number character varying(20) NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.prefilled_onboard_individual_contractors_bank_details OWNER TO postgres;
+
+--
 -- Name: auth_entities auth_entities_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -458,6 +473,22 @@ ALTER TABLE ONLY public.individual_contractors_bank_details
 
 
 --
+-- Name: prefilled_onboard_individual_contractors_bank_details prefilled_onboard_individual_contractors_bank_details_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.prefilled_onboard_individual_contractors_bank_details
+    ADD CONSTRAINT prefilled_onboard_individual_contractors_bank_details_email_key UNIQUE (email);
+
+
+--
+-- Name: prefilled_onboard_individual_contractors_bank_details prefilled_onboard_individual_contractors_bank_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.prefilled_onboard_individual_contractors_bank_details
+    ADD CONSTRAINT prefilled_onboard_individual_contractors_bank_details_pkey PRIMARY KEY (email);
+
+
+--
 -- Name: prefilled_onboard_individual_contractors prefilled_onboard_individual_contractors_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -548,6 +579,13 @@ CREATE TRIGGER mdt_individual_contractors_bank_details BEFORE UPDATE ON public.i
 --
 
 CREATE TRIGGER mdt_prefilled_onboard_individual_contractors BEFORE UPDATE ON public.prefilled_onboard_individual_contractors FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
+
+
+--
+-- Name: prefilled_onboard_individual_contractors_bank_details mdt_prefilled_onboard_individual_contractors_bank_details; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER mdt_prefilled_onboard_individual_contractors_bank_details BEFORE UPDATE ON public.prefilled_onboard_individual_contractors_bank_details FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
 
 
 --

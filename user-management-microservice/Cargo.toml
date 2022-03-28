@@ -43,3 +43,4 @@ unicode-normalization = "0.1.19"
 # Local crates
 common-utils = { path = "../common-utils" }
 eor-admin-microservice = { path = "../eor-admin-microservice" }
+csv = "1.1.6"

@@ -73,8 +73,16 @@ async fn main() {
             post(eor_admin::add_individual_contractor),
         )
         .route(
-            "/eor-admin/users/onboard/prefill_individual_contractor",
+            "/eor-admin/users/add_bulk_employees",
+            post(eor_admin::eor_admin_add_employees_in_bulk),
+        )
+        .route(
+            "/eor-admin/users/onboard/prefill_individual_contractor_account_details",
             post(onboard::individual::prefill_individual_contractor_account_details),
+        )
+        .route(
+            "/eor-admin/users/onboard/prefill_individual_contractor_bank_details",
+            post(onboard::individual::prefill_individual_contractor_bank_details),
         )
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
