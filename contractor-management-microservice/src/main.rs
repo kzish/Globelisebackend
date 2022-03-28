@@ -68,7 +68,7 @@ async fn main() {
         )
         .route(
             "/eor-admin/contracts",
-            get(contracts::eor_admin_contract_index),
+            get(contracts::eor_admin_contracts_index),
         )
         .route(
             "/eor-admin/invoices/individual",
