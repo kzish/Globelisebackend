@@ -78,7 +78,7 @@ impl Database {
         let index = sqlx::query_as(
             "
             SELECT
-                contract_ulid, contract_name, contract_type, contractor_ulid,
+                contract_ulid, contract_name, contract_type,
                 contractor_name, contract_status, contract_amount, currency,
                 begin_at, end_at
             FROM
@@ -109,7 +109,7 @@ impl Database {
         let index = sqlx::query_as(
             "
             SELECT
-                contract_ulid, contract_name, contract_type, client_ulid,
+                contract_ulid, contract_name, contract_type,
                 client_name, contract_status, contract_amount, currency,
                 begin_at, end_at
             FROM
@@ -139,7 +139,7 @@ impl Database {
         let index = sqlx::query_as(
             "
             SELECT
-                contract_ulid, contract_name, contract_type, client_ulid,
+                contract_ulid, contract_name, contract_type,
                 client_name, contract_status, contract_amount, currency,
                 begin_at, end_at
             FROM

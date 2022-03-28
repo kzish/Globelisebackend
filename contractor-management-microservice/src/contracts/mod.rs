@@ -150,7 +150,6 @@ pub enum ContractsIndex {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ContractsIndexForClient {
-    contractor_ulid: Ulid,
     contractor_name: String,
     contract_ulid: Ulid,
     #[serde(flatten)]
@@ -160,7 +159,6 @@ pub struct ContractsIndexForClient {
 impl<'r> FromRow<'r, PgRow> for ContractsIndexForClient {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
-            contractor_ulid: ulid_from_sql_uuid(row.try_get("contractor_ulid")?),
             contractor_name: row.try_get("contractor_name")?,
             contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
             common_info: ContractsIndexCommonInfoSqlHelper::from_row(row)?,
@@ -171,7 +169,6 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForClient {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ContractsIndexForContractor {
-    client_ulid: Ulid,
     client_name: String,
     contract_ulid: Ulid,
     #[serde(flatten)]
@@ -181,7 +178,6 @@ pub struct ContractsIndexForContractor {
 impl<'r> FromRow<'r, PgRow> for ContractsIndexForContractor {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
-            client_ulid: ulid_from_sql_uuid(row.try_get("client_ulid")?),
             client_name: row.try_get("client_name")?,
             contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
             common_info: ContractsIndexCommonInfoSqlHelper::from_row(row)?,
