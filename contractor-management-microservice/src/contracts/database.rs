@@ -82,7 +82,7 @@ impl Database {
                 contractor_name, contract_status, contract_amount, currency,
                 begin_at, end_at
             FROM
-                contracts_index_for_client
+                contracts_index
             WHERE
                 client_ulid = $1 AND
                 ($2 IS NULL OR contractor_ulid = $2) AND
@@ -113,7 +113,7 @@ impl Database {
                 client_name, contract_status, contract_amount, currency,
                 begin_at, end_at
             FROM
-                contracts_index_for_contractor
+                contracts_index
             WHERE
                 contractor_ulid = $1 AND
                 ($2 IS NULL OR client_ulid = $2) AND
@@ -143,7 +143,7 @@ impl Database {
                 client_name, contract_status, contract_amount, currency,
                 begin_at, end_at
             FROM
-                contracts_index_for_contractor
+                contracts_index
             WHERE
                 ($1 IS NULL OR client_ulid = $1) AND
                 ($2 IS NULL OR (contract_name ~* $2 OR client_name ~* $2))

@@ -307,12 +307,13 @@ CREATE VIEW public.contractors_index AS
 ALTER TABLE public.contractors_index OWNER TO postgres;
 
 --
--- Name: contracts_index_for_client; Type: VIEW; Schema: public; Owner: postgres
+-- Name: contracts_index; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE VIEW public.contracts_index_for_client AS
+CREATE VIEW public.contracts_index AS
  SELECT contracts.ulid AS contract_ulid,
     contracts.client_ulid,
+    client_names.name AS client_name,
     contracts.contractor_ulid,
     contractor_names.name AS contractor_name,
     contracts.contract_name,
@@ -324,35 +325,12 @@ CREATE VIEW public.contracts_index_for_client AS
     contracts.end_at,
     contracts.job_title,
     contracts.seniority
-   FROM (public.contracts
+   FROM ((public.contracts
+     JOIN public.client_names ON ((contracts.client_ulid = client_names.ulid)))
      JOIN public.contractor_names ON ((contracts.contractor_ulid = contractor_names.ulid)));
 
 
-ALTER TABLE public.contracts_index_for_client OWNER TO postgres;
-
---
--- Name: contracts_index_for_contractor; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.contracts_index_for_contractor AS
- SELECT contracts.ulid AS contract_ulid,
-    contracts.client_ulid,
-    client_names.name AS client_name,
-    contracts.contractor_ulid,
-    contracts.contract_name,
-    contracts.contract_type,
-    contracts.contract_status,
-    contracts.contract_amount,
-    contracts.currency,
-    contracts.begin_at,
-    contracts.end_at,
-    contracts.job_title,
-    contracts.seniority
-   FROM (public.contracts
-     JOIN public.client_names ON ((contracts.client_ulid = client_names.ulid)));
-
-
-ALTER TABLE public.contracts_index_for_contractor OWNER TO postgres;
+ALTER TABLE public.contracts_index OWNER TO postgres;
 
 --
 -- Name: invoice_group; Type: TABLE; Schema: public; Owner: postgres
