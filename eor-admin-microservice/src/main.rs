@@ -3,6 +3,7 @@ use std::{sync::Arc, time::Duration};
 use auth::token::KEYS;
 use axum::{
     error_handling::HandleErrorLayer,
+    extract::Extension,
     http::{HeaderValue, Method, StatusCode},
     routing::{get, post},
     BoxError, Router,
@@ -11,10 +12,7 @@ use common_utils::token::PublicKeys;
 use database::Database;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
-use tower_http::{
-    add_extension::AddExtensionLayer,
-    cors::{Any, CorsLayer, Origin},
-};
+use tower_http::cors::{Any, CorsLayer, Origin};
 
 mod auth;
 mod database;
@@ -80,10 +78,10 @@ async fn main() {
                         .allow_credentials(true)
                         .allow_headers(Any),
                 )
-                .layer(AddExtensionLayer::new(database))
-                .layer(AddExtensionLayer::new(shared_state))
-                .layer(AddExtensionLayer::new(KEYS.decoding.clone()))
-                .layer(AddExtensionLayer::new(public_keys)),
+                .layer(Extension(database))
+                .layer(Extension(shared_state))
+                .layer(Extension(KEYS.decoding.clone()))
+                .layer(Extension(public_keys)),
         );
 
     axum::Server::bind(
