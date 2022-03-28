@@ -14,6 +14,33 @@ use serde::Deserialize;
 
 use super::{admin::Admin, SharedDatabase, SharedState};
 
+/// Sign up as an admin through Google sign-in.
+pub async fn signup(
+    Form(id_token): Form<IdToken>,
+    Extension(database): Extension<SharedDatabase>,
+    Extension(shared_state): Extension<SharedState>,
+) -> GlobeliseResult<String> {
+    let OauthKeyList { keys } = OauthKeyList::new()
+        .await
+        .map_err(|_| GlobeliseError::Internal("Could not get Google's public keys".into()))?;
+
+    let claims = id_token.decode(&keys)?;
+    let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
+
+    let admin = Admin {
+        email,
+        password_hash: None,
+        google: true,
+        outlook: false,
+    };
+    let database = database.lock().await;
+    let ulid = database.create_admin(admin).await?;
+
+    let mut shared_state = shared_state.lock().await;
+    let refresh_token = shared_state.open_session(&database, ulid).await?;
+    Ok(refresh_token)
+}
+
 /// Log in as an admin through Google sign-in.
 pub async fn login(
     Form(id_token): Form<IdToken>,
@@ -41,16 +68,7 @@ pub async fn login(
             ))
         }
     } else {
-        let admin = Admin {
-            email,
-            password_hash: None,
-            google: true,
-            outlook: false,
-        };
-        let ulid = database.create_admin(admin).await?;
-        let refresh_token = shared_state.open_session(&database, ulid).await?;
-
-        Ok(refresh_token)
+        Err(GlobeliseError::Unauthorized("Google login failed"))
     }
 }
 
