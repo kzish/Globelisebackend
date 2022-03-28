@@ -79,7 +79,6 @@ pub async fn signup(
 /// Logs a user in.
 pub async fn login(
     Json(request): Json<LoginRequest>,
-    Path(user_type): Path<UserType>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
@@ -95,7 +94,7 @@ pub async fn login(
     // Mitigating this is not strictly necessary, as attackers can still find out
     // if an email is registered by using the sign-up page.
     let database = database.lock().await;
-    if let Some(ulid) = database.user_id(&email, user_type).await? {
+    if let Some((ulid, user_type)) = database.user_id(&email).await? {
         if let Some((
             User {
                 password_hash: Some(hash),

@@ -18,12 +18,8 @@ impl Database {
         }
 
         // Avoid overwriting an existing user.
-        match self.user_id(&user.email, user_type).await {
-            Ok(Some(_)) | Err(GlobeliseError::WrongUserType) => {
-                return Err(GlobeliseError::UnavailableEmail)
-            }
-            Ok(None) => (),
-            Err(e) => return Err(e),
+        if self.user_id(&user.email).await?.is_some() {
+            return Err(GlobeliseError::UnavailableEmail);
         }
 
         let ulid = Ulid::generate();
@@ -109,14 +105,8 @@ impl Database {
         Ok(None)
     }
 
-    /// Gets a user's id.
-    pub async fn user_id(
-        &self,
-        email: &EmailAddress,
-        user_type: UserType,
-    ) -> GlobeliseResult<Option<Ulid>> {
-        let mut ulid = None;
-
+    /// Gets a user's id and user type.
+    pub async fn user_id(&self, email: &EmailAddress) -> GlobeliseResult<Option<(Ulid, UserType)>> {
         for t in UserType::iter() {
             let id = sqlx::query(&format!(
                 "SELECT ulid FROM {} WHERE email = $1",
@@ -128,13 +118,9 @@ impl Database {
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
             if let Some(id) = id {
-                if t == user_type {
-                    ulid = Some(ulid_from_sql_uuid(id.get("ulid")));
-                } else {
-                    return Err(GlobeliseError::WrongUserType);
-                }
+                return Ok(Some((ulid_from_sql_uuid(id.get("ulid")), t)));
             }
         }
-        Ok(ulid)
+        Ok(None)
     }
 }

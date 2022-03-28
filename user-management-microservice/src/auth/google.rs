@@ -17,8 +17,8 @@ use super::{
     SharedDatabase, SharedState,
 };
 
-/// Log in as a Google user.
-pub async fn login(
+/// Sign up as a Google user.
+pub async fn signup(
     Form(id_token): Form<IdToken>,
     Path(user_type): Path<UserType>,
     Extension(database): Extension<SharedDatabase>,
@@ -31,9 +31,38 @@ pub async fn login(
     let claims = id_token.decode(&keys)?;
     let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
 
+    let user = User {
+        email,
+        password_hash: None,
+        google: true,
+        outlook: false,
+    };
+    let database = database.lock().await;
+    let ulid = database.create_user(user, user_type).await?;
+
+    let mut shared_state = shared_state.lock().await;
+    let refresh_token = shared_state
+        .open_session(&database, ulid, user_type)
+        .await?;
+    Ok(refresh_token)
+}
+
+/// Log in as a Google user.
+pub async fn login(
+    Form(id_token): Form<IdToken>,
+    Extension(database): Extension<SharedDatabase>,
+    Extension(shared_state): Extension<SharedState>,
+) -> GlobeliseResult<String> {
+    let OauthKeyList { keys } = OauthKeyList::new()
+        .await
+        .map_err(|_| GlobeliseError::Internal("Could not get Google's public keys".into()))?;
+
+    let claims = id_token.decode(&keys)?;
+    let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
+
     let database = database.lock().await;
     let mut shared_state = shared_state.lock().await;
-    if let Some(ulid) = database.user_id(&email, user_type).await? {
+    if let Some((ulid, user_type)) = database.user_id(&email).await? {
         if let Some((User { google: true, .. }, _)) = database.user(ulid, Some(user_type)).await? {
             let refresh_token = shared_state
                 .open_session(&database, ulid, user_type)
@@ -47,18 +76,7 @@ pub async fn login(
             ))
         }
     } else {
-        let user = User {
-            email,
-            password_hash: None,
-            google: true,
-            outlook: false,
-        };
-        let ulid = database.create_user(user, user_type).await?;
-        let refresh_token = shared_state
-            .open_session(&database, ulid, user_type)
-            .await?;
-
-        Ok(refresh_token)
+        Err(GlobeliseError::Unauthorized("Google login failed"))
     }
 }
 

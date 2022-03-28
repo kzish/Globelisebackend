@@ -38,10 +38,11 @@ async fn main() {
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
         .route("/auth/signup/:user_type", post(auth::signup))
-        .route("/auth/login/:user_type", post(auth::login))
-        .route("/auth/google/login/:user_type", post(auth::google::login))
+        .route("/auth/login", post(auth::login))
+        .route("/auth/google/signup/:user_type", post(auth::google::signup))
+        .route("/auth/google/login", post(auth::google::login))
         .route(
-            "/auth/password/reset/email/:user_type",
+            "/auth/password/reset/email",
             post(auth::password::reset::send_email),
         )
         .route(

@@ -107,11 +107,7 @@ pub async fn add_individual_contractor(
         .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
 
     let database = database.lock().await;
-    if (database
-        .user_id(&email_address, UserType::Individual)
-        .await?)
-        .is_some()
-    {
+    if (database.user_id(&email_address).await?).is_some() {
         return Err(GlobeliseError::UnavailableEmail);
     };
 
