@@ -334,6 +334,102 @@ CREATE VIEW public.onboard_individual_contractors AS
 
 ALTER TABLE public.onboard_individual_contractors OWNER TO postgres;
 
+
+--
+-- Name: user_index; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.user_index AS
+WITH client_individual_info AS (
+    SELECT
+        auth_individuals.ulid,
+        auth_individuals.email,
+        CONCAT(
+            onboard_individual_clients.first_name,
+            ' ',
+            onboard_individual_clients.last_name
+        ) AS name,
+        'client' AS user_role,
+        'individual' AS user_type
+    FROM
+        onboard_individual_clients
+        LEFT OUTER JOIN auth_individuals ON auth_individuals.ulid = onboard_individual_clients.ulid
+),
+client_entity_info AS (
+    SELECT
+        auth_entities.ulid,
+        auth_entities.email,
+        onboard_entity_clients.company_name AS name,
+        'client' AS user_role,
+        'entity' AS user_type
+    FROM
+        onboard_entity_clients
+        LEFT OUTER JOIN auth_entities ON auth_entities.ulid = onboard_entity_clients.ulid
+),
+contractor_individual_info AS (
+    SELECT
+        auth_individuals.ulid,
+        auth_individuals.email,
+        CONCAT(
+            onboard_individual_contractors.first_name,
+            ' ',
+            onboard_individual_contractors.last_name
+        ) AS name,
+        'contractor' AS user_role,
+        'individual' AS user_type
+    FROM
+        onboard_individual_contractors
+        LEFT OUTER JOIN auth_individuals ON auth_individuals.ulid = onboard_individual_contractors.ulid
+),
+contractor_entity_info AS (
+    SELECT
+        auth_entities.ulid,
+        auth_entities.email,
+        onboard_entity_contractors.company_name AS name,
+        'contractor' AS user_role,
+        'entity' AS user_type
+    FROM
+        onboard_entity_contractors
+        LEFT OUTER JOIN auth_entities ON auth_entities.ulid = onboard_entity_contractors.ulid
+)
+SELECT
+    ulid,
+    name,
+    email,
+    user_role,
+    user_type
+FROM
+    client_individual_info
+UNION
+SELECT
+    ulid,
+    name,
+    email,
+    user_role,
+    user_type
+FROM
+    client_entity_info
+UNION
+SELECT
+    ulid,
+    name,
+    email,
+    user_role,
+    user_type
+FROM
+    contractor_individual_info
+UNION
+SELECT
+    ulid,
+    name,
+    email,
+    user_role,
+    user_type
+FROM
+    contractor_entity_info
+
+ALTER TABLE public.user_index OWNER TO postgres;
+
 --
 -- Name: prefilled_onboard_individual_contractors; Type: TABLE; Schema: public; Owner: postgres
 --
