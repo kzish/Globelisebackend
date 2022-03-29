@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.1 (Debian 14.1-1.pgdg110+1)
--- Dumped by pg_dump version 14.1 (Debian 14.1-1.pgdg110+1)
+-- Dumped from database version 13.6
+-- Dumped by pg_dump version 13.6
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -334,102 +334,6 @@ CREATE VIEW public.onboard_individual_contractors AS
 
 ALTER TABLE public.onboard_individual_contractors OWNER TO postgres;
 
-
---
--- Name: user_index; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.user_index AS
-WITH client_individual_info AS (
-    SELECT
-        auth_individuals.ulid,
-        auth_individuals.email,
-        CONCAT(
-            onboard_individual_clients.first_name,
-            ' ',
-            onboard_individual_clients.last_name
-        ) AS name,
-        'client' AS user_role,
-        'individual' AS user_type
-    FROM
-        onboard_individual_clients
-        LEFT OUTER JOIN auth_individuals ON auth_individuals.ulid = onboard_individual_clients.ulid
-),
-client_entity_info AS (
-    SELECT
-        auth_entities.ulid,
-        auth_entities.email,
-        onboard_entity_clients.company_name AS name,
-        'client' AS user_role,
-        'entity' AS user_type
-    FROM
-        onboard_entity_clients
-        LEFT OUTER JOIN auth_entities ON auth_entities.ulid = onboard_entity_clients.ulid
-),
-contractor_individual_info AS (
-    SELECT
-        auth_individuals.ulid,
-        auth_individuals.email,
-        CONCAT(
-            onboard_individual_contractors.first_name,
-            ' ',
-            onboard_individual_contractors.last_name
-        ) AS name,
-        'contractor' AS user_role,
-        'individual' AS user_type
-    FROM
-        onboard_individual_contractors
-        LEFT OUTER JOIN auth_individuals ON auth_individuals.ulid = onboard_individual_contractors.ulid
-),
-contractor_entity_info AS (
-    SELECT
-        auth_entities.ulid,
-        auth_entities.email,
-        onboard_entity_contractors.company_name AS name,
-        'contractor' AS user_role,
-        'entity' AS user_type
-    FROM
-        onboard_entity_contractors
-        LEFT OUTER JOIN auth_entities ON auth_entities.ulid = onboard_entity_contractors.ulid
-)
-SELECT
-    ulid,
-    name,
-    email,
-    user_role,
-    user_type
-FROM
-    client_individual_info
-UNION
-SELECT
-    ulid,
-    name,
-    email,
-    user_role,
-    user_type
-FROM
-    client_entity_info
-UNION
-SELECT
-    ulid,
-    name,
-    email,
-    user_role,
-    user_type
-FROM
-    contractor_individual_info
-UNION
-SELECT
-    ulid,
-    name,
-    email,
-    user_role,
-    user_type
-FROM
-    contractor_entity_info
-
-ALTER TABLE public.user_index OWNER TO postgres;
-
 --
 -- Name: prefilled_onboard_individual_contractors; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -471,6 +375,75 @@ CREATE TABLE public.prefilled_onboard_individual_contractors_bank_details (
 
 
 ALTER TABLE public.prefilled_onboard_individual_contractors_bank_details OWNER TO postgres;
+
+--
+-- Name: user_index; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.user_index AS
+ WITH client_individual_info AS (
+         SELECT auth_individuals.ulid,
+            auth_individuals.email,
+            concat(onboard_individual_clients.first_name, ' ', onboard_individual_clients.last_name) AS name,
+            'client'::text AS user_role,
+            'individual'::text AS user_type
+           FROM (public.onboard_individual_clients
+             LEFT JOIN public.auth_individuals ON ((auth_individuals.ulid = onboard_individual_clients.ulid)))
+        ), client_entity_info AS (
+         SELECT auth_entities.ulid,
+            auth_entities.email,
+            onboard_entity_clients.company_name AS name,
+            'client'::text AS user_role,
+            'entity'::text AS user_type
+           FROM (public.onboard_entity_clients
+             LEFT JOIN public.auth_entities ON ((auth_entities.ulid = onboard_entity_clients.ulid)))
+        ), contractor_individual_info AS (
+         SELECT auth_individuals.ulid,
+            auth_individuals.email,
+            concat(onboard_individual_contractors.first_name, ' ', onboard_individual_contractors.last_name) AS name,
+            'contractor'::text AS user_role,
+            'individual'::text AS user_type
+           FROM (public.onboard_individual_contractors
+             LEFT JOIN public.auth_individuals ON ((auth_individuals.ulid = onboard_individual_contractors.ulid)))
+        ), contractor_entity_info AS (
+         SELECT auth_entities.ulid,
+            auth_entities.email,
+            onboard_entity_contractors.company_name AS name,
+            'contractor'::text AS user_role,
+            'entity'::text AS user_type
+           FROM (public.onboard_entity_contractors
+             LEFT JOIN public.auth_entities ON ((auth_entities.ulid = onboard_entity_contractors.ulid)))
+        )
+ SELECT client_individual_info.ulid,
+    client_individual_info.name,
+    client_individual_info.email,
+    client_individual_info.user_role,
+    client_individual_info.user_type
+   FROM client_individual_info
+UNION
+ SELECT client_entity_info.ulid,
+    client_entity_info.name,
+    client_entity_info.email,
+    client_entity_info.user_role,
+    client_entity_info.user_type
+   FROM client_entity_info
+UNION
+ SELECT contractor_individual_info.ulid,
+    contractor_individual_info.name,
+    contractor_individual_info.email,
+    contractor_individual_info.user_role,
+    contractor_individual_info.user_type
+   FROM contractor_individual_info
+UNION
+ SELECT contractor_entity_info.ulid,
+    contractor_entity_info.name,
+    contractor_entity_info.email,
+    contractor_entity_info.user_role,
+    contractor_entity_info.user_type
+   FROM contractor_entity_info;
+
+
+ALTER TABLE public.user_index OWNER TO postgres;
 
 --
 -- Name: auth_entities auth_entities_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
