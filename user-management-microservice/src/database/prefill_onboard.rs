@@ -19,9 +19,8 @@ impl Database {
             ON CONFLICT(email) DO UPDATE SET 
             first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
             country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
-            time_zone = $11"
-            .to_string();
-        sqlx::query(&query)
+            time_zone = $11";
+        sqlx::query(query)
             .bind(details.first_name)
             .bind(details.last_name)
             .bind(details.dob)
@@ -51,9 +50,8 @@ impl Database {
             (email, bank_name, bank_account_name, bank_account_number) 
             VALUES ($1, $2, $3, $4)
             ON CONFLICT(email) DO UPDATE SET 
-            bank_name = $2, bank_account_name = $3, bank_account_number = $4"
-            .to_string();
-        sqlx::query(&query)
+            bank_name = $2, bank_account_name = $3, bank_account_number = $4";
+        sqlx::query(query)
             .bind(email.to_string())
             .bind(details.bank_name)
             .bind(details.account_name)
