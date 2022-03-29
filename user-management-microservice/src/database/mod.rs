@@ -1,13 +1,14 @@
 use std::{sync::Arc, time::Duration};
 
 use common_utils::error::{GlobeliseError, GlobeliseResult};
+use email_address::EmailAddress;
 use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
 
 use crate::{
     eor_admin::{UserIndex, UserIndexQuery},
-    onboard::individual::IndividualDetails,
+    onboard::{bank::BankDetails, individual::IndividualDetails},
 };
 
 mod auth;
@@ -78,9 +79,9 @@ pub fn ulid_from_sql_uuid(uuid: sqlx::types::Uuid) -> Ulid {
 }
 
 impl Database {
-    pub async fn prefill_onboard_individual_contractors(
+    pub async fn prefill_onboard_individual_contractors_account_details(
         &self,
-        email: String,
+        email: &EmailAddress,
         details: IndividualDetails,
     ) -> GlobeliseResult<()> {
         let query = "
@@ -106,7 +107,31 @@ impl Database {
             .bind(details.tax_id)
             .bind(details.time_zone)
             .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
-            .bind(email)
+            .bind(email.to_string())
+            .execute(&self.0)
+            .await
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
+    pub async fn prefill_onboard_individual_contractors_bank_details(
+        &self,
+        email: &EmailAddress,
+        details: BankDetails,
+    ) -> GlobeliseResult<()> {
+        let query = "
+            INSERT INTO  prefilled_onboard_individual_contractors_bank_details
+            (email, bank_name, bank_account_name, bank_account_number) 
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT(email) DO UPDATE SET 
+            bank_name = $2, bank_account_name = $3, bank_account_number = $4"
+            .to_string();
+        sqlx::query(&query)
+            .bind(email.to_string())
+            .bind(details.bank_name)
+            .bind(details.account_name)
+            .bind(details.account_number)
             .execute(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;

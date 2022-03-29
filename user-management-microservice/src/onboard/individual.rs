@@ -17,6 +17,8 @@ use crate::{
     database::SharedDatabase,
 };
 
+use super::bank::BankDetails;
+
 pub async fn account_details(
     claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
@@ -51,11 +53,37 @@ pub async fn prefill_individual_contractor_account_details(
         ));
     }
 
-    let (email, details) = request.split();
+    let (email, details) = request.split()?;
     let database = database.lock().await;
     database
-        .prefill_onboard_individual_contractors(email, details)
-        .await
+        .prefill_onboard_individual_contractors_account_details(&email, details)
+        .await?;
+
+    Ok(())
+}
+
+pub async fn prefill_individual_contractor_bank_details(
+    // Only needed for validation
+    _: Token<AdminAccessToken>,
+    ContentLengthLimit(Json(request)): ContentLengthLimit<
+        Json<PrefillBankDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    if !EmailAddress::is_valid(&request.email) {
+        return Err(GlobeliseError::BadRequest(
+            "Please provide a valid email address",
+        ));
+    }
+
+    let (email, details) = request.split()?;
+    let database = database.lock().await;
+    database
+        .prefill_onboard_individual_contractors_bank_details(&email, details)
+        .await?;
+
+    Ok(())
 }
 
 #[serde_as]
@@ -104,9 +132,9 @@ pub struct PrefillIndividualDetails {
 }
 
 impl PrefillIndividualDetails {
-    pub fn split(self) -> (String, IndividualDetails) {
-        (
-            self.email,
+    pub fn split(self) -> GlobeliseResult<(EmailAddress, IndividualDetails)> {
+        Ok((
+            self.email.parse::<EmailAddress>()?,
             IndividualDetails {
                 first_name: self.first_name,
                 last_name: self.last_name,
@@ -121,6 +149,28 @@ impl PrefillIndividualDetails {
                 time_zone: self.time_zone,
                 profile_picture: self.profile_picture,
             },
-        )
+        ))
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefillBankDetails {
+    pub email: String,
+    pub bank_name: String,
+    pub account_name: String,
+    pub account_number: String,
+}
+
+impl PrefillBankDetails {
+    pub fn split(self) -> GlobeliseResult<(EmailAddress, BankDetails)> {
+        Ok((
+            self.email.parse::<EmailAddress>()?,
+            BankDetails {
+                bank_name: self.bank_name,
+                account_name: self.account_name,
+                account_number: self.account_number,
+            },
+        ))
     }
 }

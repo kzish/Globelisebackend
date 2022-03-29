@@ -159,7 +159,7 @@ where
             Ok(Token::decode(token.as_str(), decoding_key).await?)
         } else {
             Err(GlobeliseError::Unauthorized(
-                "No valid access token provided",
+                "Please provide access token in the query param or as auth bearer",
             ))
         }
     }
