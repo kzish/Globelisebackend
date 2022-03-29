@@ -6,7 +6,6 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
 
 use crate::{
-    auth::user::{User, UserType},
     eor_admin::{UserIndex, UserIndexQuery},
     onboard::individual::IndividualDetails,
 };
