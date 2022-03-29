@@ -1,13 +1,13 @@
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use email_address::EmailAddress;
 use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use serde::Deserialize;
-use serde_with::{base64::Base64, serde_as, TryFromInto};
+use serde_with::{serde_as, TryFromInto};
 
 use crate::database::SharedDatabase;
 
@@ -79,9 +79,6 @@ pub struct PrefillIndividualDetails {
     #[serde(default)]
     pub tax_id: Option<String>,
     pub time_zone: String,
-    #[serde_as(as = "Option<Base64>")]
-    #[serde(default)]
-    pub profile_picture: Option<ImageData>,
 }
 
 impl PrefillIndividualDetails {
@@ -100,7 +97,7 @@ impl PrefillIndividualDetails {
                 postal_code: self.postal_code,
                 tax_id: self.tax_id,
                 time_zone: self.time_zone,
-                profile_picture: self.profile_picture,
+                profile_picture: None,
             },
         ))
     }

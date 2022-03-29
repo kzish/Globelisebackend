@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
-    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -194,9 +194,6 @@ pub struct PrefillIndividualDetailsForBulkUpload {
     pub tax_id: String,
     #[serde(rename = "Timezone")]
     pub time_zone: String,
-    #[serde(rename = "Profile Picture")]
-    #[serde_as(as = "Base64")]
-    pub profile_picture: ImageData,
     #[serde(rename = "Bank Name")]
     pub bank_name: String,
     #[serde(rename = "Bank Account Number")]
@@ -221,7 +218,7 @@ impl PrefillIndividualDetailsForBulkUpload {
                 postal_code: self.postal_code,
                 tax_id: Some(self.tax_id),
                 time_zone: self.time_zone,
-                profile_picture: Some(self.profile_picture),
+                profile_picture: None,
             },
             BankDetails {
                 bank_name: self.bank_name,
