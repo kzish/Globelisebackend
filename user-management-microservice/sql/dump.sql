@@ -351,7 +351,6 @@ CREATE TABLE public.prefilled_onboard_individual_contractors (
     postal_code character varying(20) NOT NULL,
     tax_id character varying(50),
     time_zone character varying(50) NOT NULL,
-    profile_picture bytea,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
