@@ -78,11 +78,11 @@ async fn main() {
         )
         .route(
             "/eor-admin/users/onboard/prefill_individual_contractor_account_details",
-            post(onboard::individual::prefill_individual_contractor_account_details),
+            post(onboard::prefill::prefill_individual_contractor_account_details),
         )
         .route(
             "/eor-admin/users/onboard/prefill_individual_contractor_bank_details",
-            post(onboard::individual::prefill_individual_contractor_bank_details),
+            post(onboard::prefill::prefill_individual_contractor_bank_details),
         )
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))

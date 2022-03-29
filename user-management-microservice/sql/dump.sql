@@ -335,38 +335,34 @@ CREATE VIEW public.onboard_individual_contractors AS
 ALTER TABLE public.onboard_individual_contractors OWNER TO postgres;
 
 --
--- Name: prefilled_onboard_individual_contractors; Type: TABLE; Schema: public; Owner: postgres
+-- Name: prefilled_individual_contractors_account_details; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.prefilled_onboard_individual_contractors (
-    email character varying(50) NOT NULL,
-    first_name character varying(50),
-    last_name character varying(50),
-    dob date,
-    dial_code character varying(5),
-    phone_number character varying(16),
-    country character varying(100),
-    city character varying(50),
-    address character varying(250),
-    postal_code character varying(20),
+CREATE TABLE public.prefilled_individual_contractors_account_details (
+    email character varying(254) NOT NULL,
+    first_name character varying(50) NOT NULL,
+    last_name character varying(50) NOT NULL,
+    dob date NOT NULL,
+    dial_code character varying(5) NOT NULL,
+    phone_number character varying(16) NOT NULL,
+    country character varying(100) NOT NULL,
+    city character varying(50) NOT NULL,
+    address character varying(250) NOT NULL,
+    postal_code character varying(20) NOT NULL,
     tax_id character varying(50),
-    time_zone character varying(50),
-    profile_picture bytea,
-    bank_name character varying(120),
-    bank_account_name character varying(50),
-    bank_account_number character varying(20),
+    time_zone character varying(50) NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
-ALTER TABLE public.prefilled_onboard_individual_contractors OWNER TO postgres;
+ALTER TABLE public.prefilled_individual_contractors_account_details OWNER TO postgres;
 
 --
--- Name: prefilled_onboard_individual_contractors_bank_details; Type: TABLE; Schema: public; Owner: postgres
+-- Name: prefilled_individual_contractors_bank_details; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.prefilled_onboard_individual_contractors_bank_details (
-    email character varying(50) NOT NULL,
+CREATE TABLE public.prefilled_individual_contractors_bank_details (
+    email character varying(254) NOT NULL,
     bank_name character varying(120) NOT NULL,
     bank_account_name character varying(50) NOT NULL,
     bank_account_number character varying(20) NOT NULL,
@@ -374,7 +370,7 @@ CREATE TABLE public.prefilled_onboard_individual_contractors_bank_details (
 );
 
 
-ALTER TABLE public.prefilled_onboard_individual_contractors_bank_details OWNER TO postgres;
+ALTER TABLE public.prefilled_individual_contractors_bank_details OWNER TO postgres;
 
 --
 -- Name: user_index; Type: VIEW; Schema: public; Owner: postgres
@@ -542,34 +538,18 @@ ALTER TABLE ONLY public.individual_contractors_bank_details
 
 
 --
--- Name: prefilled_onboard_individual_contractors_bank_details prefilled_onboard_individual_contractors_bank_details_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: prefilled_individual_contractors_bank_details prefilled_onboard_individual_contractors_bank_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.prefilled_onboard_individual_contractors_bank_details
-    ADD CONSTRAINT prefilled_onboard_individual_contractors_bank_details_email_key UNIQUE (email);
-
-
---
--- Name: prefilled_onboard_individual_contractors_bank_details prefilled_onboard_individual_contractors_bank_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.prefilled_onboard_individual_contractors_bank_details
+ALTER TABLE ONLY public.prefilled_individual_contractors_bank_details
     ADD CONSTRAINT prefilled_onboard_individual_contractors_bank_details_pkey PRIMARY KEY (email);
 
 
 --
--- Name: prefilled_onboard_individual_contractors prefilled_onboard_individual_contractors_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: prefilled_individual_contractors_account_details prefilled_onboard_individual_contractors_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.prefilled_onboard_individual_contractors
-    ADD CONSTRAINT prefilled_onboard_individual_contractors_email_key UNIQUE (email);
-
-
---
--- Name: prefilled_onboard_individual_contractors prefilled_onboard_individual_contractors_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.prefilled_onboard_individual_contractors
+ALTER TABLE ONLY public.prefilled_individual_contractors_account_details
     ADD CONSTRAINT prefilled_onboard_individual_contractors_pkey PRIMARY KEY (email);
 
 
@@ -644,17 +624,17 @@ CREATE TRIGGER mdt_individual_contractors_bank_details BEFORE UPDATE ON public.i
 
 
 --
--- Name: prefilled_onboard_individual_contractors mdt_prefilled_onboard_individual_contractors; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: prefilled_individual_contractors_account_details mdt_prefilled_individual_contractors_account_details; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER mdt_prefilled_onboard_individual_contractors BEFORE UPDATE ON public.prefilled_onboard_individual_contractors FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
+CREATE TRIGGER mdt_prefilled_individual_contractors_account_details BEFORE UPDATE ON public.prefilled_individual_contractors_account_details FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
 
 
 --
--- Name: prefilled_onboard_individual_contractors_bank_details mdt_prefilled_onboard_individual_contractors_bank_details; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: prefilled_individual_contractors_bank_details mdt_prefilled_individual_contractors_bank_details; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER mdt_prefilled_onboard_individual_contractors_bank_details BEFORE UPDATE ON public.prefilled_onboard_individual_contractors_bank_details FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
+CREATE TRIGGER mdt_prefilled_individual_contractors_bank_details BEFORE UPDATE ON public.prefilled_individual_contractors_bank_details FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
 
 
 --
@@ -719,6 +699,14 @@ ALTER TABLE ONLY public.individual_contractors_account_details
 
 ALTER TABLE ONLY public.individual_contractors_bank_details
     ADD CONSTRAINT individual_contractors_bank_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.individual_contractors_account_details(ulid) ON DELETE CASCADE;
+
+
+--
+-- Name: prefilled_individual_contractors_bank_details prefilled_onboard_individual_contractors_bank_detail_email_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.prefilled_individual_contractors_bank_details
+    ADD CONSTRAINT prefilled_onboard_individual_contractors_bank_detail_email_fkey FOREIGN KEY (email) REFERENCES public.prefilled_individual_contractors_account_details(email) ON DELETE CASCADE;
 
 
 --
