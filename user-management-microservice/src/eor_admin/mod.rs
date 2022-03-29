@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::num::NonZeroU32;
 
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
@@ -13,7 +13,7 @@ use lettre::{Message, SmtpTransport, Transport};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, Row};
+use sqlx::{postgres::PgRow, FromRow, Row};
 use time::{format_description, OffsetDateTime};
 
 use crate::{
@@ -37,18 +37,24 @@ pub struct UserIndex {
     pub created_at: String,
 }
 
-impl UserIndex {
-    pub fn from_pg_row(row: PgRow) -> GlobeliseResult<Self> {
+impl<'r> FromRow<'r, PgRow> for UserIndex {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         let ulid = ulid_from_sql_uuid(row.try_get("ulid")?);
         let name = row.try_get("name")?;
         let role_str: String = row.try_get("user_role")?;
-        let user_role = Role::try_from(role_str.as_str())?;
+        let user_role =
+            Role::try_from(role_str.as_str()).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
         let type_str: String = row.try_get("user_type")?;
-        let user_type = UserType::try_from(type_str.as_str())?;
+        let user_type =
+            UserType::try_from(type_str.as_str()).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
         let email = row.try_get("email")?;
         let timestamp_msec = ulid.timestamp() as i64 / 1000;
-        let format = format_description::parse("[year]-[month]-[day]")?;
-        let created_at = OffsetDateTime::from_unix_timestamp(timestamp_msec)?.format(&format)?;
+        let format = format_description::parse("[year]-[month]-[day]")
+            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+        let created_at = OffsetDateTime::from_unix_timestamp(timestamp_msec)
+            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?
+            .format(&format)
+            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
         Ok(UserIndex {
             ulid,
             name,
@@ -60,37 +66,23 @@ impl UserIndex {
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UserIndexQuery {
+    pub page: NonZeroU32,
+    pub per_page: NonZeroU32,
+    pub search_text: Option<String>,
+    pub user_type: Option<UserType>,
+    pub user_role: Option<Role>,
+}
+
 pub async fn user_index(
     // Only for validation
     _: Token<AdminAccessToken>,
-    Query(query): Query<HashMap<String, String>>,
+    Query(query): Query<UserIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<UserIndex>>> {
-    let page = query
-        .get("page")
-        .map(|v| v.parse::<i64>())
-        .transpose()
-        .map_err(|_| GlobeliseError::BadRequest("Invalid page param passed"))?;
-    let per_page = query
-        .get("per_page")
-        .map(|v| v.parse::<i64>())
-        .transpose()
-        .map_err(|_| GlobeliseError::BadRequest("Invalid per_page param passed"))?;
-    let search_text = query.get("search_text").map(|v| v.to_owned());
-    let user_type = query
-        .get("user_type")
-        .map(|r| UserType::from_str(r))
-        .transpose()
-        .map_err(|_| GlobeliseError::BadRequest("Invalid user_type param passed"))?;
-    let user_role = query
-        .get("user_role")
-        .map(|r| Role::from_str(r))
-        .transpose()
-        .map_err(|_| GlobeliseError::BadRequest("Invalid user_role param passed"))?;
     let database = database.lock().await;
-    let result = database
-        .user_index(page, per_page, search_text, user_type, user_role)
-        .await?;
+    let result = database.user_index(query).await?;
     Ok(Json(result))
 }
 
