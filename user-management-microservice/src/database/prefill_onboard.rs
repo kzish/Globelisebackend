@@ -12,7 +12,7 @@ impl Database {
         details: IndividualDetails,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO  prefilled_onboard_individual_contractors
+            INSERT INTO  prefilled_individual_contractors_account_details
             (email, first_name, last_name, dob, dial_code, phone_number, country, city, address,
             postal_code, tax_id, time_zone, profile_picture) 
             VALUES ($12, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -47,7 +47,7 @@ impl Database {
         details: BankDetails,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO  prefilled_onboard_individual_contractors_bank_details
+            INSERT INTO  prefilled_individual_contractors_bank_details
             (email, bank_name, bank_account_name, bank_account_number) 
             VALUES ($1, $2, $3, $4)
             ON CONFLICT(email) DO UPDATE SET 
