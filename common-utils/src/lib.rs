@@ -3,15 +3,13 @@
 use error::GlobeliseResult;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
-use strum::{Display, EnumIter, EnumString};
+use strum::Display;
 
 pub mod custom_serde;
 pub mod error;
 pub mod token;
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, EnumIter, EnumString, Display, Deserialize, Serialize, Hash,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 #[strum(serialize_all = "kebab-case")]
 pub enum DaprAppId {
@@ -26,16 +24,6 @@ impl DaprAppId {
             DaprAppId::UserManagementMicroservice => "user-management-microservice",
             DaprAppId::EorAdminMicroservice => "eor-admin-microservice",
             DaprAppId::ContractorManagementMicroservice => "contractor-management-microservice",
-        }
-    }
-
-    pub fn microservice_env_key(&self) -> &'static str {
-        match self {
-            DaprAppId::UserManagementMicroservice => "USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL",
-            DaprAppId::EorAdminMicroservice => "EOR_ADMIN_MICROSERVICE_DOMAIN_URL",
-            DaprAppId::ContractorManagementMicroservice => {
-                "CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL"
-            }
         }
     }
 
