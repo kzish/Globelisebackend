@@ -7,9 +7,16 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Local crates
+user-management-microservice = { path = "../user-management-microservice" }
+eor-admin-microservice = { path = "../eor-admin-microservice" }
+common-utils = { path = "../common-utils" }
+
+# Remote crates
 axum = { version = "0.4.8", features = ["headers"] }
 dapr = "0.7.2"
 dotenv = "0.15.0"
+itertools = "0.10.3"
 jsonwebtoken = "8.0.1"
 once_cell = "1.10.0"
 reqwest = { version = "0.11.10", features = ["json"] }
@@ -22,11 +29,3 @@ tokio = { version = "1.17.0", features = ["full"] }
 tonic = "0.5.2"
 tower = { version = "0.4.12", features = ["timeout", "load-shed", "limit"] }
 tower-http = { version = "0.2.5", features = ["cors"] }
-
-
-
-# Microservices SDK
-user-management-microservice = { path = "../user-management-microservice" }
-eor-admin-microservice = { path = "../eor-admin-microservice" }
-common-utils = { path = "../common-utils" }
-itertools = "0.10.3"
