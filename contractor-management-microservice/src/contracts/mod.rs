@@ -10,7 +10,7 @@ use common_utils::{
 use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use reqwest::Client;
 use rusty_ulid::Ulid;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_with::{serde_as, FromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, GetUserInfoRequest, Role};

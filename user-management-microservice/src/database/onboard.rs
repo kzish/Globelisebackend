@@ -170,13 +170,14 @@ impl Database {
         user_type: UserType,
         details: PaymentDetails,
     ) -> GlobeliseResult<()> {
-        if user_type != UserType::Entity || self.user(ulid, Some(user_type)).await?.is_none() {
+        if self.user(ulid, Some(user_type)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
         }
 
+        let target_table = user_type.db_onboard_details_prefix(Role::Client) + "_payment_details";
         let query = format!(
             "
-            INSERT INTO entity_clients_payment_details
+            INSERT INTO {target_table}
             (ulid, currency, payment_date, cutoff_date)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT(ulid) DO UPDATE SET 

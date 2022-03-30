@@ -391,6 +391,21 @@ CREATE TABLE public.individual_clients_account_details (
 ALTER TABLE public.individual_clients_account_details OWNER TO postgres;
 
 --
+-- Name: individual_clients_payment_details; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.individual_clients_payment_details (
+    ulid uuid NOT NULL,
+    currency public.currency NOT NULL,
+    payment_date date NOT NULL,
+    cutoff_date date NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.individual_clients_payment_details OWNER TO postgres;
+
+--
 -- Name: individual_contractors_account_details; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -822,6 +837,13 @@ CREATE TRIGGER mdt_individual_clients_account_details BEFORE UPDATE ON public.in
 
 
 --
+-- Name: individual_clients_payment_details mdt_individual_clients_payment_details; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER mdt_individual_clients_payment_details BEFORE UPDATE ON public.individual_clients_payment_details FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
+
+
+--
 -- Name: individual_contractors_account_details mdt_individual_contractors_account_details; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -903,6 +925,14 @@ ALTER TABLE ONLY public.entity_contractors_pic_details
 
 ALTER TABLE ONLY public.individual_clients_account_details
     ADD CONSTRAINT individual_clients_account_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_individuals(ulid) ON DELETE CASCADE;
+
+
+--
+-- Name: individual_clients_payment_details individual_clients_payment_details_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.individual_clients_payment_details
+    ADD CONSTRAINT individual_clients_payment_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_individuals(ulid);
 
 
 --
