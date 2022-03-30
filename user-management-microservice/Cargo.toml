@@ -17,7 +17,6 @@ axum = { version = "0.4.8", features = ["headers", "multipart"] }
 base64 = "0.13.0"
 csv = "1.1.6"
 dapr = "0.7.2"
-derive_builder = "0.10.2"
 dotenv = "0.15.0"
 email_address = "0.2.1"
 http-cache-reqwest = { version = "0.3.0", features = ["manager-moka"], default-features = false }
