@@ -1,7 +1,7 @@
 use common_utils::error::{GlobeliseError, GlobeliseResult};
 use email_address::EmailAddress;
 
-use crate::onboard::{bank::BankDetails, individual::IndividualDetails};
+use crate::onboard::{bank::BankDetails, individual::IndividualContractorDetails};
 
 use super::Database;
 
@@ -9,30 +9,30 @@ impl Database {
     pub async fn prefill_onboard_individual_contractors_account_details(
         &self,
         email: &EmailAddress,
-        details: IndividualDetails,
+        details: IndividualContractorDetails,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO  prefilled_individual_contractors_account_details
             (email, first_name, last_name, dob, dial_code, phone_number, country, city, address,
-            postal_code, tax_id, time_zone, profile_picture) 
-            VALUES ($12, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            postal_code, tax_id, time_zone) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             ON CONFLICT(email) DO UPDATE SET 
-            first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
-            country = $6, city = $7, address = $8, postal_code = $9, tax_id = $10,
-            time_zone = $11";
+            first_name = $2, last_name = $3, dob = $4, dial_code = $5, phone_number = $6,
+            country = $7, city = $8, address = $9, postal_code = $10, tax_id = $11,
+            time_zone = $12";
         sqlx::query(query)
-            .bind(details.first_name)
-            .bind(details.last_name)
-            .bind(details.dob)
-            .bind(details.dial_code)
-            .bind(details.phone_number)
-            .bind(details.country)
-            .bind(details.city)
-            .bind(details.address)
-            .bind(details.postal_code)
-            .bind(details.tax_id)
-            .bind(details.time_zone)
             .bind(email.to_string())
+            .bind(details.common_info.first_name)
+            .bind(details.common_info.last_name)
+            .bind(details.common_info.dob)
+            .bind(details.common_info.dial_code)
+            .bind(details.common_info.phone_number)
+            .bind(details.common_info.country)
+            .bind(details.common_info.city)
+            .bind(details.common_info.address)
+            .bind(details.common_info.postal_code)
+            .bind(details.common_info.tax_id)
+            .bind(details.common_info.time_zone)
             .execute(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
