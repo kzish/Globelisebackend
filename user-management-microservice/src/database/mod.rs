@@ -39,6 +39,7 @@ impl Database {
         let result = sqlx::query_as(
             "
             SELECT 
+                created_at,
                 ulid,
                 name,
                 email,

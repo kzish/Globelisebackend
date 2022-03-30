@@ -15,7 +15,6 @@ use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
-use time::{format_description, OffsetDateTime};
 
 use crate::{
     auth::user::{Role, UserType},
@@ -28,6 +27,7 @@ use crate::{
 };
 
 /// Stores information associated with a user id.
+#[serde_as]
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UserIndex {
     pub ulid: Ulid,
@@ -35,7 +35,8 @@ pub struct UserIndex {
     pub user_role: Role,
     pub user_type: UserType,
     pub email: String,
-    pub created_at: String,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub created_at: sqlx::types::time::Date,
 }
 
 impl<'r> FromRow<'r, PgRow> for UserIndex {
@@ -49,13 +50,7 @@ impl<'r> FromRow<'r, PgRow> for UserIndex {
         let user_type =
             UserType::try_from(type_str.as_str()).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
         let email = row.try_get("email")?;
-        let timestamp_msec = ulid.timestamp() as i64 / 1000;
-        let format = format_description::parse("[year]-[month]-[day]")
-            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
-        let created_at = OffsetDateTime::from_unix_timestamp(timestamp_msec)
-            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?
-            .format(&format)
-            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+        let created_at = row.try_get("created_at")?;
         Ok(UserIndex {
             ulid,
             name,

@@ -102,13 +102,15 @@ pub async fn eor_admin_contracts_index(
     Ok(Json(database.eor_admin_contracts_index(query).await?))
 }
 
+#[serde_as]
 #[derive(Debug, Serialize)]
 pub struct UserIndex {
     pub ulid: Ulid,
     pub name: String,
     pub role: Role,
     pub contract_count: i64,
-    pub created_at: String,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    pub created_at: sqlx::types::time::Date,
     pub email: String,
 }
 
