@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 13.6
--- Dumped by pg_dump version 13.6
+-- Dumped from database version 14.1 (Debian 14.1-1.pgdg110+1)
+-- Dumped by pg_dump version 14.1 (Debian 14.1-1.pgdg110+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -340,6 +340,7 @@ ALTER TABLE public.onboard_individual_contractors OWNER TO postgres;
 
 CREATE TABLE public.prefilled_individual_contractors_account_details (
     email character varying(254) NOT NULL,
+    client_ulid uuid NOT NULL,
     first_name character varying(50) NOT NULL,
     last_name character varying(50) NOT NULL,
     dob date NOT NULL,
@@ -363,6 +364,7 @@ ALTER TABLE public.prefilled_individual_contractors_account_details OWNER TO pos
 
 CREATE TABLE public.prefilled_individual_contractors_bank_details (
     email character varying(254) NOT NULL,
+    client_ulid uuid NOT NULL,
     bank_name character varying(120) NOT NULL,
     bank_account_name character varying(50) NOT NULL,
     bank_account_number character varying(20) NOT NULL,
@@ -542,7 +544,7 @@ ALTER TABLE ONLY public.individual_contractors_bank_details
 --
 
 ALTER TABLE ONLY public.prefilled_individual_contractors_bank_details
-    ADD CONSTRAINT prefilled_onboard_individual_contractors_bank_details_pkey PRIMARY KEY (email);
+    ADD CONSTRAINT prefilled_onboard_individual_contractors_bank_details_pkey PRIMARY KEY (email, client_ulid);
 
 
 --
@@ -550,7 +552,7 @@ ALTER TABLE ONLY public.prefilled_individual_contractors_bank_details
 --
 
 ALTER TABLE ONLY public.prefilled_individual_contractors_account_details
-    ADD CONSTRAINT prefilled_onboard_individual_contractors_pkey PRIMARY KEY (email);
+    ADD CONSTRAINT prefilled_onboard_individual_contractors_pkey PRIMARY KEY (email, client_ulid);
 
 
 --
@@ -706,7 +708,7 @@ ALTER TABLE ONLY public.individual_contractors_bank_details
 --
 
 ALTER TABLE ONLY public.prefilled_individual_contractors_bank_details
-    ADD CONSTRAINT prefilled_onboard_individual_contractors_bank_detail_email_fkey FOREIGN KEY (email) REFERENCES public.prefilled_individual_contractors_account_details(email) ON DELETE CASCADE;
+    ADD CONSTRAINT prefilled_onboard_individual_contractors_bank_detail_email_fkey FOREIGN KEY (email, client_ulid) REFERENCES public.prefilled_individual_contractors_account_details(email, client_ulid) ON DELETE CASCADE;
 
 
 --

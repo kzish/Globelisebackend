@@ -1,3 +1,4 @@
+use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
 
 use crate::error::GlobeliseError;
@@ -17,6 +18,26 @@ impl TryFrom<DateWrapper> for sqlx::types::time::Date {
 impl From<sqlx::types::time::Date> for DateWrapper {
     fn from(date: sqlx::types::time::Date) -> Self {
         Self(date.format("%F"))
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct EmailWrapper(String);
+
+impl TryFrom<EmailWrapper> for EmailAddress {
+    type Error = GlobeliseError;
+
+    fn try_from(email: EmailWrapper) -> Result<Self, Self::Error> {
+        email
+            .0
+            .parse::<EmailAddress>()
+            .map_err(|_| GlobeliseError::BadRequest("Date must use YYYY-MM-DD format"))
+    }
+}
+
+impl From<EmailAddress> for EmailWrapper {
+    fn from(email: EmailAddress) -> Self {
+        EmailWrapper(email.to_string())
     }
 }
 

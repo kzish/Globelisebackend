@@ -1,7 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
 use common_utils::error::GlobeliseResult;
-
 use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;

@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
-    custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{DateWrapper, EmailWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -23,7 +23,7 @@ use crate::{
         GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
         USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
     },
-    onboard::{bank::BankDetails, individual::IndividualDetails},
+    onboard::prefill::{PrefillBankDetails, PrefillIndividualDetails},
 };
 
 /// Stores information associated with a user id.
@@ -161,6 +161,7 @@ pub async fn add_individual_contractor(
 pub struct AddEmployeesInBulk {
     #[serde_as(as = "Base64")]
     pub uploaded_file: Vec<u8>,
+    pub client_ulid: Ulid,
 }
 
 #[serde_as]
@@ -168,11 +169,10 @@ pub struct AddEmployeesInBulk {
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualDetailsForBulkUpload {
     #[serde(rename = "Email")]
-    pub email: String,
-    #[serde(rename = "Client Name")]
-    pub client_name: String,
-    #[serde(rename = "Full Name")]
-    pub full_name: String,
+    #[serde_as(as = "TryFromInto<EmailWrapper>")]
+    pub email: EmailAddress,
+    #[serde(rename = "First Name")]
+    pub first_name: String,
     #[serde(rename = "Last Name")]
     pub last_name: String,
     #[serde(rename = "DOB")]
@@ -202,33 +202,6 @@ pub struct PrefillIndividualDetailsForBulkUpload {
     pub bank_account_owner_name: String,
 }
 
-impl PrefillIndividualDetailsForBulkUpload {
-    fn split(self) -> GlobeliseResult<(EmailAddress, IndividualDetails, BankDetails)> {
-        Ok((
-            self.email.parse::<EmailAddress>()?,
-            IndividualDetails {
-                first_name: self.full_name,
-                last_name: self.last_name,
-                dob: self.dob,
-                dial_code: self.dial_code,
-                phone_number: self.phone_number,
-                country: self.country,
-                city: self.city,
-                address: self.address,
-                postal_code: self.postal_code,
-                tax_id: Some(self.tax_id),
-                time_zone: self.time_zone,
-                profile_picture: None,
-            },
-            BankDetails {
-                bank_name: self.bank_name,
-                account_name: self.bank_account_owner_name,
-                account_number: self.bank_account_number,
-            },
-        ))
-    }
-}
-
 pub async fn eor_admin_add_employees_in_bulk(
     // Only for validation
     _: Token<AdminAccessToken>,
@@ -252,14 +225,34 @@ pub async fn eor_admin_add_employees_in_bulk(
 
                 let database = database.lock().await;
 
-                let (email, prefill_details, bank_details) = value.split()?;
-
                 database
-                    .prefill_onboard_individual_contractors_account_details(&email, prefill_details)
+                    .prefill_onboard_individual_contractors_account_details(
+                        PrefillIndividualDetails {
+                            email: value.email.clone(),
+                            client_ulid: request.client_ulid,
+                            first_name: value.first_name,
+                            last_name: value.last_name,
+                            dob: value.dob,
+                            dial_code: value.dial_code,
+                            phone_number: value.phone_number,
+                            country: value.country,
+                            city: value.city,
+                            address: value.address,
+                            postal_code: value.postal_code,
+                            time_zone: value.time_zone,
+                            tax_id: Some(value.tax_id),
+                        },
+                    )
                     .await?;
 
                 database
-                    .prefill_onboard_individual_contractors_bank_details(&email, bank_details)
+                    .prefill_onboard_individual_contractors_bank_details(PrefillBankDetails {
+                        email: value.email,
+                        client_ulid: request.client_ulid,
+                        bank_name: value.bank_name,
+                        account_name: value.bank_account_owner_name,
+                        account_number: value.bank_account_number,
+                    })
                     .await?
             }
         }

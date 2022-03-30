@@ -19,3 +19,4 @@ strum = { version = "0.24.0", features = ["derive"] }
 time = { version = "0.3.7", features = ["formatting"] }
 tokio = { version = "1.17.0", features = ["full"] }
 image = "0.24.1"
+email_address = "0.2.1"
