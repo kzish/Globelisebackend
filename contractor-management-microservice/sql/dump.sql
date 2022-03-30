@@ -241,10 +241,10 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.client_names (
-    ulid uuid NOT NULL,
-    name text NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    ulid uuid NOT NULL,
+    name text NOT NULL
 );
 
 
@@ -255,10 +255,10 @@ ALTER TABLE public.client_names OWNER TO postgres;
 --
 
 CREATE TABLE public.contractor_names (
-    ulid uuid NOT NULL,
-    name text NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    ulid uuid NOT NULL,
+    name text NOT NULL
 );
 
 
@@ -269,6 +269,8 @@ ALTER TABLE public.contractor_names OWNER TO postgres;
 --
 
 CREATE TABLE public.contracts (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     client_ulid uuid NOT NULL,
     contractor_ulid uuid NOT NULL,
@@ -281,8 +283,6 @@ CREATE TABLE public.contracts (
     seniority text NOT NULL,
     begin_at date NOT NULL,
     end_at date NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT contracts_begin_at_end_at_check CHECK ((begin_at <= end_at)),
     CONSTRAINT contracts_contract_amount_check CHECK ((contract_amount >= (0)::numeric))
 );
@@ -339,13 +339,13 @@ ALTER TABLE public.contracts_index OWNER TO postgres;
 --
 
 CREATE TABLE public.invoice_group (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     invoice_name text NOT NULL,
     invoice_status text NOT NULL,
     invoice_due date NOT NULL,
-    invoice_date date NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    invoice_date date NOT NULL
 );
 
 
@@ -356,6 +356,8 @@ ALTER TABLE public.invoice_group OWNER TO postgres;
 --
 
 CREATE TABLE public.invoice_individual (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     invoice_group_ulid uuid NOT NULL,
     contractor_ulid uuid NOT NULL,
@@ -365,9 +367,7 @@ CREATE TABLE public.invoice_individual (
     invoice_amount_paid numeric NOT NULL,
     terms_and_instructions text NOT NULL,
     bill_to_name text NOT NULL,
-    bill_to_address text NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    bill_to_address text NOT NULL
 );
 
 
@@ -378,13 +378,13 @@ ALTER TABLE public.invoice_individual OWNER TO postgres;
 --
 
 CREATE TABLE public.invoice_items (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     invoice_ulid uuid NOT NULL,
     item_name text NOT NULL,
     item_unit_price numeric NOT NULL,
-    item_unit_quantity bigint NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    item_unit_quantity bigint NOT NULL
 );
 
 
@@ -464,6 +464,8 @@ ALTER TABLE public.invoice_group_index OWNER TO postgres;
 --
 
 CREATE TABLE public.payslips (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     client_ulid uuid NOT NULL,
     contractor_ulid uuid NOT NULL,
@@ -473,8 +475,6 @@ CREATE TABLE public.payslips (
     begin_period date NOT NULL,
     end_period date NOT NULL,
     payslip_file bytea NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT payslips_begin_period_end_period_check CHECK ((begin_period <= end_period))
 );
 
@@ -511,6 +511,8 @@ ALTER TABLE public.payslips_index OWNER TO postgres;
 --
 
 CREATE TABLE public.tax_reports (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     client_ulid uuid NOT NULL,
     contractor_ulid uuid NOT NULL,
@@ -521,8 +523,6 @@ CREATE TABLE public.tax_reports (
     end_period date NOT NULL,
     country text NOT NULL,
     tax_report_file bytea NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT tax_reports_begin_period_end_period_check CHECK ((begin_period <= end_period))
 );
 
