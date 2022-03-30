@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 13.6
--- Dumped by pg_dump version 13.6
+-- Dumped from database version 14.1 (Debian 14.1-1.pgdg110+1)
+-- Dumped by pg_dump version 14.1 (Debian 14.1-1.pgdg110+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -29,6 +29,196 @@ CREATE EXTENSION IF NOT EXISTS moddatetime WITH SCHEMA public;
 
 COMMENT ON EXTENSION moddatetime IS 'functions for tracking last modification time';
 
+
+--
+-- Name: currency; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.currency AS ENUM (
+    'AED',
+    'AFN',
+    'ALL',
+    'AMD',
+    'ANG',
+    'AOA',
+    'ARS',
+    'AUD',
+    'AWG',
+    'AZN',
+    'BAM',
+    'BBD',
+    'BDT',
+    'BGN',
+    'BHD',
+    'BIF',
+    'BMD',
+    'BND',
+    'BOB',
+    'BOV',
+    'BRL',
+    'BSD',
+    'BTN',
+    'BWP',
+    'BYN',
+    'BZD',
+    'CAD',
+    'CDF',
+    'CHE',
+    'CHF',
+    'CHW',
+    'CLF',
+    'CLP',
+    'CNY',
+    'COP',
+    'COU',
+    'CRC',
+    'CUC',
+    'CUP',
+    'CVE',
+    'CZK',
+    'DJF',
+    'DKK',
+    'DOP',
+    'DZD',
+    'EGP',
+    'ERN',
+    'ETB',
+    'EUR',
+    'FJD',
+    'FKP',
+    'GBP',
+    'GEL',
+    'GHS',
+    'GIP',
+    'GMD',
+    'GNF',
+    'GTQ',
+    'GYD',
+    'HKD',
+    'HNL',
+    'HRK',
+    'HTG',
+    'HUF',
+    'IDR',
+    'ILS',
+    'INR',
+    'IQD',
+    'IRR',
+    'ISK',
+    'JMD',
+    'JOD',
+    'JPY',
+    'KES',
+    'KGS',
+    'KHR',
+    'KMF',
+    'KPW',
+    'KRW',
+    'KWD',
+    'KYD',
+    'KZT',
+    'LAK',
+    'LBP',
+    'LKR',
+    'LRD',
+    'LSL',
+    'LYD',
+    'MAD',
+    'MDL',
+    'MGA',
+    'MKD',
+    'MMK',
+    'MNT',
+    'MOP',
+    'MRU',
+    'MUR',
+    'MVR',
+    'MWK',
+    'MXN',
+    'MXV',
+    'MYR',
+    'MZN',
+    'NAD',
+    'NGN',
+    'NIO',
+    'NOK',
+    'NPR',
+    'NZD',
+    'OMR',
+    'PAB',
+    'PEN',
+    'PGK',
+    'PHP',
+    'PKR',
+    'PLN',
+    'PYG',
+    'QAR',
+    'RON',
+    'RSD',
+    'RUB',
+    'RWF',
+    'SAR',
+    'SBD',
+    'SCR',
+    'SDG',
+    'SEK',
+    'SGD',
+    'SHP',
+    'SLL',
+    'SOS',
+    'SRD',
+    'SSP',
+    'STN',
+    'SVC',
+    'SYP',
+    'SZL',
+    'THB',
+    'TJS',
+    'TMT',
+    'TND',
+    'TOP',
+    'TRY',
+    'TTD',
+    'TWD',
+    'TZS',
+    'UAH',
+    'UGX',
+    'USD',
+    'USN',
+    'UYI',
+    'UYU',
+    'UYW',
+    'UZS',
+    'VED',
+    'VES',
+    'VND',
+    'VUV',
+    'WST',
+    'XAF',
+    'XAG',
+    'XAU',
+    'XBA',
+    'XBB',
+    'XBC',
+    'XBD',
+    'XCD',
+    'XDR',
+    'XOF',
+    'XPD',
+    'XPF',
+    'XPT',
+    'XSU',
+    'XTS',
+    'XUA',
+    'XXX',
+    'YER',
+    'ZAR',
+    'ZMW',
+    'ZWL'
+);
+
+
+ALTER TYPE public.currency OWNER TO postgres;
 
 SET default_tablespace = '';
 
@@ -87,6 +277,21 @@ CREATE TABLE public.entity_clients_account_details (
 
 
 ALTER TABLE public.entity_clients_account_details OWNER TO postgres;
+
+--
+-- Name: entity_clients_payment_details; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.entity_clients_payment_details (
+    ulid uuid NOT NULL,
+    currency public.currency NOT NULL,
+    payment_date date NOT NULL,
+    cutoff_date date NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.entity_clients_payment_details OWNER TO postgres;
 
 --
 -- Name: entity_clients_pic_details; Type: TABLE; Schema: public; Owner: postgres
@@ -575,6 +780,13 @@ CREATE TRIGGER mdt_entity_clients_account_details BEFORE UPDATE ON public.entity
 
 
 --
+-- Name: entity_clients_payment_details mdt_entity_clients_payment_details; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER mdt_entity_clients_payment_details BEFORE UPDATE ON public.entity_clients_payment_details FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
+
+
+--
 -- Name: entity_clients_pic_details mdt_entity_clients_pic_details; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -643,6 +855,14 @@ CREATE TRIGGER mdt_prefilled_individual_contractors_bank_details BEFORE UPDATE O
 
 ALTER TABLE ONLY public.entity_clients_account_details
     ADD CONSTRAINT entity_clients_account_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid) ON DELETE CASCADE;
+
+
+--
+-- Name: entity_clients_payment_details entity_clients_payment_details_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.entity_clients_payment_details
+    ADD CONSTRAINT entity_clients_payment_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid);
 
 
 --

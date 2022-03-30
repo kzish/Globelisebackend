@@ -4,7 +4,7 @@ use rusty_ulid::Ulid;
 use crate::{
     auth::user::{Role, UserType},
     onboard::{
-        bank::BankDetails,
+        bank::{BankDetails, PaymentDetails},
         entity::{EntityDetails, PicDetails},
         individual::IndividualDetails,
     },
@@ -157,6 +157,36 @@ impl Database {
             .bind(details.account_name)
             .bind(details.account_number)
             .bind(ulid_to_sql_uuid(ulid))
+            .execute(&self.0)
+            .await
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
+    pub async fn onboard_payment_details(
+        &self,
+        ulid: Ulid,
+        user_type: UserType,
+        details: PaymentDetails,
+    ) -> GlobeliseResult<()> {
+        if user_type != UserType::Entity || self.user(ulid, Some(user_type)).await?.is_none() {
+            return Err(GlobeliseError::Forbidden);
+        }
+
+        let query = format!(
+            "
+            INSERT INTO entity_clients_payment_details
+            (ulid, currency, payment_date, cutoff_date)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT(ulid) DO UPDATE SET 
+            currency = $2, payment_date = $3, cutoff_date = $4",
+        );
+        sqlx::query(&query)
+            .bind(ulid_to_sql_uuid(ulid))
+            .bind(details.currency)
+            .bind(details.payment_date)
+            .bind(details.cutoff_date)
             .execute(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
