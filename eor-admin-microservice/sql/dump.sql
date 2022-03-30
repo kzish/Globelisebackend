@@ -40,7 +40,7 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.auth_eor_admins (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     email character varying(254) NOT NULL,
     password text,
@@ -57,7 +57,7 @@ ALTER TABLE public.auth_eor_admins OWNER TO postgres;
 
 CREATE TABLE public.onboard_eor_admins (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     first_name character varying(50),
     last_name character varying(50),
