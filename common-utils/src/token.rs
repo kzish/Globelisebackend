@@ -59,27 +59,11 @@ where
     Ok((token, claims.exp))
 }
 
-/// Creates an access token.
-pub fn create_one_time_token<P>(
-    payload: P,
-    encoding: &EncodingKey,
-) -> Result<(String, i64), GlobeliseError>
-where
-    P: std::fmt::Debug + Serialize + DeserializeOwned + TokenLike + OneTimeTokenLike,
-{
-    let claims = Token::new(payload)?;
-    let token = encode(&Header::new(Algorithm::EdDSA), &claims, encoding)
-        .map_err(|_| GlobeliseError::Internal("Failed to encode one time token".into()))?;
-    Ok((token, claims.exp))
-}
-
 pub trait TokenLike {
     fn aud() -> &'static str;
     fn exp() -> Duration;
     fn dapr_app_id() -> DaprAppId;
 }
-
-pub trait OneTimeTokenLike {}
 
 /// Claims for access tokens.
 #[derive(Debug, Deserialize, Serialize)]
