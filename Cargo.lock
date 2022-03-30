@@ -909,7 +909,7 @@ dependencies = [
  "dapr",
  "dotenv",
  "email_address",
- "google",
+ "google_auth",
  "image",
  "jsonwebtoken",
  "lettre",
@@ -1214,7 +1214,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "google"
+name = "google_auth"
 version = "0.1.0"
 dependencies = [
  "http-cache-reqwest 0.4.1",
@@ -3688,7 +3688,7 @@ dependencies = [
  "dotenv",
  "email_address",
  "eor-admin-microservice",
- "google",
+ "google_auth",
  "image",
  "jsonwebtoken",
  "lettre",

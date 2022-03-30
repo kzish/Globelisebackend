@@ -5,5 +5,5 @@ members = [
     "contractor-management-microservice",
     "eor-admin-microservice",
     "common-utils",
-    "google",
+    "google_auth",
 ]

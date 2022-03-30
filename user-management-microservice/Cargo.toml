@@ -41,4 +41,4 @@ unicode-normalization = "0.1.19"
 # Local crates
 common-utils = { path = "../common-utils" }
 eor-admin-microservice = { path = "../eor-admin-microservice" }
-google = { path = "../google" }
+google_auth = { path = "../google_auth" }

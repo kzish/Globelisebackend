@@ -3,7 +3,7 @@
 use axum::extract::{Extension, Form};
 use common_utils::error::{GlobeliseError, GlobeliseResult};
 use email_address::EmailAddress;
-use google::IdToken;
+use google_auth::IdToken;
 use once_cell::sync::Lazy;
 
 use super::{admin::Admin, SharedDatabase, SharedState};
@@ -15,7 +15,7 @@ pub async fn signup(
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
     let claims = id_token.decode(&*CLIENT_ID).await.map_err(|e| match e {
-        google::Error::Decoding(_) => GlobeliseError::Unauthorized("Google login failed"),
+        google_auth::Error::Decoding(_) => GlobeliseError::Unauthorized("Google login failed"),
         _ => GlobeliseError::Internal("Failed to decode Google ID token".into()),
     })?;
     let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
@@ -41,7 +41,7 @@ pub async fn login(
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
     let claims = id_token.decode(&*CLIENT_ID).await.map_err(|e| match e {
-        google::Error::Decoding(_) => GlobeliseError::Unauthorized("Google login failed"),
+        google_auth::Error::Decoding(_) => GlobeliseError::Unauthorized("Google login failed"),
         _ => GlobeliseError::Internal("Failed to decode Google ID token".into()),
     })?;
     let email = claims.email.parse::<EmailAddress>()?; // Google emails should be valid.

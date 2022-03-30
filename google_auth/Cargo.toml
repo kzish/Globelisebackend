@@ -1,5 +1,5 @@
 [package]
-name = "google"
+name = "google_auth"
 version = "0.1.0"
 edition = "2021"
 publish = false
