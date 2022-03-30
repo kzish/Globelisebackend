@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.1 (Debian 14.1-1.pgdg110+1)
--- Dumped by pg_dump version 14.1 (Debian 14.1-1.pgdg110+1)
+-- Dumped from database version 13.6
+-- Dumped by pg_dump version 13.6
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -708,6 +708,14 @@ ALTER TABLE ONLY public.entity_clients_account_details
 
 
 --
+-- Name: entity_clients_payment_details entity_clients_payment_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.entity_clients_payment_details
+    ADD CONSTRAINT entity_clients_payment_details_pkey PRIMARY KEY (ulid);
+
+
+--
 -- Name: entity_clients_pic_details entity_clients_pic_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -745,6 +753,14 @@ ALTER TABLE ONLY public.entity_contractors_pic_details
 
 ALTER TABLE ONLY public.individual_clients_account_details
     ADD CONSTRAINT individual_clients_account_details_pkey PRIMARY KEY (ulid);
+
+
+--
+-- Name: individual_clients_payment_details individual_clients_payment_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.individual_clients_payment_details
+    ADD CONSTRAINT individual_clients_payment_details_pkey PRIMARY KEY (ulid);
 
 
 --
@@ -890,7 +906,7 @@ ALTER TABLE ONLY public.entity_clients_account_details
 --
 
 ALTER TABLE ONLY public.entity_clients_payment_details
-    ADD CONSTRAINT entity_clients_payment_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid);
+    ADD CONSTRAINT entity_clients_payment_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid) ON DELETE CASCADE;
 
 
 --
@@ -898,7 +914,7 @@ ALTER TABLE ONLY public.entity_clients_payment_details
 --
 
 ALTER TABLE ONLY public.entity_clients_pic_details
-    ADD CONSTRAINT entity_clients_pic_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.entity_clients_account_details(ulid) ON DELETE CASCADE;
+    ADD CONSTRAINT entity_clients_pic_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid) ON DELETE CASCADE;
 
 
 --
@@ -914,7 +930,7 @@ ALTER TABLE ONLY public.entity_contractors_account_details
 --
 
 ALTER TABLE ONLY public.entity_contractors_bank_details
-    ADD CONSTRAINT entity_contractors_bank_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.entity_contractors_pic_details(ulid) ON DELETE CASCADE;
+    ADD CONSTRAINT entity_contractors_bank_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid) ON DELETE CASCADE;
 
 
 --
@@ -922,7 +938,7 @@ ALTER TABLE ONLY public.entity_contractors_bank_details
 --
 
 ALTER TABLE ONLY public.entity_contractors_pic_details
-    ADD CONSTRAINT entity_contractors_pic_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.entity_contractors_account_details(ulid) ON DELETE CASCADE;
+    ADD CONSTRAINT entity_contractors_pic_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid) ON DELETE CASCADE;
 
 
 --
@@ -938,7 +954,7 @@ ALTER TABLE ONLY public.individual_clients_account_details
 --
 
 ALTER TABLE ONLY public.individual_clients_payment_details
-    ADD CONSTRAINT individual_clients_payment_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_individuals(ulid);
+    ADD CONSTRAINT individual_clients_payment_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_individuals(ulid) ON DELETE CASCADE;
 
 
 --
@@ -954,7 +970,7 @@ ALTER TABLE ONLY public.individual_contractors_account_details
 --
 
 ALTER TABLE ONLY public.individual_contractors_bank_details
-    ADD CONSTRAINT individual_contractors_bank_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.individual_contractors_account_details(ulid) ON DELETE CASCADE;
+    ADD CONSTRAINT individual_contractors_bank_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_individuals(ulid) ON DELETE CASCADE;
 
 
 --
