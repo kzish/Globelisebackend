@@ -5,6 +5,7 @@ use common_utils::{
     custom_serde::{DateWrapper, EmailWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
+    ulid_from_sql_uuid,
 };
 use csv::{ByteRecord, ReaderBuilder};
 use email_address::EmailAddress;
@@ -18,7 +19,7 @@ use time::{format_description, OffsetDateTime};
 
 use crate::{
     auth::user::{Role, UserType},
-    database::{ulid_from_sql_uuid, SharedDatabase},
+    database::SharedDatabase,
     env::{
         GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
         USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,

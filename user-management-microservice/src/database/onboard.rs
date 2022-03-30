@@ -1,4 +1,7 @@
-use common_utils::error::{GlobeliseError, GlobeliseResult};
+use common_utils::{
+    error::{GlobeliseError, GlobeliseResult},
+    ulid_to_sql_uuid,
+};
 use rusty_ulid::Ulid;
 
 use crate::{
@@ -10,7 +13,7 @@ use crate::{
     },
 };
 
-use super::{ulid_to_sql_uuid, Database};
+use super::Database;
 
 impl Database {
     pub async fn onboard_individual_client_details(

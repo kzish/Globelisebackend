@@ -6,6 +6,7 @@ use common_utils::{
     custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::GlobeliseResult,
     token::Token,
+    ulid_from_sql_uuid,
 };
 use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
@@ -14,10 +15,7 @@ use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
 
-use crate::{
-    common::{ulid_from_sql_uuid, PaginatedQuery},
-    database::SharedDatabase,
-};
+use crate::{common::PaginatedQuery, database::SharedDatabase};
 
 mod database;
 

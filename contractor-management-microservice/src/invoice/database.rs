@@ -1,6 +1,6 @@
-use common_utils::error::GlobeliseResult;
+use common_utils::{error::GlobeliseResult, ulid_to_sql_uuid};
 
-use crate::{common::ulid_to_sql_uuid, database::Database};
+use crate::database::Database;
 
 use super::{
     InvoiceGroupIndex, InvoiceGroupIndexQuery, InvoiceIndividualIndex, InvoiceIndividualIndexQuery,

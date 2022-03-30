@@ -1,7 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
 use common_utils::error::GlobeliseResult;
-use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
 
@@ -65,12 +64,4 @@ impl Database {
         .await?;
         Ok(result)
     }
-}
-
-pub fn ulid_to_sql_uuid(ulid: Ulid) -> sqlx::types::Uuid {
-    sqlx::types::Uuid::from_bytes(ulid.into())
-}
-
-pub fn ulid_from_sql_uuid(uuid: sqlx::types::Uuid) -> Ulid {
-    Ulid::from(*uuid.as_bytes())
 }

@@ -1,8 +1,11 @@
-use common_utils::error::{GlobeliseError, GlobeliseResult};
+use common_utils::{
+    error::{GlobeliseError, GlobeliseResult},
+    ulid_to_sql_uuid,
+};
 
 use crate::onboard::prefill::{PrefillBankDetails, PrefillIndividualDetails};
 
-use super::{ulid_to_sql_uuid, Database};
+use super::Database;
 
 impl Database {
     pub async fn prefill_onboard_individual_contractors_account_details(
