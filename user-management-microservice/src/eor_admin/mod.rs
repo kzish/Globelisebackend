@@ -23,7 +23,10 @@ use crate::{
         GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
         USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
     },
-    onboard::{bank::BankDetails, individual::IndividualDetails},
+    onboard::{
+        bank::BankDetails,
+        individual::{IndividualClientDetails, IndividualContractorDetails},
+    },
 };
 
 /// Stores information associated with a user id.
@@ -166,7 +169,7 @@ pub struct AddEmployeesInBulk {
 #[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct PrefillIndividualDetailsForBulkUpload {
+pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Email")]
     pub email: String,
     #[serde(rename = "Client Name")]
@@ -202,23 +205,26 @@ pub struct PrefillIndividualDetailsForBulkUpload {
     pub bank_account_owner_name: String,
 }
 
-impl PrefillIndividualDetailsForBulkUpload {
-    fn split(self) -> GlobeliseResult<(EmailAddress, IndividualDetails, BankDetails)> {
+impl PrefillIndividualContractorDetailsForBulkUpload {
+    fn split(self) -> GlobeliseResult<(EmailAddress, IndividualContractorDetails, BankDetails)> {
         Ok((
             self.email.parse::<EmailAddress>()?,
-            IndividualDetails {
-                first_name: self.full_name,
-                last_name: self.last_name,
-                dob: self.dob,
-                dial_code: self.dial_code,
-                phone_number: self.phone_number,
-                country: self.country,
-                city: self.city,
-                address: self.address,
-                postal_code: self.postal_code,
-                tax_id: Some(self.tax_id),
-                time_zone: self.time_zone,
-                profile_picture: None,
+            IndividualContractorDetails {
+                common_info: IndividualClientDetails {
+                    first_name: self.full_name,
+                    last_name: self.last_name,
+                    dob: self.dob,
+                    dial_code: self.dial_code,
+                    phone_number: self.phone_number,
+                    country: self.country,
+                    city: self.city,
+                    address: self.address,
+                    postal_code: self.postal_code,
+                    tax_id: Some(self.tax_id),
+                    time_zone: self.time_zone,
+                    profile_picture: None,
+                },
+                cv: None,
             },
             BankDetails {
                 bank_name: self.bank_name,
@@ -247,8 +253,9 @@ pub async fn eor_admin_add_employees_in_bulk(
         if !records.is_empty() {
             let header = records.swap_remove(0);
             for record in records {
-                let value =
-                    record.deserialize::<PrefillIndividualDetailsForBulkUpload>(Some(&header))?;
+                let value = record.deserialize::<PrefillIndividualContractorDetailsForBulkUpload>(
+                    Some(&header),
+                )?;
 
                 let database = database.lock().await;
 

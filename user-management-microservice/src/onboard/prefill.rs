@@ -11,13 +11,16 @@ use serde_with::{serde_as, TryFromInto};
 
 use crate::database::SharedDatabase;
 
-use super::{bank::BankDetails, individual::IndividualDetails};
+use super::{
+    bank::BankDetails,
+    individual::{IndividualClientDetails, IndividualContractorDetails},
+};
 
 pub async fn prefill_individual_contractor_account_details(
     // Only needed for validation
     _: Token<AdminAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
-        Json<PrefillIndividualDetails>,
+        Json<PrefillIndividualContractorDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
@@ -64,7 +67,7 @@ pub async fn prefill_individual_contractor_bank_details(
 #[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct PrefillIndividualDetails {
+pub struct PrefillIndividualContractorDetails {
     pub email: String,
     pub first_name: String,
     pub last_name: String,
@@ -81,23 +84,26 @@ pub struct PrefillIndividualDetails {
     pub time_zone: String,
 }
 
-impl PrefillIndividualDetails {
-    pub fn split(self) -> GlobeliseResult<(EmailAddress, IndividualDetails)> {
+impl PrefillIndividualContractorDetails {
+    pub fn split(self) -> GlobeliseResult<(EmailAddress, IndividualContractorDetails)> {
         Ok((
             self.email.parse::<EmailAddress>()?,
-            IndividualDetails {
-                first_name: self.first_name,
-                last_name: self.last_name,
-                dob: self.dob,
-                dial_code: self.dial_code,
-                phone_number: self.phone_number,
-                country: self.country,
-                city: self.city,
-                address: self.address,
-                postal_code: self.postal_code,
-                tax_id: self.tax_id,
-                time_zone: self.time_zone,
-                profile_picture: None,
+            IndividualContractorDetails {
+                common_info: IndividualClientDetails {
+                    first_name: self.first_name,
+                    last_name: self.last_name,
+                    dob: self.dob,
+                    dial_code: self.dial_code,
+                    phone_number: self.phone_number,
+                    country: self.country,
+                    city: self.city,
+                    address: self.address,
+                    postal_code: self.postal_code,
+                    tax_id: self.tax_id,
+                    time_zone: self.time_zone,
+                    profile_picture: None,
+                },
+                cv: None,
             },
         ))
     }

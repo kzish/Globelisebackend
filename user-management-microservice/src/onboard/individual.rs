@@ -1,4 +1,4 @@
-use axum::extract::{ContentLengthLimit, Extension, Json, Path};
+use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
     custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
@@ -8,20 +8,16 @@ use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 
 use crate::{
-    auth::{
-        token::AccessToken,
-        user::{Role, UserType},
-    },
+    auth::{token::AccessToken, user::UserType},
     database::SharedDatabase,
 };
 
-pub async fn account_details(
+pub async fn client_account_details(
     claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
-        Json<IndividualDetails>,
+        Json<IndividualClientDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
-    Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     if !matches!(claims.payload.user_type, UserType::Individual) {
@@ -30,13 +26,32 @@ pub async fn account_details(
     let ulid = claims.payload.ulid;
     let database = database.lock().await;
     database
-        .onboard_individual_details(ulid, role, request)
+        .onboard_individual_client_details(ulid, request)
         .await
 }
+
+pub async fn contractor_account_details(
+    claims: Token<AccessToken>,
+    ContentLengthLimit(Json(request)): ContentLengthLimit<
+        Json<IndividualContractorDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    if !matches!(claims.payload.user_type, UserType::Individual) {
+        return Err(GlobeliseError::Forbidden);
+    }
+    let ulid = claims.payload.ulid;
+    let database = database.lock().await;
+    database
+        .onboard_individual_contractor_details(ulid, request)
+        .await
+}
+
 #[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct IndividualDetails {
+pub struct IndividualClientDetails {
     pub first_name: String,
     pub last_name: String,
     #[serde_as(as = "TryFromInto<DateWrapper>")]
@@ -53,4 +68,15 @@ pub struct IndividualDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub profile_picture: Option<ImageData>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct IndividualContractorDetails {
+    #[serde(flatten)]
+    pub common_info: IndividualClientDetails,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub cv: Option<Vec<u8>>,
 }
