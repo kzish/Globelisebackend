@@ -514,7 +514,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "email_address",
- "http-cache-reqwest 0.3.0",
+ "http-cache-reqwest",
  "image",
  "jsonwebtoken",
  "once_cell",
@@ -524,7 +524,7 @@ dependencies = [
  "serde",
  "sqlx",
  "strum",
- "time 0.3.7",
+ "time 0.3.9",
  "tokio",
 ]
 
@@ -568,7 +568,7 @@ dependencies = [
  "serde",
  "serde_with",
  "sqlx",
- "time 0.3.7",
+ "time 0.3.9",
  "tokio",
  "tonic",
  "tower",
@@ -922,7 +922,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "sqlx",
- "time 0.3.7",
+ "time 0.3.9",
  "tokio",
  "tonic",
  "tower",
@@ -1217,7 +1217,7 @@ dependencies = [
 name = "google_auth"
 version = "0.1.0"
 dependencies = [
- "http-cache-reqwest 0.4.1",
+ "http-cache-reqwest",
  "jsonwebtoken",
  "once_cell",
  "reqwest",
@@ -1375,26 +1375,6 @@ dependencies = [
 
 [[package]]
 name = "http-cache"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3e3912d25011162475e69cc98437478cf1a63bcce27540c7e3ee87c8dec79a9"
-dependencies = [
- "anyhow",
- "async-trait",
- "bincode",
- "cacache",
- "http",
- "http-cache-semantics",
- "httpdate",
- "miette 3.3.0",
- "moka 0.7.2",
- "serde",
- "thiserror",
- "url",
-]
-
-[[package]]
-name = "http-cache"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "444265d769c9b0356303a34b317a54cca92c8bde30558238f278b9d80b3e6118"
@@ -1406,28 +1386,10 @@ dependencies = [
  "http",
  "http-cache-semantics",
  "httpdate",
- "miette 4.3.0",
- "moka 0.8.0",
+ "miette",
+ "moka",
  "serde",
  "thiserror",
- "url",
-]
-
-[[package]]
-name = "http-cache-reqwest"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0bb6cdd05345ef57aba8038aee2638d3fea71c023e50fbd8c3d0fa333e809e0"
-dependencies = [
- "anyhow",
- "async-trait",
- "http",
- "http-cache 0.5.0",
- "http-cache-semantics",
- "reqwest",
- "reqwest-middleware",
- "serde",
- "task-local-extensions",
  "url",
 ]
 
@@ -1440,7 +1402,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "http",
- "http-cache 0.6.1",
+ "http-cache",
  "http-cache-semantics",
  "reqwest",
  "reqwest-middleware",
@@ -1458,7 +1420,7 @@ dependencies = [
  "http",
  "http-serde",
  "serde",
- "time 0.3.7",
+ "time 0.3.9",
 ]
 
 [[package]]
@@ -1813,36 +1775,14 @@ dependencies = [
 
 [[package]]
 name = "miette"
-version = "3.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd2adcfcced5d625bf90a958a82ae5b93231f57f3df1383fee28c9b5096d35ed"
-dependencies = [
- "miette-derive 3.3.0",
- "once_cell",
- "thiserror",
-]
-
-[[package]]
-name = "miette"
 version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4afec44177a962a5948032c536831a17344fccb8e8769e02c89fb3acf063e792"
 dependencies = [
- "miette-derive 4.3.0",
+ "miette-derive",
  "once_cell",
  "thiserror",
  "unicode-width",
-]
-
-[[package]]
-name = "miette-derive"
-version = "3.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c01a8b61312d367ce87956bb686731f87e4c6dd5dbc550e8f06e3c24fb1f67f"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -1917,31 +1857,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9f1c5b025cda876f66ef43a113f91ebc9f4ccef34843000e0adf6ebbab84e21"
 dependencies = [
  "winapi",
-]
-
-[[package]]
-name = "moka"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26e1a0803406a47496169480f26cab92e78936c1180ad439ee18d36478c1509c"
-dependencies = [
- "async-io",
- "async-lock",
- "crossbeam-channel",
- "crossbeam-epoch 0.8.2",
- "crossbeam-utils 0.8.7",
- "futures-util",
- "num_cpus",
- "once_cell",
- "parking_lot 0.12.0",
- "quanta",
- "scheduled-thread-pool",
- "skeptic",
- "smallvec",
- "tagptr",
- "thiserror",
- "triomphe",
- "uuid",
 ]
 
 [[package]]
@@ -2653,7 +2568,7 @@ checksum = "cf6169f464e79b379a190df5d09d59fe0b581b1b0f788ce9de63953c31897aa0"
 dependencies = [
  "rand",
  "serde",
- "time 0.3.7",
+ "time 0.3.9",
 ]
 
 [[package]]
@@ -2920,7 +2835,7 @@ dependencies = [
  "num-bigint 0.4.3",
  "num-traits",
  "thiserror",
- "time 0.3.7",
+ "time 0.3.9",
 ]
 
 [[package]]
@@ -3304,15 +3219,15 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.7"
+version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "004cbc98f30fa233c61a38bc77e96a9106e65c88f2d3bef182ae952027e5753d"
+checksum = "c2702e08a7a860f005826c6815dcac101b19b5eb330c27fe4a5928fec1d20ddd"
 dependencies = [
  "itoa 1.0.1",
  "libc",
  "num_threads",
  "quickcheck",
- "time-macros 0.2.3",
+ "time-macros 0.2.4",
 ]
 
 [[package]]
@@ -3327,9 +3242,9 @@ dependencies = [
 
 [[package]]
 name = "time-macros"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25eb0ca3468fc0acc11828786797f6ef9aa1555e4a211a60d64cc8e4d1be47d6"
+checksum = "42657b1a6f4d817cda8e7a0ace261fe0cc946cf3a80314390b22cc61ae080792"
 
 [[package]]
 name = "time-macros-impl"
@@ -3514,9 +3429,9 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90c125fdea84614a4368fd35786b51d0682ab8d42705e061e92f0b955dea40fb"
+checksum = "aba3f3efabf7fb41fae8534fc20a817013dd1c12cb45441efb6c82e6556b4cd8"
 dependencies = [
  "bitflags",
  "bytes",
@@ -3702,7 +3617,7 @@ dependencies = [
  "serde_with",
  "sqlx",
  "strum",
- "time 0.3.7",
+ "time 0.3.9",
  "tokio",
  "tonic",
  "tower",
