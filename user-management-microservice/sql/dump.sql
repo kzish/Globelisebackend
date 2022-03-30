@@ -203,6 +203,7 @@ CREATE TABLE public.individual_contractors_account_details (
     tax_id character varying(50),
     time_zone character varying(50) NOT NULL,
     profile_picture bytea,
+    cv bytea,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -325,6 +326,7 @@ CREATE VIEW public.onboard_individual_contractors AS
     individual_contractors_account_details.tax_id,
     individual_contractors_account_details.time_zone,
     individual_contractors_account_details.profile_picture,
+    individual_contractors_account_details.cv,
     individual_contractors_bank_details.bank_name,
     individual_contractors_bank_details.bank_account_name,
     individual_contractors_bank_details.bank_account_number
