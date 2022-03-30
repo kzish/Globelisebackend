@@ -266,15 +266,15 @@ CREATE TABLE public.entity_clients_account_details (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    company_name character varying(120) NOT NULL,
-    country character varying(100) NOT NULL,
-    entity_type character varying(50) NOT NULL,
-    registration_number character varying(50),
-    tax_id character varying(50),
-    company_address character varying(250) NOT NULL,
-    city character varying(50) NOT NULL,
-    postal_code character varying(20) NOT NULL,
-    time_zone character varying(50) NOT NULL,
+    company_name text NOT NULL,
+    country text NOT NULL,
+    entity_type text NOT NULL,
+    registration_number text,
+    tax_id text,
+    company_address text NOT NULL,
+    city text NOT NULL,
+    postal_code text NOT NULL,
+    time_zone text NOT NULL,
     logo bytea
 );
 
@@ -305,11 +305,11 @@ CREATE TABLE public.entity_clients_pic_details (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    first_name character varying(50) NOT NULL,
-    last_name character varying(50) NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
     dob date NOT NULL,
-    dial_code character varying(5) NOT NULL,
-    phone_number character varying(16) NOT NULL,
+    dial_code text NOT NULL,
+    phone_number text NOT NULL,
     profile_picture bytea
 );
 
@@ -324,15 +324,15 @@ CREATE TABLE public.entity_contractors_account_details (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    company_name character varying(120) NOT NULL,
-    country character varying(100) NOT NULL,
-    entity_type character varying(50) NOT NULL,
-    registration_number character varying(50),
-    tax_id character varying(50),
-    company_address character varying(250) NOT NULL,
-    city character varying(50) NOT NULL,
-    postal_code character varying(20) NOT NULL,
-    time_zone character varying(50) NOT NULL,
+    company_name text NOT NULL,
+    country text NOT NULL,
+    entity_type text NOT NULL,
+    registration_number text,
+    tax_id text,
+    company_address text NOT NULL,
+    city text NOT NULL,
+    postal_code text NOT NULL,
+    time_zone text NOT NULL,
     logo bytea,
     company_profile bytea
 );
@@ -348,9 +348,9 @@ CREATE TABLE public.entity_contractors_bank_details (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    bank_name character varying(120) NOT NULL,
-    bank_account_name character varying(50) NOT NULL,
-    bank_account_number character varying(20) NOT NULL
+    bank_name text NOT NULL,
+    bank_account_name text NOT NULL,
+    bank_account_number text NOT NULL
 );
 
 
@@ -364,11 +364,11 @@ CREATE TABLE public.entity_contractors_pic_details (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    first_name character varying(50) NOT NULL,
-    last_name character varying(50) NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
     dob date NOT NULL,
-    dial_code character varying(5) NOT NULL,
-    phone_number character varying(16) NOT NULL,
+    dial_code text NOT NULL,
+    phone_number text NOT NULL,
     profile_picture bytea
 );
 
@@ -383,17 +383,17 @@ CREATE TABLE public.individual_clients_account_details (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    first_name character varying(50) NOT NULL,
-    last_name character varying(50) NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
     dob date NOT NULL,
-    dial_code character varying(5) NOT NULL,
-    phone_number character varying(16) NOT NULL,
-    country character varying(100) NOT NULL,
-    city character varying(50) NOT NULL,
-    address character varying(250) NOT NULL,
-    postal_code character varying(20) NOT NULL,
-    tax_id character varying(50),
-    time_zone character varying(50) NOT NULL,
+    dial_code text NOT NULL,
+    phone_number text NOT NULL,
+    country text NOT NULL,
+    city text NOT NULL,
+    address text NOT NULL,
+    postal_code text NOT NULL,
+    tax_id text,
+    time_zone text NOT NULL,
     profile_picture bytea
 );
 
@@ -424,17 +424,17 @@ CREATE TABLE public.individual_contractors_account_details (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    first_name character varying(50) NOT NULL,
-    last_name character varying(50) NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
     dob date NOT NULL,
-    dial_code character varying(5) NOT NULL,
-    phone_number character varying(16) NOT NULL,
-    country character varying(100) NOT NULL,
-    city character varying(50) NOT NULL,
-    address character varying(250) NOT NULL,
-    postal_code character varying(20) NOT NULL,
-    tax_id character varying(50),
-    time_zone character varying(50) NOT NULL,
+    dial_code text NOT NULL,
+    phone_number text NOT NULL,
+    country text NOT NULL,
+    city text NOT NULL,
+    address text NOT NULL,
+    postal_code text NOT NULL,
+    tax_id text,
+    time_zone text NOT NULL,
     profile_picture bytea,
     cv bytea
 );
@@ -450,9 +450,9 @@ CREATE TABLE public.individual_contractors_bank_details (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    bank_name character varying(120) NOT NULL,
-    bank_account_name character varying(50) NOT NULL,
-    bank_account_number character varying(20) NOT NULL
+    bank_name text NOT NULL,
+    bank_account_name text NOT NULL,
+    bank_account_number text NOT NULL
 );
 
 
@@ -579,17 +579,17 @@ CREATE TABLE public.prefilled_individual_contractors_account_details (
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     email character varying(254) NOT NULL,
     client_ulid uuid NOT NULL,
-    first_name character varying(50) NOT NULL,
-    last_name character varying(50) NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
     dob date NOT NULL,
-    dial_code character varying(5) NOT NULL,
-    phone_number character varying(16) NOT NULL,
-    country character varying(100) NOT NULL,
-    city character varying(50) NOT NULL,
-    address character varying(250) NOT NULL,
-    postal_code character varying(20) NOT NULL,
-    tax_id character varying(50),
-    time_zone character varying(50) NOT NULL
+    dial_code text NOT NULL,
+    phone_number text NOT NULL,
+    country text NOT NULL,
+    city text NOT NULL,
+    address text NOT NULL,
+    postal_code text NOT NULL,
+    tax_id text,
+    time_zone text NOT NULL
 );
 
 
@@ -604,9 +604,9 @@ CREATE TABLE public.prefilled_individual_contractors_bank_details (
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     email character varying(254) NOT NULL,
     client_ulid uuid NOT NULL,
-    bank_name character varying(120) NOT NULL,
-    bank_account_name character varying(50) NOT NULL,
-    bank_account_number character varying(20) NOT NULL
+    bank_name text NOT NULL,
+    bank_account_name text NOT NULL,
+    bank_account_number text NOT NULL
 );
 
 
