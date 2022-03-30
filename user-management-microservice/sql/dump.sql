@@ -122,6 +122,7 @@ CREATE TABLE public.entity_contractors_account_details (
     postal_code character varying(20) NOT NULL,
     time_zone character varying(50) NOT NULL,
     logo bytea,
+    company_profile bytea,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -269,6 +270,7 @@ CREATE VIEW public.onboard_entity_contractors AS
     entity_contractors_account_details.postal_code,
     entity_contractors_account_details.time_zone,
     entity_contractors_account_details.logo,
+    entity_contractors_account_details.company_profile,
     entity_contractors_pic_details.first_name,
     entity_contractors_pic_details.last_name,
     entity_contractors_pic_details.dob,

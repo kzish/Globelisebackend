@@ -62,8 +62,12 @@ async fn main() {
             post(onboard::individual::contractor_account_details),
         )
         .route(
-            "/onboard/entity-details/:role",
-            post(onboard::entity::account_details),
+            "/onboard/entity-details/client",
+            post(onboard::entity::client_account_details),
+        )
+        .route(
+            "/onboard/entity-details/contractor",
+            post(onboard::entity::contractor_account_details),
         )
         .route(
             "/onboard/pic-details/:role",

@@ -5,7 +5,7 @@ use crate::{
     auth::user::{Role, UserType},
     onboard::{
         bank::BankDetails,
-        entity::{EntityDetails, PicDetails},
+        entity::{EntityContractorDetails, EntityDetails, PicDetails},
         individual::{IndividualClientDetails, IndividualContractorDetails},
     },
 };
@@ -97,42 +97,77 @@ impl Database {
         Ok(())
     }
 
-    pub async fn onboard_entity_details(
+    pub async fn onboard_entity_client_details(
         &self,
         ulid: Ulid,
-        role: Role,
         details: EntityDetails,
     ) -> GlobeliseResult<()> {
         if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
         }
 
-        let target_table = UserType::Entity.db_onboard_details_prefix(role) + "_account_details";
-        sqlx::query(&format!(
-            "
-            INSERT INTO {target_table}
+        let query = "
+            INSERT INTO entity_clients_account_details
             (ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
             city, postal_code, time_zone, logo)
-            VALUES ($11, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             ON CONFLICT(ulid) DO UPDATE SET 
-            company_name = $1, country = $2, entity_type = $3, registration_number = $4,
-            tax_id = $5, company_address = $6, city = $7, postal_code = $8, time_zone = $9,
-            logo = $10"
-        ))
-        .bind(details.company_name)
-        .bind(details.country)
-        .bind(details.entity_type)
-        .bind(details.registration_number)
-        .bind(details.tax_id)
-        .bind(details.company_address)
-        .bind(details.city)
-        .bind(details.postal_code)
-        .bind(details.time_zone)
-        .bind(details.logo.map(|b| b.as_ref().to_owned()))
-        .bind(ulid_to_sql_uuid(ulid))
-        .execute(&self.0)
-        .await
-        .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            company_name = $2, country = $3, entity_type = $4, registration_number = $5,
+            tax_id = $6, company_address = $7, city = $8, postal_code = $9, time_zone = $10,
+            logo = $11";
+        sqlx::query(query)
+            .bind(ulid_to_sql_uuid(ulid))
+            .bind(details.company_name)
+            .bind(details.country)
+            .bind(details.entity_type)
+            .bind(details.registration_number)
+            .bind(details.tax_id)
+            .bind(details.company_address)
+            .bind(details.city)
+            .bind(details.postal_code)
+            .bind(details.time_zone)
+            .bind(details.logo.map(|b| b.as_ref().to_owned()))
+            .execute(&self.0)
+            .await
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
+    pub async fn onboard_entity_contractor_details(
+        &self,
+        ulid: Ulid,
+        details: EntityContractorDetails,
+    ) -> GlobeliseResult<()> {
+        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+            return Err(GlobeliseError::Forbidden);
+        }
+
+        let query = "
+            INSERT INTO entity_contractors_account_details
+            (ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
+            city, postal_code, time_zone, logo, company_profile)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ON CONFLICT(ulid) DO UPDATE SET 
+            company_name = $2, country = $3, entity_type = $4, registration_number = $5,
+            tax_id = $6, company_address = $7, city = $8, postal_code = $9, time_zone = $10,
+            logo = $11, company_profile = $12";
+        sqlx::query(query)
+            .bind(ulid_to_sql_uuid(ulid))
+            .bind(details.common_info.company_name)
+            .bind(details.common_info.country)
+            .bind(details.common_info.entity_type)
+            .bind(details.common_info.registration_number)
+            .bind(details.common_info.tax_id)
+            .bind(details.common_info.company_address)
+            .bind(details.common_info.city)
+            .bind(details.common_info.postal_code)
+            .bind(details.common_info.time_zone)
+            .bind(details.common_info.logo.map(|b| b.as_ref().to_owned()))
+            .bind(details.company_profile)
+            .execute(&self.0)
+            .await
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(())
     }
