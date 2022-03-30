@@ -1,13 +1,10 @@
-use common_utils::error::GlobeliseResult;
+use common_utils::{error::GlobeliseResult, ulid_to_sql_uuid};
 
 use rusty_ulid::Ulid;
 
 use user_management_microservice_sdk::Role;
 
-use crate::{
-    common::{ulid_to_sql_uuid, PaginatedQuery},
-    database::Database,
-};
+use crate::{common::PaginatedQuery, database::Database};
 
 use super::{
     ContractorsIndex, ContractsIndexForClient, ContractsIndexForContractor,

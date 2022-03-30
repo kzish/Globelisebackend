@@ -1,9 +1,9 @@
-use common_utils::error::GlobeliseResult;
+use common_utils::{error::GlobeliseResult, ulid_to_sql_uuid};
 use rusty_ulid::Ulid;
 
 use crate::onboard::individual::IndividualDetails;
 
-use super::{ulid_to_sql_uuid, Database};
+use super::Database;
 
 impl Database {
     pub async fn onboard_admin_details(

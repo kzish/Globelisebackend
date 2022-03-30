@@ -2,7 +2,9 @@ use axum::{
     extract::{Extension, Path, Query},
     Json,
 };
-use common_utils::{custom_serde::DateWrapper, error::GlobeliseResult, token::Token};
+use common_utils::{
+    custom_serde::DateWrapper, error::GlobeliseResult, token::Token, ulid_from_sql_uuid,
+};
 use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use itertools::izip;
 use rusty_ulid::Ulid;
@@ -11,10 +13,7 @@ use serde_with::{serde_as, FromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
 
-use crate::{
-    common::{ulid_from_sql_uuid, PaginatedQuery},
-    database::SharedDatabase,
-};
+use crate::{common::PaginatedQuery, database::SharedDatabase};
 
 mod database;
 

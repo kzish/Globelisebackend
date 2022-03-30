@@ -6,6 +6,7 @@ use common_utils::{
     custom_serde::{Currency, DateWrapper},
     error::GlobeliseResult,
     token::{Token, TokenString},
+    ulid_from_sql_uuid,
 };
 use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
 use reqwest::Client;
@@ -16,9 +17,7 @@ use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{AccessToken as UserAccessToken, GetUserInfoRequest, Role};
 
 use crate::{
-    common::{ulid_from_sql_uuid, PaginatedQuery},
-    database::SharedDatabase,
-    env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
+    common::PaginatedQuery, database::SharedDatabase, env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
 };
 
 mod database;
@@ -103,13 +102,15 @@ pub async fn eor_admin_contracts_index(
     Ok(Json(database.eor_admin_contracts_index(query).await?))
 }
 
+#[serde_as]
 #[derive(Debug, Serialize)]
 pub struct UserIndex {
     pub ulid: Ulid,
     pub name: String,
     pub role: Role,
     pub contract_count: i64,
-    pub created_at: String,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    pub created_at: sqlx::types::time::Date,
     pub email: String,
 }
 

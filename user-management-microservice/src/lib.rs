@@ -11,7 +11,6 @@ use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     DaprAppId,
 };
-use derive_builder::Builder;
 use eor_admin::UserIndex;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
@@ -24,17 +23,12 @@ pub use crate::auth::{
     user::{Role, UserType},
 };
 
-#[derive(Default, Builder, Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct GetUserInfoRequest {
-    #[builder(setter(strip_option), default)]
     pub page: Option<u64>,
-    #[builder(setter(strip_option), default)]
     pub per_page: Option<u64>,
-    #[builder(setter(strip_option), default)]
     pub search_text: Option<String>,
-    #[builder(setter(strip_option), default)]
     pub user_type: Option<UserType>,
-    #[builder(setter(strip_option), default)]
     pub user_role: Option<Role>,
 }
 

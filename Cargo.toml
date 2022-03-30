@@ -4,5 +4,6 @@ members = [
     "user-management-microservice",
     "contractor-management-microservice",
     "eor-admin-microservice",
-    "common-utils"
+    "common-utils",
+    "google_auth",
 ]

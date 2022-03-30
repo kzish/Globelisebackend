@@ -618,7 +618,8 @@ ALTER TABLE public.prefilled_individual_contractors_bank_details OWNER TO postgr
 
 CREATE VIEW public.user_index AS
  WITH client_individual_info AS (
-         SELECT auth_individuals.ulid,
+         SELECT auth_individuals.created_at,
+            auth_individuals.ulid,
             auth_individuals.email,
             concat(onboard_individual_clients.first_name, ' ', onboard_individual_clients.last_name) AS name,
             'client'::text AS user_role,
@@ -626,7 +627,8 @@ CREATE VIEW public.user_index AS
            FROM (public.onboard_individual_clients
              LEFT JOIN public.auth_individuals ON ((auth_individuals.ulid = onboard_individual_clients.ulid)))
         ), client_entity_info AS (
-         SELECT auth_entities.ulid,
+         SELECT auth_entities.created_at,
+            auth_entities.ulid,
             auth_entities.email,
             onboard_entity_clients.company_name AS name,
             'client'::text AS user_role,
@@ -634,7 +636,8 @@ CREATE VIEW public.user_index AS
            FROM (public.onboard_entity_clients
              LEFT JOIN public.auth_entities ON ((auth_entities.ulid = onboard_entity_clients.ulid)))
         ), contractor_individual_info AS (
-         SELECT auth_individuals.ulid,
+         SELECT auth_individuals.created_at,
+            auth_individuals.ulid,
             auth_individuals.email,
             concat(onboard_individual_contractors.first_name, ' ', onboard_individual_contractors.last_name) AS name,
             'contractor'::text AS user_role,
@@ -642,7 +645,8 @@ CREATE VIEW public.user_index AS
            FROM (public.onboard_individual_contractors
              LEFT JOIN public.auth_individuals ON ((auth_individuals.ulid = onboard_individual_contractors.ulid)))
         ), contractor_entity_info AS (
-         SELECT auth_entities.ulid,
+         SELECT auth_entities.created_at,
+            auth_entities.ulid,
             auth_entities.email,
             onboard_entity_contractors.company_name AS name,
             'contractor'::text AS user_role,
@@ -650,28 +654,32 @@ CREATE VIEW public.user_index AS
            FROM (public.onboard_entity_contractors
              LEFT JOIN public.auth_entities ON ((auth_entities.ulid = onboard_entity_contractors.ulid)))
         )
- SELECT client_individual_info.ulid,
+ SELECT client_individual_info.created_at,
+    client_individual_info.ulid,
     client_individual_info.name,
     client_individual_info.email,
     client_individual_info.user_role,
     client_individual_info.user_type
    FROM client_individual_info
 UNION
- SELECT client_entity_info.ulid,
+ SELECT client_entity_info.created_at,
+    client_entity_info.ulid,
     client_entity_info.name,
     client_entity_info.email,
     client_entity_info.user_role,
     client_entity_info.user_type
    FROM client_entity_info
 UNION
- SELECT contractor_individual_info.ulid,
+ SELECT contractor_individual_info.created_at,
+    contractor_individual_info.ulid,
     contractor_individual_info.name,
     contractor_individual_info.email,
     contractor_individual_info.user_role,
     contractor_individual_info.user_type
    FROM contractor_individual_info
 UNION
- SELECT contractor_entity_info.ulid,
+ SELECT contractor_entity_info.created_at,
+    contractor_entity_info.ulid,
     contractor_entity_info.name,
     contractor_entity_info.email,
     contractor_entity_info.user_role,

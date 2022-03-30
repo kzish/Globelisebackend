@@ -1,11 +1,14 @@
-use common_utils::error::{GlobeliseError, GlobeliseResult};
+use common_utils::{
+    error::{GlobeliseError, GlobeliseResult},
+    ulid_from_sql_uuid, ulid_to_sql_uuid,
+};
 use email_address::EmailAddress;
 use rusty_ulid::Ulid;
 use sqlx::Row;
 
 use crate::auth::admin::Admin;
 
-use super::{ulid_from_sql_uuid, ulid_to_sql_uuid, Database};
+use super::Database;
 
 impl Database {
     /// Creates and stores a new admin.
