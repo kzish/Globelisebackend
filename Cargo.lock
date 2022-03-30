@@ -243,7 +243,6 @@ dependencies = [
  "matchit",
  "memchr",
  "mime",
- "multer",
  "percent-encoding",
  "pin-project-lite",
  "serde",
@@ -911,21 +910,18 @@ dependencies = [
  "dotenv",
  "email_address",
  "google",
- "http-cache-reqwest 0.3.0",
  "image",
  "jsonwebtoken",
  "lettre",
  "once_cell",
  "rand",
  "reqwest",
- "reqwest-middleware",
  "rust-argon2",
  "rusty_ulid",
  "serde",
  "serde_json",
  "serde_with",
  "sqlx",
- "strum",
  "time 0.3.7",
  "tokio",
  "tonic",
@@ -1971,24 +1967,6 @@ dependencies = [
  "thiserror",
  "triomphe",
  "uuid",
-]
-
-[[package]]
-name = "multer"
-version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f8f35e687561d5c1667590911e6698a8cb714a134a7505718a182e7bc9d3836"
-dependencies = [
- "bytes",
- "encoding_rs",
- "futures-util",
- "http",
- "httparse",
- "log",
- "memchr",
- "mime",
- "spin 0.9.2",
- "version_check",
 ]
 
 [[package]]
@@ -3711,14 +3689,12 @@ dependencies = [
  "email_address",
  "eor-admin-microservice",
  "google",
- "http-cache-reqwest 0.3.0",
  "image",
  "jsonwebtoken",
  "lettre",
  "once_cell",
  "rand",
  "reqwest",
- "reqwest-middleware",
  "rust-argon2",
  "rusty_ulid",
  "serde",
