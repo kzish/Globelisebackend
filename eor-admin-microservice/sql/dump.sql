@@ -39,12 +39,13 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.auth_eor_admins (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     email character varying(254) NOT NULL,
     password text,
     is_google boolean NOT NULL,
-    is_outlook boolean NOT NULL,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    is_outlook boolean NOT NULL
 );
 
 
@@ -55,20 +56,21 @@ ALTER TABLE public.auth_eor_admins OWNER TO postgres;
 --
 
 CREATE TABLE public.onboard_eor_admins (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    first_name character varying(50),
-    last_name character varying(50),
+    first_name text,
+    last_name text,
     dob date,
-    dial_code character varying(5),
-    phone_number character varying(15),
-    country character varying(100),
-    city character varying(50),
-    address character varying(250),
-    postal_code character varying(20),
-    tax_id character varying(50),
-    time_zone character varying(50),
-    profile_picture bytea,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    dial_code text,
+    phone_number text,
+    country text,
+    city text,
+    address text,
+    postal_code text,
+    tax_id text,
+    time_zone text,
+    profile_picture bytea
 );
 
 

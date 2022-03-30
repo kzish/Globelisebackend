@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.1 (Debian 14.1-1.pgdg110+1)
--- Dumped by pg_dump version 14.1 (Debian 14.1-1.pgdg110+1)
+-- Dumped from database version 13.6
+-- Dumped by pg_dump version 13.6
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -229,12 +229,13 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.auth_entities (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     email character varying(254) NOT NULL,
     password text,
     is_google boolean NOT NULL,
-    is_outlook boolean NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    is_outlook boolean NOT NULL
 );
 
 
@@ -245,12 +246,13 @@ ALTER TABLE public.auth_entities OWNER TO postgres;
 --
 
 CREATE TABLE public.auth_individuals (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     email character varying(254) NOT NULL,
     password text,
     is_google boolean NOT NULL,
-    is_outlook boolean NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    is_outlook boolean NOT NULL
 );
 
 
@@ -261,18 +263,19 @@ ALTER TABLE public.auth_individuals OWNER TO postgres;
 --
 
 CREATE TABLE public.entity_clients_account_details (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    company_name character varying(120) NOT NULL,
-    country character varying(100) NOT NULL,
-    entity_type character varying(50) NOT NULL,
-    registration_number character varying(50),
-    tax_id character varying(50),
-    company_address character varying(250) NOT NULL,
-    city character varying(50) NOT NULL,
-    postal_code character varying(20) NOT NULL,
-    time_zone character varying(50) NOT NULL,
-    logo bytea,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    company_name text NOT NULL,
+    country text NOT NULL,
+    entity_type text NOT NULL,
+    registration_number text,
+    tax_id text,
+    company_address text NOT NULL,
+    city text NOT NULL,
+    postal_code text NOT NULL,
+    time_zone text NOT NULL,
+    logo bytea
 );
 
 
@@ -283,11 +286,12 @@ ALTER TABLE public.entity_clients_account_details OWNER TO postgres;
 --
 
 CREATE TABLE public.entity_clients_payment_details (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     currency public.currency NOT NULL,
     payment_date date NOT NULL,
-    cutoff_date date NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    cutoff_date date NOT NULL
 );
 
 
@@ -298,14 +302,15 @@ ALTER TABLE public.entity_clients_payment_details OWNER TO postgres;
 --
 
 CREATE TABLE public.entity_clients_pic_details (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    first_name character varying(50) NOT NULL,
-    last_name character varying(50) NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
     dob date NOT NULL,
-    dial_code character varying(5) NOT NULL,
-    phone_number character varying(16) NOT NULL,
-    profile_picture bytea,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    dial_code text NOT NULL,
+    phone_number text NOT NULL,
+    profile_picture bytea
 );
 
 
@@ -316,19 +321,20 @@ ALTER TABLE public.entity_clients_pic_details OWNER TO postgres;
 --
 
 CREATE TABLE public.entity_contractors_account_details (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    company_name character varying(120) NOT NULL,
-    country character varying(100) NOT NULL,
-    entity_type character varying(50) NOT NULL,
-    registration_number character varying(50),
-    tax_id character varying(50),
-    company_address character varying(250) NOT NULL,
-    city character varying(50) NOT NULL,
-    postal_code character varying(20) NOT NULL,
-    time_zone character varying(50) NOT NULL,
+    company_name text NOT NULL,
+    country text NOT NULL,
+    entity_type text NOT NULL,
+    registration_number text,
+    tax_id text,
+    company_address text NOT NULL,
+    city text NOT NULL,
+    postal_code text NOT NULL,
+    time_zone text NOT NULL,
     logo bytea,
-    company_profile bytea,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    company_profile bytea
 );
 
 
@@ -339,11 +345,12 @@ ALTER TABLE public.entity_contractors_account_details OWNER TO postgres;
 --
 
 CREATE TABLE public.entity_contractors_bank_details (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    bank_name character varying(120) NOT NULL,
-    bank_account_name character varying(50) NOT NULL,
-    bank_account_number character varying(20) NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    bank_name text NOT NULL,
+    bank_account_name text NOT NULL,
+    bank_account_number text NOT NULL
 );
 
 
@@ -354,14 +361,15 @@ ALTER TABLE public.entity_contractors_bank_details OWNER TO postgres;
 --
 
 CREATE TABLE public.entity_contractors_pic_details (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    first_name character varying(50) NOT NULL,
-    last_name character varying(50) NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
     dob date NOT NULL,
-    dial_code character varying(5) NOT NULL,
-    phone_number character varying(16) NOT NULL,
-    profile_picture bytea,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    dial_code text NOT NULL,
+    phone_number text NOT NULL,
+    profile_picture bytea
 );
 
 
@@ -372,20 +380,21 @@ ALTER TABLE public.entity_contractors_pic_details OWNER TO postgres;
 --
 
 CREATE TABLE public.individual_clients_account_details (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    first_name character varying(50) NOT NULL,
-    last_name character varying(50) NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
     dob date NOT NULL,
-    dial_code character varying(5) NOT NULL,
-    phone_number character varying(16) NOT NULL,
-    country character varying(100) NOT NULL,
-    city character varying(50) NOT NULL,
-    address character varying(250) NOT NULL,
-    postal_code character varying(20) NOT NULL,
-    tax_id character varying(50),
-    time_zone character varying(50) NOT NULL,
-    profile_picture bytea,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    dial_code text NOT NULL,
+    phone_number text NOT NULL,
+    country text NOT NULL,
+    city text NOT NULL,
+    address text NOT NULL,
+    postal_code text NOT NULL,
+    tax_id text,
+    time_zone text NOT NULL,
+    profile_picture bytea
 );
 
 
@@ -396,11 +405,12 @@ ALTER TABLE public.individual_clients_account_details OWNER TO postgres;
 --
 
 CREATE TABLE public.individual_clients_payment_details (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
     currency public.currency NOT NULL,
     payment_date date NOT NULL,
-    cutoff_date date NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    cutoff_date date NOT NULL
 );
 
 
@@ -411,21 +421,22 @@ ALTER TABLE public.individual_clients_payment_details OWNER TO postgres;
 --
 
 CREATE TABLE public.individual_contractors_account_details (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    first_name character varying(50) NOT NULL,
-    last_name character varying(50) NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
     dob date NOT NULL,
-    dial_code character varying(5) NOT NULL,
-    phone_number character varying(16) NOT NULL,
-    country character varying(100) NOT NULL,
-    city character varying(50) NOT NULL,
-    address character varying(250) NOT NULL,
-    postal_code character varying(20) NOT NULL,
-    tax_id character varying(50),
-    time_zone character varying(50) NOT NULL,
+    dial_code text NOT NULL,
+    phone_number text NOT NULL,
+    country text NOT NULL,
+    city text NOT NULL,
+    address text NOT NULL,
+    postal_code text NOT NULL,
+    tax_id text,
+    time_zone text NOT NULL,
     profile_picture bytea,
-    cv bytea,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    cv bytea
 );
 
 
@@ -436,11 +447,12 @@ ALTER TABLE public.individual_contractors_account_details OWNER TO postgres;
 --
 
 CREATE TABLE public.individual_contractors_bank_details (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    bank_name character varying(120) NOT NULL,
-    bank_account_name character varying(50) NOT NULL,
-    bank_account_number character varying(20) NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    bank_name text NOT NULL,
+    bank_account_name text NOT NULL,
+    bank_account_number text NOT NULL
 );
 
 
@@ -563,20 +575,21 @@ ALTER TABLE public.onboard_individual_contractors OWNER TO postgres;
 --
 
 CREATE TABLE public.prefilled_individual_contractors_account_details (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     email character varying(254) NOT NULL,
     client_ulid uuid NOT NULL,
-    first_name character varying(50) NOT NULL,
-    last_name character varying(50) NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
     dob date NOT NULL,
-    dial_code character varying(5) NOT NULL,
-    phone_number character varying(16) NOT NULL,
-    country character varying(100) NOT NULL,
-    city character varying(50) NOT NULL,
-    address character varying(250) NOT NULL,
-    postal_code character varying(20) NOT NULL,
-    tax_id character varying(50),
-    time_zone character varying(50) NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    dial_code text NOT NULL,
+    phone_number text NOT NULL,
+    country text NOT NULL,
+    city text NOT NULL,
+    address text NOT NULL,
+    postal_code text NOT NULL,
+    tax_id text,
+    time_zone text NOT NULL
 );
 
 
@@ -587,12 +600,13 @@ ALTER TABLE public.prefilled_individual_contractors_account_details OWNER TO pos
 --
 
 CREATE TABLE public.prefilled_individual_contractors_bank_details (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     email character varying(254) NOT NULL,
     client_ulid uuid NOT NULL,
-    bank_name character varying(120) NOT NULL,
-    bank_account_name character varying(50) NOT NULL,
-    bank_account_number character varying(20) NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    bank_name text NOT NULL,
+    bank_account_name text NOT NULL,
+    bank_account_number text NOT NULL
 );
 
 
@@ -708,6 +722,14 @@ ALTER TABLE ONLY public.entity_clients_account_details
 
 
 --
+-- Name: entity_clients_payment_details entity_clients_payment_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.entity_clients_payment_details
+    ADD CONSTRAINT entity_clients_payment_details_pkey PRIMARY KEY (ulid);
+
+
+--
 -- Name: entity_clients_pic_details entity_clients_pic_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -748,6 +770,14 @@ ALTER TABLE ONLY public.individual_clients_account_details
 
 
 --
+-- Name: individual_clients_payment_details individual_clients_payment_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.individual_clients_payment_details
+    ADD CONSTRAINT individual_clients_payment_details_pkey PRIMARY KEY (ulid);
+
+
+--
 -- Name: individual_contractors_account_details individual_contractors_account_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -764,19 +794,19 @@ ALTER TABLE ONLY public.individual_contractors_bank_details
 
 
 --
--- Name: prefilled_individual_contractors_bank_details prefilled_onboard_individual_contractors_bank_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.prefilled_individual_contractors_bank_details
-    ADD CONSTRAINT prefilled_onboard_individual_contractors_bank_details_pkey PRIMARY KEY (email, client_ulid);
-
-
---
--- Name: prefilled_individual_contractors_account_details prefilled_onboard_individual_contractors_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: prefilled_individual_contractors_account_details prefilled_individual_contractors_account_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.prefilled_individual_contractors_account_details
-    ADD CONSTRAINT prefilled_onboard_individual_contractors_pkey PRIMARY KEY (email, client_ulid);
+    ADD CONSTRAINT prefilled_individual_contractors_account_details_pkey PRIMARY KEY (email);
+
+
+--
+-- Name: prefilled_individual_contractors_bank_details prefilled_individual_contractors_bank_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.prefilled_individual_contractors_bank_details
+    ADD CONSTRAINT prefilled_individual_contractors_bank_details_pkey PRIMARY KEY (email);
 
 
 --
@@ -890,7 +920,7 @@ ALTER TABLE ONLY public.entity_clients_account_details
 --
 
 ALTER TABLE ONLY public.entity_clients_payment_details
-    ADD CONSTRAINT entity_clients_payment_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid);
+    ADD CONSTRAINT entity_clients_payment_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid) ON DELETE CASCADE;
 
 
 --
@@ -898,7 +928,7 @@ ALTER TABLE ONLY public.entity_clients_payment_details
 --
 
 ALTER TABLE ONLY public.entity_clients_pic_details
-    ADD CONSTRAINT entity_clients_pic_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.entity_clients_account_details(ulid) ON DELETE CASCADE;
+    ADD CONSTRAINT entity_clients_pic_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid) ON DELETE CASCADE;
 
 
 --
@@ -914,7 +944,7 @@ ALTER TABLE ONLY public.entity_contractors_account_details
 --
 
 ALTER TABLE ONLY public.entity_contractors_bank_details
-    ADD CONSTRAINT entity_contractors_bank_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.entity_contractors_pic_details(ulid) ON DELETE CASCADE;
+    ADD CONSTRAINT entity_contractors_bank_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid) ON DELETE CASCADE;
 
 
 --
@@ -922,7 +952,7 @@ ALTER TABLE ONLY public.entity_contractors_bank_details
 --
 
 ALTER TABLE ONLY public.entity_contractors_pic_details
-    ADD CONSTRAINT entity_contractors_pic_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.entity_contractors_account_details(ulid) ON DELETE CASCADE;
+    ADD CONSTRAINT entity_contractors_pic_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_entities(ulid) ON DELETE CASCADE;
 
 
 --
@@ -938,7 +968,7 @@ ALTER TABLE ONLY public.individual_clients_account_details
 --
 
 ALTER TABLE ONLY public.individual_clients_payment_details
-    ADD CONSTRAINT individual_clients_payment_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_individuals(ulid);
+    ADD CONSTRAINT individual_clients_payment_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_individuals(ulid) ON DELETE CASCADE;
 
 
 --
@@ -954,15 +984,15 @@ ALTER TABLE ONLY public.individual_contractors_account_details
 --
 
 ALTER TABLE ONLY public.individual_contractors_bank_details
-    ADD CONSTRAINT individual_contractors_bank_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.individual_contractors_account_details(ulid) ON DELETE CASCADE;
+    ADD CONSTRAINT individual_contractors_bank_details_ulid_fkey FOREIGN KEY (ulid) REFERENCES public.auth_individuals(ulid) ON DELETE CASCADE;
 
 
 --
--- Name: prefilled_individual_contractors_bank_details prefilled_onboard_individual_contractors_bank_detail_email_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: prefilled_individual_contractors_bank_details prefilled_individual_contractors_bank_details_email_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.prefilled_individual_contractors_bank_details
-    ADD CONSTRAINT prefilled_onboard_individual_contractors_bank_detail_email_fkey FOREIGN KEY (email, client_ulid) REFERENCES public.prefilled_individual_contractors_account_details(email, client_ulid) ON DELETE CASCADE;
+    ADD CONSTRAINT prefilled_individual_contractors_bank_details_email_fkey FOREIGN KEY (email) REFERENCES public.prefilled_individual_contractors_account_details(email) ON DELETE CASCADE;
 
 
 --
