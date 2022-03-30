@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.1 (Debian 14.1-1.pgdg110+1)
--- Dumped by pg_dump version 14.1 (Debian 14.1-1.pgdg110+1)
+-- Dumped from database version 13.6
+-- Dumped by pg_dump version 13.6
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -59,17 +59,17 @@ CREATE TABLE public.onboard_eor_admins (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     ulid uuid NOT NULL,
-    first_name text,
-    last_name text,
-    dob date,
-    dial_code text,
-    phone_number text,
-    country text,
-    city text,
-    address text,
-    postal_code text,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
+    dob date NOT NULL,
+    dial_code text NOT NULL,
+    phone_number text NOT NULL,
+    country text NOT NULL,
+    city text NOT NULL,
+    address text NOT NULL,
+    postal_code text NOT NULL,
     tax_id text,
-    time_zone text,
+    time_zone text NOT NULL,
     profile_picture bytea
 );
 
