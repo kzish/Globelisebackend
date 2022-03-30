@@ -18,7 +18,10 @@ pub async fn signup(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    let claims = id_token.decode(&*CLIENT_ID).await?;
+    let claims = id_token.decode(&*CLIENT_ID).await.map_err(|e| match e {
+        google::Error::Decoding(_) => GlobeliseError::Unauthorized("Google login failed"),
+        _ => GlobeliseError::Internal("Failed to decode Google ID token".into()),
+    })?;
     let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
 
     let user = User {
@@ -43,7 +46,10 @@ pub async fn login(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    let claims = id_token.decode(&*CLIENT_ID).await?;
+    let claims = id_token.decode(&*CLIENT_ID).await.map_err(|e| match e {
+        google::Error::Decoding(_) => GlobeliseError::Unauthorized("Google login failed"),
+        _ => GlobeliseError::Internal("Failed to decode Google ID token".into()),
+    })?;
     let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
 
     let database = database.lock().await;
@@ -104,7 +110,7 @@ pub async fn login_page() -> axum::response::Html<String> {
               data-logo_alignment="left"
             ></div>
           </body>
-        </html>        
+        </html>
         "##,
         (*CLIENT_ID),
         (*LISTENING_ADDRESS)

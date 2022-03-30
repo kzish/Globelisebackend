@@ -14,7 +14,10 @@ pub async fn signup(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    let claims = id_token.decode(&*CLIENT_ID).await?;
+    let claims = id_token.decode(&*CLIENT_ID).await.map_err(|e| match e {
+        google::Error::Decoding(_) => GlobeliseError::Unauthorized("Google login failed"),
+        _ => GlobeliseError::Internal("Failed to decode Google ID token".into()),
+    })?;
     let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
 
     let admin = Admin {
@@ -37,7 +40,10 @@ pub async fn login(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    let claims = id_token.decode(&*CLIENT_ID).await?;
+    let claims = id_token.decode(&*CLIENT_ID).await.map_err(|e| match e {
+        google::Error::Decoding(_) => GlobeliseError::Unauthorized("Google login failed"),
+        _ => GlobeliseError::Internal("Failed to decode Google ID token".into()),
+    })?;
     let email = claims.email.parse::<EmailAddress>()?; // Google emails should be valid.
 
     let database = database.lock().await;
