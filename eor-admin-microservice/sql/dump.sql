@@ -44,6 +44,7 @@ CREATE TABLE public.auth_eor_admins (
     password text,
     is_google boolean NOT NULL,
     is_outlook boolean NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -68,6 +69,7 @@ CREATE TABLE public.onboard_eor_admins (
     tax_id character varying(50),
     time_zone character varying(50),
     profile_picture bytea,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 

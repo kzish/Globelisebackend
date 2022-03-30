@@ -234,6 +234,7 @@ CREATE TABLE public.auth_entities (
     password text,
     is_google boolean NOT NULL,
     is_outlook boolean NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -250,6 +251,7 @@ CREATE TABLE public.auth_individuals (
     password text,
     is_google boolean NOT NULL,
     is_outlook boolean NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -272,6 +274,7 @@ CREATE TABLE public.entity_clients_account_details (
     postal_code character varying(20) NOT NULL,
     time_zone character varying(50) NOT NULL,
     logo bytea,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -287,6 +290,7 @@ CREATE TABLE public.entity_clients_payment_details (
     currency public.currency NOT NULL,
     payment_date date NOT NULL,
     cutoff_date date NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -305,6 +309,7 @@ CREATE TABLE public.entity_clients_pic_details (
     dial_code character varying(5) NOT NULL,
     phone_number character varying(16) NOT NULL,
     profile_picture bytea,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -328,6 +333,7 @@ CREATE TABLE public.entity_contractors_account_details (
     time_zone character varying(50) NOT NULL,
     logo bytea,
     company_profile bytea,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -343,6 +349,7 @@ CREATE TABLE public.entity_contractors_bank_details (
     bank_name character varying(120) NOT NULL,
     bank_account_name character varying(50) NOT NULL,
     bank_account_number character varying(20) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -361,6 +368,7 @@ CREATE TABLE public.entity_contractors_pic_details (
     dial_code character varying(5) NOT NULL,
     phone_number character varying(16) NOT NULL,
     profile_picture bytea,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -385,6 +393,7 @@ CREATE TABLE public.individual_clients_account_details (
     tax_id character varying(50),
     time_zone character varying(50) NOT NULL,
     profile_picture bytea,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -400,6 +409,7 @@ CREATE TABLE public.individual_clients_payment_details (
     currency public.currency NOT NULL,
     payment_date date NOT NULL,
     cutoff_date date NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -425,6 +435,7 @@ CREATE TABLE public.individual_contractors_account_details (
     time_zone character varying(50) NOT NULL,
     profile_picture bytea,
     cv bytea,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -440,6 +451,7 @@ CREATE TABLE public.individual_contractors_bank_details (
     bank_name character varying(120) NOT NULL,
     bank_account_name character varying(50) NOT NULL,
     bank_account_number character varying(20) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -576,6 +588,7 @@ CREATE TABLE public.prefilled_individual_contractors_account_details (
     postal_code character varying(20) NOT NULL,
     tax_id character varying(50),
     time_zone character varying(50) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -592,6 +605,7 @@ CREATE TABLE public.prefilled_individual_contractors_bank_details (
     bank_name character varying(120) NOT NULL,
     bank_account_name character varying(50) NOT NULL,
     bank_account_number character varying(20) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 

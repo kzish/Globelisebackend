@@ -243,6 +243,7 @@ SET default_table_access_method = heap;
 CREATE TABLE public.client_names (
     ulid uuid NOT NULL,
     name text NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -256,6 +257,7 @@ ALTER TABLE public.client_names OWNER TO postgres;
 CREATE TABLE public.contractor_names (
     ulid uuid NOT NULL,
     name text NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
