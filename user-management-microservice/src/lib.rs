@@ -12,18 +12,16 @@ use common_utils::{
     DaprAppId,
 };
 use derive_builder::Builder;
+use eor_admin::UserIndex;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, StatusCode,
 };
 use serde::{Deserialize, Serialize};
 
-pub use crate::{
-    auth::{
-        token::AccessToken,
-        user::{Role, UserType},
-    },
-    eor_admin::UserIndex,
+pub use crate::auth::{
+    token::AccessToken,
+    user::{Role, UserType},
 };
 
 #[derive(Default, Builder, Debug, Serialize, Deserialize)]
