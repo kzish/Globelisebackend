@@ -9,7 +9,8 @@ use serde::Deserialize;
 
 pub mod error;
 
-use error::{Error, Result};
+pub use error::Error;
+use error::Result;
 
 /// Representation of Google's ID token.
 #[derive(Debug, Deserialize)]
