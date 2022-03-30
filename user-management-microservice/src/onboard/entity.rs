@@ -15,13 +15,12 @@ use crate::{
     database::SharedDatabase,
 };
 
-pub async fn account_details(
+pub async fn client_account_details(
     claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<EntityDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
-    Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -30,7 +29,25 @@ pub async fn account_details(
 
     let database = database.lock().await;
     database
-        .onboard_entity_details(claims.payload.ulid, role, request)
+        .onboard_entity_client_details(claims.payload.ulid, request)
+        .await
+}
+
+pub async fn contractor_account_details(
+    claims: Token<AccessToken>,
+    ContentLengthLimit(Json(request)): ContentLengthLimit<
+        Json<EntityContractorDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    let database = database.lock().await;
+    database
+        .onboard_entity_contractor_details(claims.payload.ulid, request)
         .await
 }
 
@@ -68,6 +85,17 @@ pub struct EntityDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub logo: Option<ImageData>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct EntityContractorDetails {
+    #[serde(flatten)]
+    pub common_info: EntityDetails,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub company_profile: Option<Vec<u8>>,
 }
 
 #[serde_as]

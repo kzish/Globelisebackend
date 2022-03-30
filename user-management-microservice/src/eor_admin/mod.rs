@@ -167,7 +167,7 @@ pub struct AddEmployeesInBulk {
 #[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct PrefillIndividualDetailsForBulkUpload {
+pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Email")]
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
     pub email: EmailAddress,
@@ -220,8 +220,9 @@ pub async fn eor_admin_add_employees_in_bulk(
         if !records.is_empty() {
             let header = records.swap_remove(0);
             for record in records {
-                let value =
-                    record.deserialize::<PrefillIndividualDetailsForBulkUpload>(Some(&header))?;
+                let value = record.deserialize::<PrefillIndividualContractorDetailsForBulkUpload>(
+                    Some(&header),
+                )?;
 
                 let database = database.lock().await;
 
