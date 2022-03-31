@@ -6,7 +6,7 @@ use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
-use csv::{ByteRecord, ReaderBuilder};
+use csv::{ReaderBuilder, StringRecord};
 use email_address::EmailAddress;
 use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
@@ -175,8 +175,8 @@ pub async fn eor_admin_add_employees_in_bulk(
     if let Ok(mut records) = ReaderBuilder::new()
         .has_headers(false)
         .from_reader(request.uploaded_file.as_slice())
-        .byte_records()
-        .collect::<Result<Vec<ByteRecord>, _>>()
+        .records()
+        .collect::<Result<Vec<StringRecord>, _>>()
     {
         if !records.is_empty() {
             let header = records.swap_remove(0);
