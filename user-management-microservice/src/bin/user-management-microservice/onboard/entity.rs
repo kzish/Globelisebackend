@@ -6,14 +6,12 @@ use common_utils::{
 };
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
-
-use crate::{
-    auth::{
-        token::AccessToken,
-        user::{Role, UserType},
-    },
-    database::SharedDatabase,
+use user_management_microservice_sdk::{
+    token::AccessToken,
+    user::{Role, UserType},
 };
+
+use crate::database::SharedDatabase;
 
 pub async fn client_account_details(
     claims: Token<AccessToken>,

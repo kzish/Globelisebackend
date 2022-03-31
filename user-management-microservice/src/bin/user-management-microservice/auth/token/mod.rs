@@ -8,32 +8,9 @@ use once_cell::sync::Lazy;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use time::Duration;
-
-use crate::auth::user::UserType;
+use user_management_microservice_sdk::user::UserType;
 
 pub mod one_time;
-
-/// Claims for access tokens.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct AccessToken {
-    pub ulid: Ulid,
-    pub email: String,
-    pub user_type: UserType,
-}
-
-impl TokenLike for AccessToken {
-    fn aud() -> &'static str {
-        "access_token"
-    }
-
-    fn exp() -> Duration {
-        Duration::minutes(60)
-    }
-
-    fn dapr_app_id() -> DaprAppId {
-        DaprAppId::UserManagementMicroservice
-    }
-}
 
 /// Claims for refresh tokens.
 #[derive(Debug, Deserialize, Serialize)]

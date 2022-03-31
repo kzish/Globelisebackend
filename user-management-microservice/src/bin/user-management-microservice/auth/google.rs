@@ -5,11 +5,9 @@ use common_utils::error::{GlobeliseError, GlobeliseResult};
 use email_address::EmailAddress;
 use google_auth::IdToken;
 use once_cell::sync::Lazy;
+use user_management_microservice_sdk::user::UserType;
 
-use super::{
-    user::{User, UserType},
-    SharedDatabase, SharedState,
-};
+use super::{user::User, SharedDatabase, SharedState};
 
 /// Sign up as a Google user.
 pub async fn signup(

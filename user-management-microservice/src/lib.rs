@@ -1,27 +1,20 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-
-mod auth;
-mod database;
-mod env;
-mod eor_admin;
-mod onboard;
-
 use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     DaprAppId,
 };
-use eor_admin::UserIndex;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, StatusCode,
 };
 use serde::{Deserialize, Serialize};
 
-pub use crate::auth::{
-    token::AccessToken,
-    user::{Role, UserType},
-};
+pub mod token;
+pub mod user;
+pub mod user_index;
+
+pub use token::AccessToken;
+pub use user::{Role, UserType};
+use user_index::UserIndex;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct GetUserInfoRequest {

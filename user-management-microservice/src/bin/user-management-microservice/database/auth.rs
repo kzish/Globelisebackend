@@ -6,8 +6,9 @@ use email_address::EmailAddress;
 use rusty_ulid::Ulid;
 use sqlx::Row;
 use strum::IntoEnumIterator;
+use user_management_microservice_sdk::user::UserType;
 
-use crate::auth::user::{User, UserType};
+use crate::auth::user::User;
 
 use super::Database;
 

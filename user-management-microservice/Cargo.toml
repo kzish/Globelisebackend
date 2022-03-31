@@ -8,10 +8,6 @@ publish = false
 name = "user_management_microservice_sdk"
 path = "src/lib.rs"
 
-[[bin]]
-name = "user-management-microservice"
-path = "src/main.rs"
-
 [dependencies]
 # Local crates
 common-utils = { path = "../common-utils" }

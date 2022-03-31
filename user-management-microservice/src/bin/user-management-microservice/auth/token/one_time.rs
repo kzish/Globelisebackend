@@ -13,8 +13,9 @@ use jsonwebtoken::{decode, encode, Algorithm, Header, TokenData, Validation};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
+use user_management_microservice_sdk::user::UserType;
 
-use crate::auth::{user::UserType, SharedDatabase, SharedState};
+use crate::auth::{SharedDatabase, SharedState};
 
 use super::KEYS;
 

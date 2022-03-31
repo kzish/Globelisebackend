@@ -13,6 +13,7 @@ use rand::Rng;
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
+use user_management_microservice_sdk::user::UserType;
 
 use crate::{
     auth::token::one_time::create_one_time_token,
@@ -24,7 +25,6 @@ use crate::{
 
 use crate::auth::{
     token::one_time::{OneTimeToken, OneTimeTokenBearer, OneTimeTokenParam},
-    user::UserType,
     SharedDatabase, SharedState, HASH_CONFIG,
 };
 

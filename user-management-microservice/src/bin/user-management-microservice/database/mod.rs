@@ -3,8 +3,9 @@ use std::{sync::Arc, time::Duration};
 use common_utils::error::GlobeliseResult;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
+use user_management_microservice_sdk::user_index::UserIndex;
 
-use crate::eor_admin::{UserIndex, UserIndexQuery};
+use crate::eor_admin::UserIndexQuery;
 
 mod auth;
 mod onboard;

@@ -14,6 +14,7 @@ use once_cell::sync::Lazy;
 use rand::Rng;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
+use user_management_microservice_sdk::{token::AccessToken, user::UserType};
 
 use crate::database::SharedDatabase;
 
@@ -23,8 +24,8 @@ mod state;
 pub mod token;
 pub mod user;
 
-use token::{AccessToken, RefreshToken};
-use user::{User, UserType};
+use token::RefreshToken;
+use user::User;
 
 pub use state::{SharedState, State};
 

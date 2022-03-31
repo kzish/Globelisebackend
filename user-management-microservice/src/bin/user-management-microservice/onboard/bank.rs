@@ -7,8 +7,9 @@ use common_utils::{
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 use sqlx::FromRow;
+use user_management_microservice_sdk::token::AccessToken;
 
-use crate::{auth::token::AccessToken, database::SharedDatabase};
+use crate::database::SharedDatabase;
 
 pub async fn bank_details(
     claims: Token<AccessToken>,

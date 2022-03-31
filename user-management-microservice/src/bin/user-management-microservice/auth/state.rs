@@ -11,13 +11,13 @@ use dapr::{
     dapr::dapr::proto::runtime::v1::dapr_client::DaprClient as DaprProtoClient,
     Client as DaprClient,
 };
-
 use rand::Rng;
 use rusty_ulid::Ulid;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use time::OffsetDateTime;
 use tokio::sync::Mutex;
 use tonic::transport::Channel;
+use user_management_microservice_sdk::user::UserType;
 
 use crate::database::Database;
 
@@ -26,7 +26,6 @@ use super::{
         one_time::{create_one_time_token, OneTimeTokenAudience},
         RefreshToken, KEYS,
     },
-    user::UserType,
     HASH_CONFIG,
 };
 

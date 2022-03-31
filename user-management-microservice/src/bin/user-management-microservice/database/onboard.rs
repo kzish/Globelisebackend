@@ -3,14 +3,12 @@ use common_utils::{
     ulid_to_sql_uuid,
 };
 use rusty_ulid::Ulid;
+use user_management_microservice_sdk::user::{Role, UserType};
 
-use crate::{
-    auth::user::{Role, UserType},
-    onboard::{
-        bank::{BankDetails, PaymentDetails},
-        entity::{EntityContractorDetails, EntityDetails, PicDetails},
-        individual::{IndividualClientDetails, IndividualContractorDetails},
-    },
+use crate::onboard::{
+    bank::{BankDetails, PaymentDetails},
+    entity::{EntityContractorDetails, EntityDetails, PicDetails},
+    individual::{IndividualClientDetails, IndividualContractorDetails},
 };
 
 use super::Database;
