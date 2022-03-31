@@ -1,8 +1,6 @@
 use common_utils::{error::GlobeliseResult, ulid_to_sql_uuid};
-
 use rusty_ulid::Ulid;
-
-use user_management_microservice_sdk::Role;
+use user_management_microservice_sdk::user::Role;
 
 use crate::{common::PaginatedQuery, database::Database};
 

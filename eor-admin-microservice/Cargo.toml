@@ -8,10 +8,6 @@ publish = false
 name = "eor_admin_microservice_sdk"
 path = "src/lib.rs"
 
-[[bin]]
-name = "eor-admin-microservice"
-path = "src/main.rs"
-
 [dependencies]
 # Local crates
 common-utils = { path = "../common-utils" }

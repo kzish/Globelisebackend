@@ -8,12 +8,12 @@ use common_utils::{
     token::Token,
     ulid_from_sql_uuid,
 };
-use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{AccessToken as UserAccessToken, Role};
+use user_management_microservice_sdk::{token::AccessToken as UserAccessToken, user::Role};
 
 use crate::{common::PaginatedQuery, database::SharedDatabase};
 

@@ -8,13 +8,15 @@ use common_utils::{
     token::{Token, TokenString},
     ulid_from_sql_uuid,
 };
-use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use reqwest::Client;
 use rusty_ulid::Ulid;
 use serde::Serialize;
 use serde_with::{serde_as, FromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{AccessToken as UserAccessToken, GetUserInfoRequest, Role};
+use user_management_microservice_sdk::{
+    token::AccessToken as UserAccessToken, user::Role, user_index::GetUserInfoRequest,
+};
 
 use crate::{
     common::PaginatedQuery, database::SharedDatabase, env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
@@ -29,7 +31,7 @@ pub async fn user_index(
     Extension(shared_client): Extension<Client>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<UserIndex>>> {
-    let response = user_management_microservice_sdk::get_users_info(
+    let response = user_management_microservice_sdk::user_index::get_users_info(
         &shared_client,
         &*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
         access_token,
