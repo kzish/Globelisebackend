@@ -62,16 +62,14 @@ impl Database {
 
     /// Gets a admin's authentication information.
     pub async fn admin(&self, ulid: Ulid) -> GlobeliseResult<Option<Admin>> {
-        sqlx::query(
+        Ok(sqlx::query_as(
             "SELECT email, password, is_google, is_outlook
                 FROM auth_eor_admins
                 WHERE ulid = $1",
         )
         .bind(ulid_to_sql_uuid(ulid))
         .fetch_optional(&self.0)
-        .await?
-        .map(Admin::from_pg_row)
-        .transpose()
+        .await?)
     }
 
     /// Gets a admin's id.
