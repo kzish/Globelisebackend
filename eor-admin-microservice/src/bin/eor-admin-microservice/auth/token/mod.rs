@@ -13,27 +13,6 @@ use time::Duration;
 
 pub mod one_time;
 
-/// Claims for access tokens.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct AccessToken {
-    pub ulid: Ulid,
-    pub email: String,
-}
-
-impl TokenLike for AccessToken {
-    fn aud() -> &'static str {
-        "access_token"
-    }
-
-    fn exp() -> Duration {
-        Duration::minutes(60)
-    }
-
-    fn dapr_app_id() -> DaprAppId {
-        DaprAppId::EorAdminMicroservice
-    }
-}
-
 /// Claims for refresh tokens.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RefreshToken {

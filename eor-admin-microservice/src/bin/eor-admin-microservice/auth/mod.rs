@@ -7,6 +7,7 @@ use common_utils::{
     token::{create_token, Token},
 };
 use email_address::EmailAddress;
+use eor_admin_microservice_sdk::token::AccessToken;
 use once_cell::sync::Lazy;
 use rand::Rng;
 use serde::Deserialize;
@@ -21,11 +22,9 @@ mod state;
 pub mod token;
 
 use admin::Admin;
-use token::RefreshToken;
-
 pub use state::{SharedState, State};
-
-use self::token::{AccessToken, KEYS};
+use token::RefreshToken;
+use token::KEYS;
 
 /// Creates an account.
 pub async fn signup(

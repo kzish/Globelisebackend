@@ -4,10 +4,11 @@ use common_utils::{
     error::GlobeliseResult,
     token::Token,
 };
+use eor_admin_microservice_sdk::token::AccessToken;
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 
-use crate::{auth::token::AccessToken, database::SharedDatabase};
+use crate::database::SharedDatabase;
 
 pub async fn account_details(
     claims: Token<AccessToken>,

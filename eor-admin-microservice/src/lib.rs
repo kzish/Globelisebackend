@@ -1,9 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
+pub mod token;
 
-mod auth;
-mod database;
-mod env;
-mod onboard;
-
-pub use auth::token::AccessToken;
+pub use token::AccessToken;
