@@ -12,8 +12,7 @@ pub mod token;
 pub mod user;
 pub mod user_index;
 
-pub use token::AccessToken;
-pub use user::{Role, UserType};
+use user::{Role, UserType};
 use user_index::UserIndex;
 
 #[derive(Debug, Default, Serialize, Deserialize)]

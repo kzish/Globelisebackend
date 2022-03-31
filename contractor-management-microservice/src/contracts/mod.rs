@@ -14,7 +14,9 @@ use rusty_ulid::Ulid;
 use serde::Serialize;
 use serde_with::{serde_as, FromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{AccessToken as UserAccessToken, GetUserInfoRequest, Role};
+use user_management_microservice_sdk::{
+    token::AccessToken as UserAccessToken, user::Role, GetUserInfoRequest,
+};
 
 use crate::{
     common::PaginatedQuery, database::SharedDatabase, env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
