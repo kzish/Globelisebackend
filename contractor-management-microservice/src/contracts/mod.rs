@@ -8,7 +8,7 @@ use common_utils::{
     token::{Token, TokenString},
     ulid_from_sql_uuid,
 };
-use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use reqwest::Client;
 use rusty_ulid::Ulid;
 use serde::Serialize;

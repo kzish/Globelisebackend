@@ -8,7 +8,7 @@ use common_utils::{
 };
 use csv::{ByteRecord, ReaderBuilder};
 use email_address::EmailAddress;
-use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};

@@ -5,7 +5,7 @@ use common_utils::{
     token::Token,
 };
 use email_address::EmailAddress;
-use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
 use serde::Deserialize;
 use serde_with::{serde_as, TryFromInto};

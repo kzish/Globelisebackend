@@ -5,7 +5,7 @@ use axum::{
 use common_utils::{
     custom_serde::DateWrapper, error::GlobeliseResult, token::Token, ulid_from_sql_uuid,
 };
-use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use itertools::izip;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};

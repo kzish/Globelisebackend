@@ -8,7 +8,7 @@ use common_utils::{
     token::Token,
     ulid_from_sql_uuid,
 };
-use eor_admin_microservice_sdk::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
