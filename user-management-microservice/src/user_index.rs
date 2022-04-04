@@ -20,23 +20,6 @@ pub async fn get_users_info(
     access_token: String,
     request: GetUserInfoRequest,
 ) -> GlobeliseResult<Vec<UserIndex>> {
-    let mut query: Vec<(&'static str, String)> = vec![];
-    // TODO: Turn this into a derive_macro
-    if let Some(page) = request.page {
-        query.push(("page", page.to_string()))
-    }
-    if let Some(per_page) = request.per_page {
-        query.push(("per_page", per_page.to_string()))
-    }
-    if let Some(search_text) = request.search_text {
-        query.push(("search_text", search_text))
-    }
-    if let Some(user_type) = request.user_type {
-        query.push(("user_type", user_type.to_string()))
-    }
-    if let Some(user_role) = request.user_role {
-        query.push(("user_role", user_role.to_string()))
-    }
     let response = client
         .get(format!("{base_url}/eor-admin/users"))
         .headers({
@@ -47,7 +30,7 @@ pub async fn get_users_info(
             );
             headers
         })
-        .query(&query)
+        .query(&request)
         .bearer_auth(access_token)
         .send()
         .await?;
