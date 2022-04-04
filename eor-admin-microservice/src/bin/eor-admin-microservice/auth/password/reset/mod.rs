@@ -1,9 +1,6 @@
-use std::str::FromStr;
-
 use argon2::{self, hash_encoded};
 use axum::{
     extract::{Extension, Json},
-    http::Uri,
     response::Redirect,
 };
 use common_utils::error::{GlobeliseError, GlobeliseResult};
@@ -123,8 +120,7 @@ pub async fn initiate(
         .await?;
 
     let redirect_url = format!("{}?token={}", (*PASSWORD_RESET_URL), change_password_token);
-    let uri = Uri::from_str(redirect_url.as_str()).unwrap();
-    Ok(Redirect::to(uri))
+    Ok(Redirect::to(&redirect_url))
 }
 
 /// Replace the password for a admin with the requested one.
