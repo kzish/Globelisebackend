@@ -5,7 +5,7 @@ use user_management_microservice_sdk::user::Role;
 use crate::{common::PaginatedQuery, database::Database};
 
 use super::{
-    ContractorsIndex, ContractsIndexForClient, ContractsIndexForContractor,
+    ClientsIndex, ContractorsIndex, ContractsIndexForClient, ContractsIndexForContractor,
     ContractsIndexForEorAdmin,
 };
 
@@ -37,6 +37,33 @@ impl Database {
         .await?;
 
         Ok(result)
+    }
+
+    /// Indexes clients that a contractor works for.
+    pub async fn clients_index(
+        &self,
+        contractor_ulid: Ulid,
+        query: PaginatedQuery,
+    ) -> GlobeliseResult<Vec<ClientsIndex>> {
+        let index = sqlx::query_as(
+            "
+            SELECT DISTINCT
+                client_ulid, client_name
+            FROM
+                contractors_index
+            WHERE
+                contractor_ulid = $1 AND
+                ($2 IS NULL OR (client_name ~* $2))
+            LIMIT $3 OFFSET $4",
+        )
+        .bind(ulid_to_sql_uuid(contractor_ulid))
+        .bind(query.query)
+        .bind(query.per_page.get())
+        .bind((query.page.get() - 1) * query.per_page.get())
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(index)
     }
 
     /// Indexes contracts working for a client.
