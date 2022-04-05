@@ -731,19 +731,19 @@ ALTER TABLE ONLY public.client_contractor_pairs
 
 
 --
--- Name: contracts contracts_client_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: contracts contracts_client_ulid_contractor_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.contracts
-    ADD CONSTRAINT contracts_client_ulid_fkey FOREIGN KEY (client_ulid) REFERENCES public.client_names(ulid) ON DELETE RESTRICT;
+    ADD CONSTRAINT contracts_client_ulid_contractor_ulid_fkey FOREIGN KEY (client_ulid, contractor_ulid) REFERENCES public.client_contractor_pairs(client_ulid, contractor_ulid) ON DELETE RESTRICT;
 
 
 --
--- Name: contracts contracts_contractor_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: invoice_individual invoice_individual_client_ulid_contractor_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.contracts
-    ADD CONSTRAINT contracts_contractor_ulid_fkey FOREIGN KEY (contractor_ulid) REFERENCES public.contractor_names(ulid) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.invoice_individual
+    ADD CONSTRAINT invoice_individual_client_ulid_contractor_ulid_fkey FOREIGN KEY (client_ulid, contractor_ulid) REFERENCES public.client_contractor_pairs(client_ulid, contractor_ulid) ON DELETE RESTRICT;
 
 
 --
@@ -763,11 +763,11 @@ ALTER TABLE ONLY public.invoice_items
 
 
 --
--- Name: payslips payslips_client_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: payslips payslips_client_ulid_contractor_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.payslips
-    ADD CONSTRAINT payslips_client_ulid_fkey FOREIGN KEY (client_ulid) REFERENCES public.client_names(ulid) ON DELETE RESTRICT;
+    ADD CONSTRAINT payslips_client_ulid_contractor_ulid_fkey FOREIGN KEY (client_ulid, contractor_ulid) REFERENCES public.client_contractor_pairs(client_ulid, contractor_ulid) ON DELETE RESTRICT;
 
 
 --
@@ -779,19 +779,11 @@ ALTER TABLE ONLY public.payslips
 
 
 --
--- Name: payslips payslips_contractor_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.payslips
-    ADD CONSTRAINT payslips_contractor_ulid_fkey FOREIGN KEY (contractor_ulid) REFERENCES public.contractor_names(ulid) ON DELETE RESTRICT;
-
-
---
--- Name: tax_reports tax_reports_client_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: tax_reports tax_reports_client_ulid_contractor_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.tax_reports
-    ADD CONSTRAINT tax_reports_client_ulid_fkey FOREIGN KEY (client_ulid) REFERENCES public.client_names(ulid) ON DELETE RESTRICT;
+    ADD CONSTRAINT tax_reports_client_ulid_contractor_ulid_fkey FOREIGN KEY (client_ulid, contractor_ulid) REFERENCES public.client_contractor_pairs(client_ulid, contractor_ulid) ON DELETE RESTRICT;
 
 
 --
@@ -800,14 +792,6 @@ ALTER TABLE ONLY public.tax_reports
 
 ALTER TABLE ONLY public.tax_reports
     ADD CONSTRAINT tax_reports_contract_ulid_client_ulid_contractor_ulid_fkey FOREIGN KEY (contract_ulid, client_ulid, contractor_ulid) REFERENCES public.contracts(ulid, client_ulid, contractor_ulid) ON DELETE RESTRICT;
-
-
---
--- Name: tax_reports tax_reports_contractor_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.tax_reports
-    ADD CONSTRAINT tax_reports_contractor_ulid_fkey FOREIGN KEY (contractor_ulid) REFERENCES public.contractor_names(ulid) ON DELETE RESTRICT;
 
 
 --
