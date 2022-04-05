@@ -137,10 +137,10 @@ impl<'r> FromRow<'r, PgRow> for ContractorsIndex {
 #[serde(rename_all = "kebab-case")]
 struct ContractorsIndexSqlHelper {
     contractor_name: String,
-    contract_name: String,
-    contract_status: String,
-    job_title: String,
-    seniority: String,
+    contract_name: Option<String>,
+    contract_status: Option<String>,
+    job_title: Option<String>,
+    seniority: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

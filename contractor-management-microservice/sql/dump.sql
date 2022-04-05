@@ -237,6 +237,20 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: client_contractor_pairs; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.client_contractor_pairs (
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    client_ulid uuid NOT NULL,
+    contractor_ulid uuid NOT NULL
+);
+
+
+ALTER TABLE public.client_contractor_pairs OWNER TO postgres;
+
+--
 -- Name: client_names; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -295,15 +309,18 @@ ALTER TABLE public.contracts OWNER TO postgres;
 --
 
 CREATE VIEW public.contractors_index AS
- SELECT contracts.client_ulid,
-    contracts.contractor_ulid,
+ SELECT client_contractor_pairs.client_ulid,
+    client_names.name AS client_name,
+    client_contractor_pairs.contractor_ulid,
     contractor_names.name AS contractor_name,
     contracts.contract_name,
     contracts.contract_status,
     contracts.job_title,
     contracts.seniority
-   FROM (public.contracts
-     JOIN public.contractor_names ON ((contracts.contractor_ulid = contractor_names.ulid)));
+   FROM (((public.client_contractor_pairs
+     JOIN public.client_names ON ((client_contractor_pairs.client_ulid = client_names.ulid)))
+     JOIN public.contractor_names ON ((client_contractor_pairs.contractor_ulid = contractor_names.ulid)))
+     LEFT JOIN public.contracts ON (((client_contractor_pairs.client_ulid = contracts.client_ulid) AND (client_contractor_pairs.contractor_ulid = contracts.contractor_ulid))));
 
 
 ALTER TABLE public.contractors_index OWNER TO postgres;
@@ -555,6 +572,14 @@ CREATE VIEW public.tax_reports_index AS
 ALTER TABLE public.tax_reports_index OWNER TO postgres;
 
 --
+-- Name: client_contractor_pairs client_contractor_pairs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.client_contractor_pairs
+    ADD CONSTRAINT client_contractor_pairs_pkey PRIMARY KEY (client_ulid, contractor_ulid);
+
+
+--
 -- Name: client_names client_names_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -627,6 +652,13 @@ ALTER TABLE ONLY public.tax_reports
 
 
 --
+-- Name: client_contractor_pairs mdt_client_contractor_pairs; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER mdt_client_contractor_pairs BEFORE UPDATE ON public.client_contractor_pairs FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
+
+
+--
 -- Name: client_names mdt_client_names; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -680,6 +712,22 @@ CREATE TRIGGER mdt_payslips BEFORE UPDATE ON public.payslips FOR EACH ROW EXECUT
 --
 
 CREATE TRIGGER mdt_tax_reports BEFORE UPDATE ON public.tax_reports FOR EACH ROW EXECUTE FUNCTION public.moddatetime('updated_at');
+
+
+--
+-- Name: client_contractor_pairs client_contractor_pairs_client_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.client_contractor_pairs
+    ADD CONSTRAINT client_contractor_pairs_client_ulid_fkey FOREIGN KEY (client_ulid) REFERENCES public.client_names(ulid) ON DELETE RESTRICT;
+
+
+--
+-- Name: client_contractor_pairs client_contractor_pairs_contractor_ulid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.client_contractor_pairs
+    ADD CONSTRAINT client_contractor_pairs_contractor_ulid_fkey FOREIGN KEY (contractor_ulid) REFERENCES public.contractor_names(ulid) ON DELETE RESTRICT;
 
 
 --
