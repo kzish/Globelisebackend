@@ -59,6 +59,19 @@ pub async fn user_index(
     Ok(Json(result))
 }
 
+pub async fn clients_index(
+    access_token: Token<UserAccessToken>,
+    Query(query): Query<PaginatedQuery>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ClientsIndex>>> {
+    let database = database.lock().await;
+    Ok(Json(
+        database
+            .clients_index(access_token.payload.ulid, query)
+            .await?,
+    ))
+}
+
 pub async fn contractors_index(
     access_token: Token<UserAccessToken>,
     Query(query): Query<PaginatedQuery>,
@@ -114,6 +127,22 @@ pub struct UserIndex {
     #[serde_as(as = "FromInto<DateWrapper>")]
     pub created_at: sqlx::types::time::Date,
     pub email: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ClientsIndex {
+    client_ulid: Ulid,
+    client_name: String,
+}
+
+impl<'r> FromRow<'r, PgRow> for ClientsIndex {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            client_ulid: ulid_from_sql_uuid(row.try_get("client_ulid")?),
+            client_name: row.try_get("client_name")?,
+        })
+    }
 }
 
 #[derive(Debug, Serialize)]
