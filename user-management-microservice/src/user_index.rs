@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use common_utils::{
     custom_serde::DateWrapper,
     error::{GlobeliseError, GlobeliseResult},
@@ -43,10 +45,11 @@ pub async fn get_users_info(
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct GetUserInfoRequest {
-    pub page: Option<u64>,
-    pub per_page: Option<u64>,
+    pub page: NonZeroU32,
+    pub per_page: NonZeroU32,
     pub search_text: Option<String>,
     pub user_type: Option<UserType>,
     pub user_role: Option<Role>,

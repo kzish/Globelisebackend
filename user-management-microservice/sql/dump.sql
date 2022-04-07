@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 13.6
--- Dumped by pg_dump version 13.6
+-- Dumped from database version 14.1 (Debian 14.1-1.pgdg110+1)
+-- Dumped by pg_dump version 14.1 (Debian 14.1-1.pgdg110+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -317,6 +317,32 @@ CREATE TABLE public.entity_clients_pic_details (
 ALTER TABLE public.entity_clients_pic_details OWNER TO postgres;
 
 --
+-- Name: entity_clients_fully_onboarded; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.entity_clients_fully_onboarded AS
+ SELECT entity_clients_account_details.ulid
+   FROM ((public.entity_clients_account_details
+     JOIN public.entity_clients_payment_details ON ((entity_clients_account_details.ulid = entity_clients_payment_details.ulid)))
+     JOIN public.entity_clients_pic_details ON ((entity_clients_account_details.ulid = entity_clients_pic_details.ulid)));
+
+
+ALTER TABLE public.entity_clients_fully_onboarded OWNER TO postgres;
+
+--
+-- Name: entity_clients_onboarded; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.entity_clients_onboarded AS
+ SELECT entity_clients_account_details.ulid
+   FROM ((public.entity_clients_account_details
+     LEFT JOIN public.entity_clients_payment_details ON ((entity_clients_account_details.ulid = entity_clients_payment_details.ulid)))
+     LEFT JOIN public.entity_clients_pic_details ON ((entity_clients_account_details.ulid = entity_clients_pic_details.ulid)));
+
+
+ALTER TABLE public.entity_clients_onboarded OWNER TO postgres;
+
+--
 -- Name: entity_contractors_account_details; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -376,6 +402,19 @@ CREATE TABLE public.entity_contractors_pic_details (
 ALTER TABLE public.entity_contractors_pic_details OWNER TO postgres;
 
 --
+-- Name: entity_contractors_fully_onboarded; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.entity_contractors_fully_onboarded AS
+ SELECT entity_contractors_account_details.ulid
+   FROM ((public.entity_contractors_account_details
+     JOIN public.entity_contractors_bank_details ON ((entity_contractors_account_details.ulid = entity_contractors_bank_details.ulid)))
+     JOIN public.entity_contractors_pic_details ON ((entity_contractors_account_details.ulid = entity_contractors_pic_details.ulid)));
+
+
+ALTER TABLE public.entity_contractors_fully_onboarded OWNER TO postgres;
+
+--
 -- Name: individual_clients_account_details; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -415,6 +454,18 @@ CREATE TABLE public.individual_clients_payment_details (
 
 
 ALTER TABLE public.individual_clients_payment_details OWNER TO postgres;
+
+--
+-- Name: individual_clients_fully_onboarded; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.individual_clients_fully_onboarded AS
+ SELECT individual_clients_account_details.ulid
+   FROM (public.individual_clients_account_details
+     JOIN public.individual_clients_payment_details ON ((individual_clients_account_details.ulid = individual_clients_payment_details.ulid)));
+
+
+ALTER TABLE public.individual_clients_fully_onboarded OWNER TO postgres;
 
 --
 -- Name: individual_contractors_account_details; Type: TABLE; Schema: public; Owner: postgres
@@ -457,6 +508,18 @@ CREATE TABLE public.individual_contractors_bank_details (
 
 
 ALTER TABLE public.individual_contractors_bank_details OWNER TO postgres;
+
+--
+-- Name: individual_contractors_fully_onboarded; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.individual_contractors_fully_onboarded AS
+ SELECT individual_contractors_account_details.ulid
+   FROM (public.individual_contractors_account_details
+     JOIN public.individual_contractors_bank_details ON ((individual_contractors_account_details.ulid = individual_contractors_bank_details.ulid)));
+
+
+ALTER TABLE public.individual_contractors_fully_onboarded OWNER TO postgres;
 
 --
 -- Name: onboard_entity_clients; Type: VIEW; Schema: public; Owner: postgres
