@@ -82,14 +82,14 @@ where
     P: TokenLike,
 {
     pub fn new(payload: P) -> GlobeliseResult<Self> {
-        let exp = match OffsetDateTime::now_utc().checked_add(P::exp()) {
-            Some(datetime) => datetime.unix_timestamp(),
-            None => {
-                return Err(GlobeliseError::Internal(
+        let exp = OffsetDateTime::now_utc()
+            .unix_timestamp()
+            .checked_add(P::exp().whole_seconds())
+            .ok_or_else(|| {
+                GlobeliseError::Internal(
                     "Could not calculate access token expiration timestamp".into(),
-                ))
-            }
-        };
+                )
+            })?;
 
         Ok(Token {
             payload,

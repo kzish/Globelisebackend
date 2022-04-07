@@ -79,7 +79,7 @@ async fn main() {
             post(onboard::bank::payment_details),
         )
         // ========== ADMIN APIS ==========
-        .route("/eor-admin/users", get(eor_admin::user_index))
+        .route("/eor-admin/users", get(eor_admin::eor_admin_user_index))
         .route(
             "/eor-admin/users/add_individual_contractor",
             post(eor_admin::add_individual_contractor),

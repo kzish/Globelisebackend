@@ -14,6 +14,7 @@ pub enum GlobeliseError {
     WrongUserType,
     UnsupportedImageFormat,
     BadRequest(&'static str),
+    BadRequestOwned(String),
     Unauthorized(&'static str),
     Forbidden,
     #[allow(dead_code)]
@@ -51,6 +52,10 @@ impl IntoResponse for GlobeliseError {
                 "Image must be PNG or JPEG",
             ),
             GlobeliseError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
+            GlobeliseError::BadRequestOwned(message) => {
+                eprintln!("{message}");
+                return StatusCode::BAD_REQUEST.into_response();
+            }
             GlobeliseError::Unauthorized(message) => {
                 eprintln!("{message}");
                 return StatusCode::UNAUTHORIZED.into_response();

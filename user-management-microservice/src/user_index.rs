@@ -76,7 +76,11 @@ impl<'r> FromRow<'r, PgRow> for UserIndex {
         let user_type =
             UserType::try_from(type_str.as_str()).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
         let email = row.try_get("email")?;
-        let created_at = row.try_get("created_at")?;
+        let created_at_offset: sqlx::types::time::OffsetDateTime = row.try_get("created_at")?;
+        let (year, month) = created_at_offset.iso_year_week();
+        let weekday = created_at_offset.weekday();
+        let created_at = sqlx::types::time::Date::try_from_iso_ywd(year, month, weekday)
+            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
         Ok(UserIndex {
             ulid,
             name,

@@ -28,6 +28,7 @@ use crate::{
 };
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct UserIndexQuery {
     pub page: NonZeroU32,
     pub per_page: NonZeroU32,
@@ -36,7 +37,7 @@ pub struct UserIndexQuery {
     pub user_role: Option<Role>,
 }
 
-pub async fn user_index(
+pub async fn eor_admin_user_index(
     // Only for validation
     _: Token<AdminAccessToken>,
     Query(query): Query<UserIndexQuery>,

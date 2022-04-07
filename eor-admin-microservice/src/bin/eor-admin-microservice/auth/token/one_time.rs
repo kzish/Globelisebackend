@@ -23,14 +23,14 @@ pub fn create_one_time_token<T>(ulid: Ulid) -> GlobeliseResult<(String, i64)>
 where
     T: OneTimeTokenAudience,
 {
-    let expiration = match OffsetDateTime::now_utc().checked_add(T::lifetime()) {
-        Some(datetime) => datetime.unix_timestamp(),
-        None => {
-            return Err(GlobeliseError::Internal(
+    let expiration = OffsetDateTime::now_utc()
+        .unix_timestamp()
+        .checked_add(T::lifetime().whole_seconds())
+        .ok_or_else(|| {
+            GlobeliseError::Internal(
                 "Could not calculate one-time token expiration timestamp".into(),
-            ))
-        }
-    };
+            )
+        })?;
 
     let claims = OneTimeToken::<T> {
         sub: ulid.to_string(),
