@@ -44,13 +44,13 @@ impl Database {
             (ulid, client_ulid, contractor_ulid, contract_ulid, tax_interval,
             tax_name, begin_period, end_period, country, tax_report_file)
             VALUES
-            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+            ($1, $2, $3, $4, $5::interval_type, $6, $7, $8, $9, $10)",
         )
         .bind(ulid_to_sql_uuid(Ulid::generate()))
         .bind(ulid_to_sql_uuid(query.client_ulid))
         .bind(ulid_to_sql_uuid(query.contractor_ulid))
         .bind(query.contract_ulid.map(ulid_to_sql_uuid))
-        .bind(query.tax_interval)
+        .bind(query.tax_interval.as_str())
         .bind(query.tax_name)
         .bind(query.begin_period)
         .bind(query.end_period)
