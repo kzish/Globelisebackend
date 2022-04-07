@@ -70,6 +70,15 @@ pub enum TaxInterval {
     Yearly,
 }
 
+impl TaxInterval {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            TaxInterval::Monthly => "monthly",
+            TaxInterval::Yearly => "yearly",
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TaxReportIndex {
