@@ -78,6 +78,10 @@ async fn main() {
             "/onboard/payment-details",
             post(onboard::bank::payment_details),
         )
+        .route(
+            "/onboard/fully_onboarded/:role",
+            get(onboard::fully_onboarded),
+        )
         // ========== ADMIN APIS ==========
         .route(
             "/eor-admin/onboarded-users",
