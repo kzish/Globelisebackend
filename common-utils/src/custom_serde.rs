@@ -1,7 +1,6 @@
+use crate::error::GlobeliseError;
 use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
-
-use crate::error::GlobeliseError;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct DateWrapper(String);
@@ -31,7 +30,7 @@ impl TryFrom<EmailWrapper> for EmailAddress {
         email
             .0
             .parse::<EmailAddress>()
-            .map_err(|_| GlobeliseError::BadRequest("Date must use YYYY-MM-DD format"))
+            .map_err(|_| GlobeliseError::BadRequest("Invalid email address used"))
     }
 }
 
