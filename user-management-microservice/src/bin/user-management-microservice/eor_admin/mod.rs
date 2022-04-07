@@ -28,8 +28,7 @@ use crate::{
 };
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct UserIndexQuery {
+pub struct OnboardedUserIndexQuery {
     pub page: NonZeroU32,
     pub per_page: NonZeroU32,
     pub search_text: Option<String>,
@@ -37,14 +36,14 @@ pub struct UserIndexQuery {
     pub user_role: Option<Role>,
 }
 
-pub async fn eor_admin_user_index(
+pub async fn eor_admin_onboarded_user_index(
     // Only for validation
     _: Token<AdminAccessToken>,
-    Query(query): Query<UserIndexQuery>,
+    Query(query): Query<OnboardedUserIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<UserIndex>>> {
     let database = database.lock().await;
-    let result = database.user_index(query).await?;
+    let result = database.onboarded_user_index(query).await?;
     Ok(Json(result))
 }
 
@@ -221,4 +220,22 @@ pub async fn eor_admin_add_employees_in_bulk(
         }
     }
     Ok(())
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UserIndexQuery {
+    pub page: NonZeroU32,
+    pub per_page: NonZeroU32,
+    pub search_text: Option<String>,
+}
+
+pub async fn eor_admin_user_index(
+    // Only for validation
+    _: Token<AdminAccessToken>,
+    Query(query): Query<UserIndexQuery>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<UserIndex>>> {
+    let database = database.lock().await;
+    let result = database.user_index(query).await?;
+    Ok(Json(result))
 }

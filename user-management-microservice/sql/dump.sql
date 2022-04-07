@@ -613,10 +613,10 @@ CREATE TABLE public.prefilled_individual_contractors_bank_details (
 ALTER TABLE public.prefilled_individual_contractors_bank_details OWNER TO postgres;
 
 --
--- Name: user_index; Type: VIEW; Schema: public; Owner: postgres
+-- Name: onboarded_user_index; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE VIEW public.user_index AS
+CREATE VIEW public.onboarded_user_index AS
  WITH client_individual_info AS (
          SELECT auth_individuals.created_at,
             auth_individuals.ulid,
@@ -687,7 +687,7 @@ UNION
    FROM contractor_entity_info;
 
 
-ALTER TABLE public.user_index OWNER TO postgres;
+ALTER TABLE public.onboarded_user_index OWNER TO postgres;
 
 --
 -- Name: auth_entities auth_entities_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
@@ -1001,6 +1001,36 @@ ALTER TABLE ONLY public.individual_contractors_bank_details
 
 ALTER TABLE ONLY public.prefilled_individual_contractors_bank_details
     ADD CONSTRAINT prefilled_individual_contractors_bank_details_email_fkey FOREIGN KEY (email) REFERENCES public.prefilled_individual_contractors_account_details(email) ON DELETE CASCADE;
+
+
+--
+-- Name: user_index; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.user_index AS
+ WITH client_individual_info AS (
+         SELECT auth_individuals.created_at,
+            auth_individuals.ulid,
+            auth_individuals.email
+           FROM public.auth_individuals 
+        ), client_entity_info AS (
+         SELECT auth_entities.created_at,
+            auth_entities.ulid,
+            auth_entities.email
+           FROM public.auth_entities
+        )
+ SELECT client_individual_info.created_at,
+    client_individual_info.ulid,
+    client_individual_info.email
+   FROM client_individual_info
+UNION
+ SELECT client_entity_info.created_at,
+    client_entity_info.ulid,
+    client_entity_info.email
+   FROM client_entity_info;
+
+
+ALTER TABLE public.user_index OWNER TO postgres;
 
 
 --
