@@ -146,7 +146,7 @@ where
         // Do not authorize if the token has already been used.
         let mut shared_state = shared_state.lock().await;
         if shared_state
-            .is_one_time_token_valid::<T>(ulid, token.as_bytes())
+            .check_one_time_token_valid::<T>(ulid, token.as_bytes())
             .await?
         {
             Ok(OneTimeTokenParam(claims))
@@ -219,7 +219,7 @@ where
         // Do not authorize if the token has already been used.
         let mut shared_state = shared_state.lock().await;
         if shared_state
-            .is_one_time_token_valid::<T>(ulid, bearer.token().as_bytes())
+            .check_one_time_token_valid::<T>(ulid, bearer.token().as_bytes())
             .await?
         {
             Ok(OneTimeTokenBearer(claims))

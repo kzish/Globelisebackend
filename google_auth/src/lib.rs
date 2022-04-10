@@ -81,14 +81,14 @@ struct OauthKeyList {
 impl OauthKeyList {
     /// Fetch Google's public keys.
     async fn new() -> Result<Self> {
-        Ok(OAUTH_KEY_CLIENT
+        OAUTH_KEY_CLIENT
             .get("https://www.googleapis.com/oauth2/v3/certs")
             .send()
             .await
             .map_err(|_| Error::FetchPublicKeys)?
             .json::<Self>()
             .await
-            .map_err(|_| Error::FetchPublicKeys)?)
+            .map_err(|_| Error::FetchPublicKeys)
     }
 }
 

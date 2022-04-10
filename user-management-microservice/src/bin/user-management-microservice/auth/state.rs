@@ -139,7 +139,7 @@ impl State {
     }
 
     /// Checks if a one-time token is valid.
-    pub async fn is_one_time_token_valid<T>(
+    pub async fn check_one_time_token_valid<T>(
         &mut self,
         ulid: Ulid,
         token: &[u8],
