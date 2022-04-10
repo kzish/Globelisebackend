@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 use user_management_microservice_sdk::{
     user::{Role, UserType},
-    user_index::UserIndex,
+    user_index::{OnboardedUserIndex, UserIndex},
 };
 
 use crate::{
@@ -41,7 +41,7 @@ pub async fn eor_admin_onboarded_user_index(
     _: Token<AdminAccessToken>,
     Query(query): Query<OnboardedUserIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<UserIndex>>> {
+) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
     let database = database.lock().await;
     let result = database.onboarded_user_index(query).await?;
     Ok(Json(result))

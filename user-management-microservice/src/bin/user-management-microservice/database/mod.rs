@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use common_utils::error::GlobeliseResult;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
-use user_management_microservice_sdk::user_index::UserIndex;
+use user_management_microservice_sdk::user_index::{OnboardedUserIndex, UserIndex};
 
 use crate::eor_admin::{OnboardedUserIndexQuery, UserIndexQuery};
 
@@ -39,7 +39,7 @@ impl Database {
     pub async fn onboarded_user_index(
         &self,
         query: OnboardedUserIndexQuery,
-    ) -> GlobeliseResult<Vec<UserIndex>> {
+    ) -> GlobeliseResult<Vec<OnboardedUserIndex>> {
         let result = sqlx::query_as(
             "
             SELECT 
