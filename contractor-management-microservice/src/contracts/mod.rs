@@ -31,7 +31,7 @@ pub async fn user_index(
     Extension(shared_client): Extension<Client>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<UserIndex>>> {
-    let response = user_management_microservice_sdk::user_index::get_users_info(
+    let response = user_management_microservice_sdk::user_index::eor_admin_onboarded_users(
         &shared_client,
         &*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
         access_token,

@@ -16,14 +16,14 @@ use sqlx::{postgres::PgRow, FromRow, Row};
 
 use super::user::{Role, UserType};
 
-pub async fn get_users_info(
+pub async fn eor_admin_onboarded_users(
     client: &Client,
     base_url: &str,
     access_token: String,
     request: GetUserInfoRequest,
-) -> GlobeliseResult<Vec<UserIndex>> {
+) -> GlobeliseResult<Vec<OnboardedUserIndex>> {
     let response = client
-        .get(format!("{base_url}/eor-admin/users"))
+        .get(format!("{base_url}/eor-admin/onboarded-users"))
         .headers({
             let mut headers = HeaderMap::new();
             headers.insert(
@@ -58,7 +58,7 @@ pub struct GetUserInfoRequest {
 /// Stores information associated with a user id.
 #[serde_as]
 #[derive(Debug, Deserialize, Serialize)]
-pub struct UserIndex {
+pub struct OnboardedUserIndex {
     pub ulid: Ulid,
     pub name: String,
     pub user_role: Role,
@@ -68,7 +68,7 @@ pub struct UserIndex {
     pub created_at: sqlx::types::time::Date,
 }
 
-impl<'r> FromRow<'r, PgRow> for UserIndex {
+impl<'r> FromRow<'r, PgRow> for OnboardedUserIndex {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         let ulid = ulid_from_sql_uuid(row.try_get("ulid")?);
         let name = row.try_get("name")?;
@@ -84,11 +84,38 @@ impl<'r> FromRow<'r, PgRow> for UserIndex {
         let weekday = created_at_offset.weekday();
         let created_at = sqlx::types::time::Date::try_from_iso_ywd(year, month, weekday)
             .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
-        Ok(UserIndex {
+        Ok(OnboardedUserIndex {
             ulid,
             name,
             user_role,
             user_type,
+            email,
+            created_at,
+        })
+    }
+}
+
+/// Stores information associated with a user id.
+#[serde_as]
+#[derive(Debug, Deserialize, Serialize)]
+pub struct UserIndex {
+    pub ulid: Ulid,
+    pub email: String,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub created_at: sqlx::types::time::Date,
+}
+
+impl<'r> FromRow<'r, PgRow> for UserIndex {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let ulid = ulid_from_sql_uuid(row.try_get("ulid")?);
+        let email = row.try_get("email")?;
+        let created_at_offset: sqlx::types::time::OffsetDateTime = row.try_get("created_at")?;
+        let (year, month) = created_at_offset.iso_year_week();
+        let weekday = created_at_offset.weekday();
+        let created_at = sqlx::types::time::Date::try_from_iso_ywd(year, month, weekday)
+            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+        Ok(UserIndex {
+            ulid,
             email,
             created_at,
         })
