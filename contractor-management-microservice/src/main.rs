@@ -78,6 +78,7 @@ async fn main() {
             get(invoice::eor_admin_invoice_group_index),
         )
         // ========== DEBUG PAGES ==========
+        .route("/healthz", get(handle_healthz))
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
@@ -115,6 +116,8 @@ async fn main() {
     .await
     .unwrap();
 }
+
+async fn handle_healthz() {}
 
 /// Handle errors from fallible services.
 async fn handle_error(error: BoxError) -> (StatusCode, &'static str) {
