@@ -169,7 +169,7 @@ pub async fn public_key() -> String {
 
 /// Request for creating a user.
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct CreateAccountRequest {
     email: String,
     password: String,
@@ -178,7 +178,7 @@ pub struct CreateAccountRequest {
 
 /// Request for logging a user in.
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct LoginRequest {
     email: String,
     password: String,

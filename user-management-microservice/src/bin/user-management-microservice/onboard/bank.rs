@@ -23,7 +23,7 @@ pub async fn bank_details(
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct BankDetails {
     pub bank_name: String,
     pub account_name: String,
@@ -43,7 +43,7 @@ pub async fn payment_details(
 
 #[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct PaymentDetails {
     pub currency: Currency,
     #[serde_as(as = "TryFromInto<DateWrapper>")]

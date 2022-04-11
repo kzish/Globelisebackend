@@ -48,7 +48,7 @@ pub async fn contractor_account_details(
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct IndividualClientDetails {
     pub first_name: String,
     pub last_name: String,
@@ -70,7 +70,7 @@ pub struct IndividualClientDetails {
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct IndividualContractorDetails {
     #[serde(flatten)]
     pub common_info: IndividualClientDetails,

@@ -15,7 +15,7 @@ pub mod one_time;
 
 /// Claims for refresh tokens.
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct RefreshToken {
     pub ulid: Ulid,
 }

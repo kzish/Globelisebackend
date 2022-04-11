@@ -14,7 +14,7 @@ use error::Result;
 
 /// Representation of Google's ID token.
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct IdToken {
     credential: String,
 }
@@ -61,14 +61,14 @@ impl IdToken {
 
 /// Claims for Google ID tokens.
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct Claims {
     pub email: String,
 }
 
 /// Google's public key used for decoding tokens.
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 struct OauthKey {
     kid: String,
     n: String,
@@ -77,7 +77,7 @@ struct OauthKey {
 
 /// Array of Google's public keys.
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 struct OauthKeyList {
     keys: Vec<OauthKey>,
 }
