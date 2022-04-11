@@ -165,13 +165,14 @@ pub async fn execute(
 
 /// Request for requesting password reset.
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LostPasswordRequest {
     pub email: String,
 }
 
 /// Request to change password.
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct ChangePasswordRequest {
     pub new_password: String,
     pub confirm_new_password: String,

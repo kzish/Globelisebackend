@@ -63,7 +63,7 @@ pub async fn eor_admin_create_payslip(
 }
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct PayslipsIndex {
     payslip_ulid: Ulid,
     #[serde(flatten)]
@@ -81,7 +81,7 @@ impl<'r> FromRow<'r, PgRow> for PayslipsIndex {
 
 #[serde_as]
 #[derive(Debug, FromRow, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 struct PayslipsIndexSqlHelper {
     client_name: String,
     contractor_name: String,
@@ -98,7 +98,7 @@ struct PayslipsIndexSqlHelper {
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct CreatePayslipsIndex {
     pub client_ulid: Ulid,
     pub contractor_ulid: Ulid,

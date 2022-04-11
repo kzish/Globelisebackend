@@ -26,7 +26,7 @@ pub async fn account_details(
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct IndividualDetails {
     pub first_name: String,
     pub last_name: String,

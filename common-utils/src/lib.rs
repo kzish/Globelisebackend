@@ -10,7 +10,7 @@ pub mod error;
 pub mod token;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display, Deserialize, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 #[strum(serialize_all = "kebab-case")]
 pub enum DaprAppId {
     UserManagementMicroservice,

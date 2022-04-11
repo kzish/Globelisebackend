@@ -48,7 +48,7 @@ pub async fn prefill_individual_contractor_bank_details(
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct PrefillIndividualDetails {
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
     pub email: EmailAddress,
@@ -70,7 +70,7 @@ pub struct PrefillIndividualDetails {
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct PrefillBankDetails {
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
     pub email: EmailAddress,

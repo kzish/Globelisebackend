@@ -49,6 +49,7 @@ where
 
 /// Claims for one-time token
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OneTimeToken<T>
 where
     T: OneTimeTokenAudience,
@@ -79,6 +80,7 @@ where
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OneTimeTokenParam<T>(pub T);
 
 impl<T> OneTimeTokenAudience for OneTimeTokenParam<T>
@@ -152,6 +154,7 @@ where
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OneTimeTokenBearer<T>(pub T);
 
 impl<T> OneTimeTokenAudience for OneTimeTokenBearer<T>

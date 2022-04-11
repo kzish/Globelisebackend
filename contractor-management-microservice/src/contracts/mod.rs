@@ -130,7 +130,7 @@ pub struct UserIndex {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct ClientsIndex {
     client_ulid: Ulid,
     client_name: String,
@@ -146,7 +146,7 @@ impl<'r> FromRow<'r, PgRow> for ClientsIndex {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct ContractorsIndex {
     contractor_ulid: Ulid,
     #[serde(flatten)]
@@ -163,7 +163,7 @@ impl<'r> FromRow<'r, PgRow> for ContractorsIndex {
 }
 
 #[derive(Debug, FromRow, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 struct ContractorsIndexSqlHelper {
     contractor_name: String,
     contract_name: Option<String>,
@@ -180,7 +180,7 @@ pub enum ContractsIndex {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct ContractsIndexForClient {
     contractor_name: String,
     contract_ulid: Ulid,
@@ -199,7 +199,7 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForClient {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct ContractsIndexForContractor {
     client_name: String,
     contract_ulid: Ulid,
@@ -218,7 +218,7 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForContractor {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct ContractsIndexForEorAdmin {
     client_name: String,
     contractor_name: String,
@@ -240,7 +240,7 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForEorAdmin {
 
 #[serde_as]
 #[derive(Debug, FromRow, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 struct ContractsIndexCommonInfoSqlHelper {
     contract_name: String,
     contract_type: String,

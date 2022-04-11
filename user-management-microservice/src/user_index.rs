@@ -46,7 +46,7 @@ pub async fn eor_admin_onboarded_users(
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct GetUserInfoRequest {
     pub page: NonZeroU32,
     pub per_page: NonZeroU32,
@@ -58,6 +58,7 @@ pub struct GetUserInfoRequest {
 /// Stores information associated with a user id.
 #[serde_as]
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OnboardedUserIndex {
     pub ulid: Ulid,
     pub name: String,

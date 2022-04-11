@@ -6,7 +6,7 @@ use strum::{Display, EnumIter, EnumString};
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, EnumIter, EnumString, Display, Deserialize, Serialize,
 )]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 #[strum(serialize_all = "kebab-case")]
 pub enum UserType {
     Individual,
@@ -30,7 +30,7 @@ impl UserType {
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, EnumIter, EnumString, Display, Deserialize, Serialize,
 )]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 #[strum(serialize_all = "kebab-case")]
 pub enum Role {
     Client,
