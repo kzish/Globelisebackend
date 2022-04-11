@@ -56,6 +56,7 @@ async fn main() {
         )
         .route("/auth/access-token", post(auth::access_token))
         .route("/auth/public-key", get(auth::public_key))
+        .route("/healthz", get(handle_healthz))
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
@@ -94,6 +95,8 @@ async fn main() {
     .await
     .unwrap();
 }
+
+async fn handle_healthz() {}
 
 /// Handles errors from fallible services.
 async fn handle_error(error: BoxError) -> (StatusCode, &'static str) {

@@ -106,6 +106,7 @@ async fn main() {
         )
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
+        .route("/healthz", get(handle_healthz))
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
@@ -144,6 +145,8 @@ async fn main() {
     .await
     .unwrap();
 }
+
+async fn handle_healthz() {}
 
 /// Handles errors from fallible services.
 async fn handle_error(error: BoxError) -> (StatusCode, &'static str) {
