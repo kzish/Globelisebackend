@@ -36,11 +36,11 @@ impl IntoResponse for GlobeliseError {
     fn into_response(self) -> Response {
         let (status, message) = match self {
             GlobeliseError::Dapr(message) => {
-                eprintln!("{message}");
+                eprintln!("{:#?}", message);
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
             GlobeliseError::Database(message) => {
-                eprintln!("{message}");
+                eprintln!("{:#?}", message);
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
             GlobeliseError::UnavailableEmail => {
@@ -53,18 +53,18 @@ impl IntoResponse for GlobeliseError {
             ),
             GlobeliseError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
             GlobeliseError::BadRequestOwned(message) => {
-                eprintln!("{message}");
+                eprintln!("{:#?}", message);
                 return StatusCode::BAD_REQUEST.into_response();
             }
             GlobeliseError::Unauthorized(message) => {
-                eprintln!("{message}");
+                eprintln!("{:#?}", message);
                 return StatusCode::UNAUTHORIZED.into_response();
             }
             GlobeliseError::Forbidden => return StatusCode::FORBIDDEN.into_response(),
             GlobeliseError::NotFound => return StatusCode::NOT_FOUND.into_response(),
             GlobeliseError::PayloadTooLarge(message) => (StatusCode::PAYLOAD_TOO_LARGE, message),
             GlobeliseError::Internal(message) => {
-                eprintln!("{message}");
+                eprintln!("{:#?}", message);
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
         };

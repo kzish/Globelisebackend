@@ -67,6 +67,7 @@ pub trait TokenLike {
 
 /// Claims for access tokens.
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Token<P>
 where
     P: TokenLike,

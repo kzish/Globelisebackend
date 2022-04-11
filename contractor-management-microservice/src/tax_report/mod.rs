@@ -63,7 +63,7 @@ pub async fn eor_admin_create_tax_report(
 }
 
 #[derive(Debug, sqlx::Type, Deserialize, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 #[sqlx(type_name = "interval_type")]
 pub enum TaxInterval {
     Monthly,
@@ -80,7 +80,7 @@ impl TaxInterval {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct TaxReportIndex {
     tax_report_ulid: Ulid,
     #[serde(flatten)]
@@ -98,7 +98,7 @@ impl<'r> FromRow<'r, PgRow> for TaxReportIndex {
 
 #[serde_as]
 #[derive(Debug, FromRow, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 struct TaxReportIndexSqlHelper {
     client_name: String,
     contractor_name: String,
@@ -115,7 +115,7 @@ struct TaxReportIndexSqlHelper {
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct CreateTaxReportIndex {
     pub client_ulid: Ulid,
     pub contractor_ulid: Ulid,

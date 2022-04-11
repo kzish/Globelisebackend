@@ -7,6 +7,7 @@ use super::user::UserType;
 
 /// Claims for access tokens.
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AccessToken {
     pub ulid: Ulid,
     pub email: String,

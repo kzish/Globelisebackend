@@ -204,6 +204,7 @@ impl State {
 
 /// Stores hashes of session tokens, mapped to their expiration time.
 #[derive(Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Sessions {
     sessions: HashMap<String, i64>,
 }
@@ -240,6 +241,7 @@ impl Sessions {
 
 /// Stores hashes of session tokens, mapped to their expiration time.
 #[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OneTimeSessions {
     sessions: HashMap<String, i64>,
 }

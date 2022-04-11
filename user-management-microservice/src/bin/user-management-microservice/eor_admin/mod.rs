@@ -28,6 +28,7 @@ use crate::{
 };
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OnboardedUserIndexQuery {
     pub page: NonZeroU32,
     pub per_page: NonZeroU32,
@@ -48,6 +49,7 @@ pub async fn eor_admin_onboarded_user_index(
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AddUserRequest {
     email: String,
 }
@@ -118,7 +120,7 @@ pub async fn add_individual_contractor(
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct AddEmployeesInBulk {
     #[serde_as(as = "Base64")]
     pub uploaded_file: Vec<u8>,
@@ -127,7 +129,7 @@ pub struct AddEmployeesInBulk {
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Email")]
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
@@ -223,6 +225,7 @@ pub async fn eor_admin_add_employees_in_bulk(
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserIndexQuery {
     pub page: NonZeroU32,
     pub per_page: NonZeroU32,
