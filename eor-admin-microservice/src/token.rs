@@ -5,7 +5,7 @@ use time::Duration;
 
 /// Claims for access tokens.
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct AccessToken {
     pub ulid: Ulid,
     pub email: String,

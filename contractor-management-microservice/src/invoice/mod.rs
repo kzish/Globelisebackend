@@ -72,7 +72,7 @@ pub async fn eor_admin_invoice_group_index(
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct InvoiceIndividualIndexQuery {
     pub invoice_group_ulid: Ulid,
     pub invoice_status: Option<String>,
@@ -81,7 +81,7 @@ pub struct InvoiceIndividualIndexQuery {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct InvoiceIndividualIndex {
     ulid: Ulid,
     invoice_group_ulid: Ulid,
@@ -105,7 +105,7 @@ impl<'r> FromRow<'r, PgRow> for InvoiceIndividualIndex {
 
 #[serde_as]
 #[derive(Debug, FromRow, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct InvoiceIndividualIndexSqlHelper {
     invoice_id: i64,
     #[serde_as(as = "FromInto<DateWrapper>")]
@@ -115,7 +115,7 @@ pub struct InvoiceIndividualIndexSqlHelper {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct InvoiceGroupIndexQuery {
     pub invoice_group_ulid: Ulid,
     pub invoice_status: Option<String>,

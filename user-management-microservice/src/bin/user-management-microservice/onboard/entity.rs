@@ -67,7 +67,7 @@ pub async fn pic_details(
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct EntityDetails {
     pub company_name: String,
     pub country: String,
@@ -87,7 +87,7 @@ pub struct EntityDetails {
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct EntityContractorDetails {
     #[serde(flatten)]
     pub common_info: EntityDetails,
@@ -98,7 +98,7 @@ pub struct EntityContractorDetails {
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct PicDetails {
     pub first_name: String,
     pub last_name: String,

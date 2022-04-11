@@ -7,7 +7,7 @@ use sqlx::{postgres::PgRow, FromRow, Row};
 
 /// Stores information associated with a admin id.
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct Admin {
     pub email: EmailAddress,
     pub password_hash: Option<String>,

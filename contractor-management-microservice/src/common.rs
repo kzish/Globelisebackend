@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::num::NonZeroU32;
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct PaginatedQuery {
     pub page: NonZeroU32,
     pub per_page: NonZeroU32,
