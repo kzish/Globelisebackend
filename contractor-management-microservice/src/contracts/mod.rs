@@ -25,7 +25,7 @@ use crate::{
 mod database;
 
 /// Lists all the users plus some information about them.
-pub async fn user_index(
+pub async fn eor_admin_user_index(
     TokenString(access_token): TokenString,
     Query(request): Query<GetUserInfoRequest>,
     Extension(shared_client): Extension<Client>,

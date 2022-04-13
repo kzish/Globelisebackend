@@ -2,6 +2,7 @@ use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
     custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
+    pubsub::{SharedPubSub, UpdateUserName},
     token::Token,
 };
 use serde::Deserialize;
@@ -17,15 +18,25 @@ pub async fn client_account_details(
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
+    Extension(pubsub): Extension<SharedPubSub>,
 ) -> GlobeliseResult<()> {
     if !matches!(claims.payload.user_type, UserType::Individual) {
         return Err(GlobeliseError::Forbidden);
     }
     let ulid = claims.payload.ulid;
+    let full_name = format!("{} {}", request.first_name, request.last_name);
+
     let database = database.lock().await;
     database
         .onboard_individual_client_details(ulid, request)
-        .await
+        .await?;
+
+    let pubsub = pubsub.lock().await;
+    pubsub
+        .publish_event(UpdateUserName::Client(ulid, full_name))
+        .await?;
+
+    Ok(())
 }
 
 pub async fn contractor_account_details(
@@ -35,15 +46,28 @@ pub async fn contractor_account_details(
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
+    Extension(pubsub): Extension<SharedPubSub>,
 ) -> GlobeliseResult<()> {
     if !matches!(claims.payload.user_type, UserType::Individual) {
         return Err(GlobeliseError::Forbidden);
     }
     let ulid = claims.payload.ulid;
+    let full_name = format!(
+        "{} {}",
+        request.common_info.first_name, request.common_info.last_name
+    );
+
     let database = database.lock().await;
     database
         .onboard_individual_contractor_details(ulid, request)
-        .await
+        .await?;
+
+    let pubsub = pubsub.lock().await;
+    pubsub
+        .publish_event(UpdateUserName::Contractor(ulid, full_name))
+        .await?;
+
+    Ok(())
 }
 
 #[serde_as]

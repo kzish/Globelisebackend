@@ -15,12 +15,6 @@ use super::Database;
 impl Database {
     /// Creates and stores a new user.
     pub async fn create_user(&self, user: User, user_type: UserType) -> GlobeliseResult<Ulid> {
-        if !user.has_authentication() {
-            return Err(GlobeliseError::Unauthorized(
-                "Refused to create user: no authentication method provided",
-            ));
-        }
-
         // Avoid overwriting an existing user.
         if self.user_id(&user.email).await?.is_some() {
             return Err(GlobeliseError::UnavailableEmail);

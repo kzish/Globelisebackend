@@ -10,7 +10,7 @@ impl TryFrom<DateWrapper> for sqlx::types::time::Date {
 
     fn try_from(date: DateWrapper) -> Result<Self, Self::Error> {
         sqlx::types::time::Date::parse(date.0, "%F")
-            .map_err(|_| GlobeliseError::BadRequest("Date must use YYYY-MM-DD format"))
+            .map_err(|e| GlobeliseError::BadRequestOwned(e.to_string()))
     }
 }
 
@@ -30,7 +30,7 @@ impl TryFrom<EmailWrapper> for EmailAddress {
         email
             .0
             .parse::<EmailAddress>()
-            .map_err(|_| GlobeliseError::BadRequest("Invalid email address used"))
+            .map_err(|e| GlobeliseError::BadRequestOwned(e.to_string()))
     }
 }
 

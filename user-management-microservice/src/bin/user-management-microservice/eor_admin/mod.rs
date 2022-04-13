@@ -4,6 +4,7 @@ use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
     custom_serde::{DateWrapper, EmailWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
+    pubsub::{AddClientContractorPair, SharedPubSub},
     token::Token,
 };
 use csv::{ReaderBuilder, StringRecord};
@@ -19,6 +20,7 @@ use user_management_microservice_sdk::{
 };
 
 use crate::{
+    auth::user::User,
     database::SharedDatabase,
     env::{
         GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
@@ -66,6 +68,7 @@ pub async fn add_individual_contractor(
         .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
 
     let database = database.lock().await;
+
     if (database.user_id(&email_address).await?).is_some() {
         return Err(GlobeliseError::UnavailableEmail);
     };
@@ -73,8 +76,7 @@ pub async fn add_individual_contractor(
     let receiver_email = email_address
         // TODO: Get the name of the person associated to this email address
         .to_display("")
-        .parse()
-        .map_err(|_| GlobeliseError::BadRequest("Bad request"))?;
+        .parse()?;
     let email = Message::builder()
         .from(GLOBELISE_SENDER_EMAIL.clone())
         // TODO: Remove this because this is supposed to be a no-reply email?
@@ -99,21 +101,15 @@ pub async fn add_individual_contractor(
             </html>
             "##,
             (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
-        ))
-        .map_err(|_| {
-            GlobeliseError::Internal("Could not create email for changing password".into())
-        })?;
+        ))?;
 
     // Open a remote connection to gmail
-    let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)
-        .map_err(|_| GlobeliseError::Internal("Could not connect to SMTP server".into()))?
+    let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)?
         .credentials(SMTP_CREDENTIAL.clone())
         .build();
 
     // Send the email
-    mailer
-        .send(&email)
-        .map_err(|e| GlobeliseError::Internal(e.to_string()))?;
+    mailer.send(&email)?;
 
     Ok(())
 }
@@ -173,6 +169,7 @@ pub async fn eor_admin_add_employees_in_bulk(
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
+    Extension(pubsub): Extension<SharedPubSub>,
 ) -> GlobeliseResult<()> {
     if let Ok(mut records) = ReaderBuilder::new()
         .has_headers(false)
@@ -181,6 +178,7 @@ pub async fn eor_admin_add_employees_in_bulk(
         .collect::<Result<Vec<StringRecord>, _>>()
     {
         if !records.is_empty() {
+            // Get/remove the first row because its the header.
             let header = records.swap_remove(0);
             for record in records {
                 let value = record.deserialize::<PrefillIndividualContractorDetailsForBulkUpload>(
@@ -211,13 +209,80 @@ pub async fn eor_admin_add_employees_in_bulk(
 
                 database
                     .prefill_onboard_individual_contractors_bank_details(PrefillBankDetails {
-                        email: value.email,
+                        email: value.email.clone(),
                         client_ulid: request.client_ulid,
                         bank_name: value.bank_name,
                         account_name: value.bank_account_owner_name,
                         account_number: value.bank_account_number,
                     })
-                    .await?
+                    .await?;
+
+                // Create contractor ULIDs
+                let contractor_ulid = database
+                    .create_user(
+                        User {
+                            email: value.email.clone(),
+                            password_hash: None,
+                            google: false,
+                            outlook: false,
+                        },
+                        UserType::Individual,
+                    )
+                    .await?;
+
+                // Create client/contractor pairs
+                database
+                    .create_client_contractor_pair(request.client_ulid, contractor_ulid)
+                    .await?;
+
+                // Publish event to DAPR
+                let pubsub = pubsub.lock().await;
+                pubsub
+                    .publish_event(AddClientContractorPair {
+                        client_ulid: request.client_ulid,
+                        contractor_ulid,
+                    })
+                    .await?;
+
+                // Send email to the contractor
+                let receiver_email = value
+                    .email
+                    // TODO: Get the name of the person associated to this email address
+                    .to_display("")
+                    .parse()?;
+                let email = Message::builder()
+                .from(GLOBELISE_SENDER_EMAIL.clone())
+                // TODO: Remove this because this is supposed to be a no-reply email?
+                .reply_to(GLOBELISE_SENDER_EMAIL.clone())
+                .to(receiver_email)
+                .subject("Invitation to Globelise")
+                .header(lettre::message::header::ContentType::TEXT_HTML)
+                // TODO: Once designer have a template for this. Use a templating library to populate data.
+                .body(format!(
+                    r##"
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Globelise Invitation</title>
+                    </head>
+                    <body>
+                        <p>
+                       Click the <a href="{}">link</a> to sign up as a Globelise individual contractor.
+                        </p>
+                        <p>If you did not expect to receive this email. Please ignore!</p>
+                    </body>
+                    </html>
+                    "##,
+                    (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
+                ))?;
+
+                // Open a remote connection to gmail
+                let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)?
+                    .credentials(SMTP_CREDENTIAL.clone())
+                    .build();
+
+                // Send the email
+                mailer.send(&email)?;
             }
         }
     }

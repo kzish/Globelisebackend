@@ -7,8 +7,9 @@ use axum::{
     routing::{get, post},
     BoxError, Router,
 };
-use common_utils::token::PublicKeys;
+use common_utils::{pubsub::PubSub, token::PublicKeys};
 use database::Database;
+use reqwest::Client;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer, Origin};
@@ -22,9 +23,13 @@ mod onboard;
 use crate::auth::token::KEYS;
 use env::{FRONTEND_URL, LISTENING_ADDRESS};
 
+static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
+
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
+
+    let dapr_address: String = std::env::var("DAPR_ADDRESS").unwrap().parse().unwrap();
 
     let shared_state = auth::State::new().await.expect("Could not connect to Dapr");
     let shared_state = Arc::new(Mutex::new(shared_state));
@@ -32,6 +37,13 @@ async fn main() {
     let database = Arc::new(Mutex::new(Database::new().await));
 
     let public_keys = Arc::new(Mutex::new(PublicKeys::default()));
+
+    let shared_reqwest_client = Client::builder()
+        .user_agent(APP_USER_AGENT)
+        .build()
+        .unwrap();
+
+    let shared_pubsub = Arc::new(Mutex::new(PubSub::new(shared_reqwest_client, dapr_address)));
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
@@ -132,7 +144,8 @@ async fn main() {
                 .layer(Extension(database))
                 .layer(Extension(shared_state))
                 .layer(Extension(KEYS.decoding.clone()))
-                .layer(Extension(public_keys)),
+                .layer(Extension(public_keys))
+                .layer(Extension(shared_pubsub)),
         );
 
     axum::Server::bind(

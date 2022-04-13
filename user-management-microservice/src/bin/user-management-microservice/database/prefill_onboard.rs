@@ -48,13 +48,13 @@ impl Database {
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO  prefilled_individual_contractors_bank_details
-            (email client_ulid, bank_name, bank_account_name, bank_account_number) 
+            (email, client_ulid, bank_name, bank_account_name, bank_account_number) 
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT(email) DO UPDATE SET 
             bank_name = $3, bank_account_name = $4, bank_account_number = $5";
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(details.client_ulid))
             .bind(details.email.to_string())
+            .bind(ulid_to_sql_uuid(details.client_ulid))
             .bind(details.bank_name)
             .bind(details.account_name)
             .bind(details.account_number)
