@@ -7,6 +7,7 @@ use strum::Display;
 
 pub mod custom_serde;
 pub mod error;
+pub mod pubsub;
 pub mod token;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display, Deserialize, Serialize)]

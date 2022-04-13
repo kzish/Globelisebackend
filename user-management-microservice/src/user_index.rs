@@ -99,6 +99,7 @@ impl<'r> FromRow<'r, PgRow> for OnboardedUserIndex {
 /// Stores information associated with a user id.
 #[serde_as]
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct UserIndex {
     pub ulid: Ulid,
     pub email: String,

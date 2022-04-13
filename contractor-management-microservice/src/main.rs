@@ -4,11 +4,16 @@ use axum::{
     error_handling::HandleErrorLayer,
     extract::Extension,
     http::{HeaderValue, Method, StatusCode},
-    routing::get,
-    BoxError, Router,
+    routing::{get, post},
+    BoxError, Json, Router,
 };
-use common_utils::token::PublicKeys;
+use common_utils::{
+    error::GlobeliseResult,
+    pubsub::{AddClientContractorPair, PubSubData, TopicSubscription, UpdateUserName},
+    token::PublicKeys,
+};
 use database::Database;
+use pubsub::{update_client_contractor_pair, update_user_name};
 use reqwest::Client;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
@@ -20,6 +25,7 @@ mod database;
 mod env;
 mod invoice;
 mod payslips;
+mod pubsub;
 mod tax_report;
 
 use env::{FRONTEND_URL, LISTENING_ADDRESS};
@@ -55,7 +61,7 @@ async fn main() {
             get(invoice::user_invoice_group_index),
         )
         // ========== ADMIN PAGES ==========
-        .route("/eor-admin/users", get(contracts::user_index))
+        .route("/eor-admin/users", get(contracts::eor_admin_user_index))
         .route(
             "/eor-admin/payslips",
             get(payslips::eor_admin_payslips_index).post(payslips::eor_admin_create_payslip),
@@ -77,8 +83,16 @@ async fn main() {
             "/eor-admin/invoices/group",
             get(invoice::eor_admin_invoice_group_index),
         )
+        // ========== PUBSUB PAGES ==========
+        .route("/dapr/subscribe", get(dapr_subscription_list))
+        .route(
+            "/update_client_contractor_pair",
+            post(update_client_contractor_pair),
+        )
+        .route("/update_user_name", post(update_user_name))
         // ========== DEBUG PAGES ==========
         .route("/healthz", get(handle_healthz))
+        // ========== CONFIGURATIONS ==========
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
@@ -131,4 +145,13 @@ async fn handle_error(error: BoxError) -> (StatusCode, &'static str) {
     } else {
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
     }
+}
+
+/// DAPR will invoke this endpoint to know which pubsub and topic names this app
+/// will listen to.
+pub async fn dapr_subscription_list() -> GlobeliseResult<Json<Vec<TopicSubscription>>> {
+    Ok(Json(vec![
+        AddClientContractorPair::create_topic_subscription("update_client_contractor_pair"),
+        UpdateUserName::create_topic_subscription("update_user_name"),
+    ]))
 }

@@ -45,7 +45,7 @@ impl State {
         std::thread::sleep(Duration::from_secs(2));
 
         let dapr_port: u16 = std::env::var("DAPR_GRPC_PORT")?.parse()?;
-        let dapr_address = format!("https://127.0.0.1:{}", dapr_port);
+        let dapr_address = format!("http://127.0.0.1:{}", dapr_port);
         let dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(dapr_address).await?;
         Ok(Self { dapr_client })
     }

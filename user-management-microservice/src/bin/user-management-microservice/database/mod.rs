@@ -1,6 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
-use common_utils::error::GlobeliseResult;
+use common_utils::{error::GlobeliseResult, ulid_to_sql_uuid};
+use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
 use user_management_microservice_sdk::user_index::{OnboardedUserIndex, UserIndex};
@@ -95,5 +96,27 @@ impl Database {
         .fetch_all(&self.0)
         .await?;
         Ok(result)
+    }
+
+    /// Create a client/contractor pair
+    ///
+    /// This does not require users to be fully onboarded.
+    pub async fn create_client_contractor_pair(
+        &self,
+        client_ulid: Ulid,
+        contractor_ulid: Ulid,
+    ) -> GlobeliseResult<()> {
+        sqlx::query(
+            "
+            INSERT INTO client_contractor_pairs 
+                (client_ulid, contractor_ulid)
+            VALUES
+                ($1, $2)",
+        )
+        .bind(ulid_to_sql_uuid(client_ulid))
+        .bind(ulid_to_sql_uuid(contractor_ulid))
+        .execute(&self.0)
+        .await?;
+        Ok(())
     }
 }

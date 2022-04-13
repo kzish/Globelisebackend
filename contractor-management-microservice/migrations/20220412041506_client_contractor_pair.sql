@@ -1,0 +1,5 @@
+ALTER TABLE client_contractor_pairs
+DROP CONSTRAINT client_contractor_pairs_client_ulid_fkey;
+
+ALTER TABLE client_contractor_pairs
+DROP CONSTRAINT client_contractor_pairs_contractor_ulid_fkey;

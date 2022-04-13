@@ -11,9 +11,3 @@ pub struct User {
     pub google: bool,
     pub outlook: bool,
 }
-
-impl User {
-    pub fn has_authentication(&self) -> bool {
-        self.password_hash.is_some() || self.google || self.outlook
-    }
-}
