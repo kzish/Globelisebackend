@@ -166,7 +166,9 @@ async fn main() {
     .unwrap();
 }
 
-async fn handle_healthz() {}
+async fn handle_healthz() -> &'static str {
+    dbg!(option_env!("GIT_HASH").unwrap_or(env!("CARGO_PKG_VERSION")))
+}
 
 /// Handles errors from fallible services.
 async fn handle_error(error: BoxError) -> (StatusCode, &'static str) {
