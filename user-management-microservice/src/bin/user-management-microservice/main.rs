@@ -29,7 +29,10 @@ static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_P
 async fn main() {
     dotenv::dotenv().ok();
 
-    let dapr_address: String = std::env::var("DAPR_ADDRESS").unwrap().parse().unwrap();
+    let dapr_address: String = std::env::var("USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL")
+        .unwrap()
+        .parse()
+        .unwrap();
 
     let shared_state = auth::State::new().await.expect("Could not connect to Dapr");
     let shared_state = Arc::new(Mutex::new(shared_state));
