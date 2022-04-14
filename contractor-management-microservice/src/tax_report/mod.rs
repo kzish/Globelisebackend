@@ -79,19 +79,37 @@ impl TaxInterval {
     }
 }
 
+#[serde_as]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TaxReportIndex {
     tax_report_ulid: Ulid,
-    #[serde(flatten)]
-    other_fields: TaxReportIndexSqlHelper,
+    client_name: String,
+    contractor_name: String,
+    #[serde(default)]
+    contract_name: Option<String>,
+    tax_interval: TaxInterval,
+    tax_name: String,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    pub begin_period: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    pub end_period: sqlx::types::time::Date,
+    country: String,
 }
 
 impl<'r> FromRow<'r, PgRow> for TaxReportIndex {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let other_fields = TaxReportIndexSqlHelper::from_row(row)?;
         Ok(Self {
             tax_report_ulid: ulid_from_sql_uuid(row.try_get("tax_report_ulid")?),
-            other_fields: TaxReportIndexSqlHelper::from_row(row)?,
+            client_name: other_fields.client_name,
+            contractor_name: other_fields.contractor_name,
+            contract_name: other_fields.contract_name,
+            tax_interval: other_fields.tax_interval,
+            tax_name: other_fields.tax_name,
+            begin_period: other_fields.begin_period,
+            end_period: other_fields.end_period,
+            country: other_fields.country,
         })
     }
 }

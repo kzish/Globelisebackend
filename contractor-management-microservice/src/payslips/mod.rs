@@ -62,19 +62,36 @@ pub async fn eor_admin_create_payslip(
     Ok(())
 }
 
+#[serde_as]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PayslipsIndex {
     payslip_ulid: Ulid,
-    #[serde(flatten)]
-    other_fields: PayslipsIndexSqlHelper,
+    client_name: String,
+    contractor_name: String,
+    #[serde(default)]
+    contract_name: Option<String>,
+    payslip_title: String,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    payment_date: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    begin_period: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    end_period: sqlx::types::time::Date,
 }
 
 impl<'r> FromRow<'r, PgRow> for PayslipsIndex {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let other_fields = PayslipsIndexSqlHelper::from_row(row)?;
         Ok(Self {
             payslip_ulid: ulid_from_sql_uuid(row.try_get("payslip_ulid")?),
-            other_fields: PayslipsIndexSqlHelper::from_row(row)?,
+            client_name: other_fields.client_name,
+            contractor_name: other_fields.contractor_name,
+            contract_name: other_fields.contract_name,
+            payslip_title: other_fields.payslip_title,
+            payment_date: other_fields.payment_date,
+            begin_period: other_fields.begin_period,
+            end_period: other_fields.end_period,
         })
     }
 }
