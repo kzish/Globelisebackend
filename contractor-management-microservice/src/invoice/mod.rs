@@ -130,7 +130,6 @@ pub struct InvoiceIndividualIndexSqlHelper {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct InvoiceGroupIndexQuery {
-    pub invoice_group_ulid: Ulid,
     pub invoice_status: Option<String>,
     pub page: NonZeroU32,
     pub per_page: NonZeroU32,
