@@ -101,7 +101,7 @@ impl Database {
     /// Create a client/contractor pair
     ///
     /// This does not require users to be fully onboarded.
-    pub async fn create_client_contractor_pair(
+    pub async fn create_client_contractor_pairs(
         &self,
         client_ulid: Ulid,
         contractor_ulid: Ulid,
