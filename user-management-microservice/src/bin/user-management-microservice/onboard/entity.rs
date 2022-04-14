@@ -53,7 +53,7 @@ pub async fn contractor_account_details(
     if !matches!(claims.payload.user_type, UserType::Entity) {
         return Err(GlobeliseError::Forbidden);
     }
-    let full_name = request.common_info.company_name.clone();
+    let full_name = request.company_name.clone();
 
     let database = database.lock().await;
     database
@@ -108,8 +108,21 @@ pub struct EntityDetails {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct EntityContractorDetails {
-    #[serde(flatten)]
-    pub common_info: EntityDetails,
+    pub company_name: String,
+    pub country: String,
+    pub entity_type: String,
+    #[serde(default)]
+    pub registration_number: Option<String>,
+    #[serde(default)]
+    pub tax_id: Option<String>,
+    pub company_address: String,
+    pub city: String,
+    pub postal_code: String,
+    pub time_zone: String,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub logo: Option<ImageData>,
+
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub company_profile: Option<Vec<u8>>,

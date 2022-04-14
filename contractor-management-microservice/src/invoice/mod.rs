@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use axum::{
     extract::{Extension, Path, Query},
     Json,
@@ -13,7 +15,7 @@ use serde_with::{serde_as, FromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{token::AccessToken as UserAccessToken, user::Role};
 
-use crate::{common::PaginatedQuery, database::SharedDatabase};
+use crate::database::SharedDatabase;
 
 mod database;
 
@@ -27,8 +29,8 @@ pub async fn user_invoice_individual_index(
 
     // Override the provided query with the ulid provided by the tokens.
     match role {
-        Role::Client => query.paginated_query.client_ulid = Some(ulid),
-        Role::Contractor => query.paginated_query.contractor_ulid = Some(ulid),
+        Role::Client => query.client_ulid = Some(ulid),
+        Role::Contractor => query.contractor_ulid = Some(ulid),
     };
 
     let database = database.lock().await;
@@ -54,8 +56,8 @@ pub async fn user_invoice_group_index(
 
     // Override the provided query with the ulid provided by the tokens.
     match role {
-        Role::Client => query.paginated_query.client_ulid = Some(ulid),
-        Role::Contractor => query.paginated_query.contractor_ulid = Some(ulid),
+        Role::Client => query.client_ulid = Some(ulid),
+        Role::Contractor => query.contractor_ulid = Some(ulid),
     };
 
     let database = database.lock().await;
@@ -76,10 +78,14 @@ pub async fn eor_admin_invoice_group_index(
 pub struct InvoiceIndividualIndexQuery {
     pub invoice_group_ulid: Ulid,
     pub invoice_status: Option<String>,
-    #[serde(flatten)]
-    pub paginated_query: PaginatedQuery,
+    pub page: NonZeroU32,
+    pub per_page: NonZeroU32,
+    pub query: Option<String>,
+    pub contractor_ulid: Option<Ulid>,
+    pub client_ulid: Option<Ulid>,
 }
 
+#[serde_as]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct InvoiceIndividualIndex {
@@ -87,18 +93,25 @@ pub struct InvoiceIndividualIndex {
     invoice_group_ulid: Ulid,
     client_ulid: Ulid,
     contractor_ulid: Ulid,
-    #[serde(flatten)]
-    other_fields: InvoiceIndividualIndexSqlHelper,
+    invoice_id: i64,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    invoice_due: sqlx::types::time::Date,
+    invoice_status: String,
+    invoice_amount: sqlx::types::Decimal,
 }
 
 impl<'r> FromRow<'r, PgRow> for InvoiceIndividualIndex {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let other_fields = InvoiceIndividualIndexSqlHelper::from_row(row)?;
         Ok(Self {
             ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
             invoice_group_ulid: ulid_from_sql_uuid(row.try_get("invoice_group_ulid")?),
             client_ulid: ulid_from_sql_uuid(row.try_get("client_ulid")?),
             contractor_ulid: ulid_from_sql_uuid(row.try_get("contractor_ulid")?),
-            other_fields: InvoiceIndividualIndexSqlHelper::from_row(row)?,
+            invoice_id: other_fields.invoice_id,
+            invoice_due: other_fields.invoice_due,
+            invoice_status: other_fields.invoice_status,
+            invoice_amount: other_fields.invoice_amount,
         })
     }
 }
@@ -119,8 +132,11 @@ pub struct InvoiceIndividualIndexSqlHelper {
 pub struct InvoiceGroupIndexQuery {
     pub invoice_group_ulid: Ulid,
     pub invoice_status: Option<String>,
-    #[serde(flatten)]
-    pub paginated_query: PaginatedQuery,
+    pub page: NonZeroU32,
+    pub per_page: NonZeroU32,
+    pub query: Option<String>,
+    pub contractor_ulid: Option<Ulid>,
+    pub client_ulid: Option<Ulid>,
 }
 
 #[derive(Debug, Serialize)]
@@ -157,12 +173,10 @@ impl<'r> FromRow<'r, PgRow> for InvoiceGroupIndex {
                     invoice_group_ulid: results.invoice_group_ulid,
                     client_ulid,
                     contractor_ulid,
-                    other_fields: InvoiceIndividualIndexSqlHelper {
-                        invoice_id,
-                        invoice_due,
-                        invoice_status,
-                        invoice_amount,
-                    },
+                    invoice_id,
+                    invoice_due,
+                    invoice_status,
+                    invoice_amount,
                 }
             },
         )

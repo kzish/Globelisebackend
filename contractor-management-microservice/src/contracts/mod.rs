@@ -149,15 +149,23 @@ impl<'r> FromRow<'r, PgRow> for ClientsIndex {
 #[serde(rename_all = "kebab-case")]
 pub struct ContractorsIndex {
     contractor_ulid: Ulid,
-    #[serde(flatten)]
-    other_fields: ContractorsIndexSqlHelper,
+    contractor_name: String,
+    contract_name: Option<String>,
+    contract_status: Option<String>,
+    job_title: Option<String>,
+    seniority: Option<String>,
 }
 
 impl<'r> FromRow<'r, PgRow> for ContractorsIndex {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let other_fields = ContractorsIndexSqlHelper::from_row(row)?;
         Ok(Self {
             contractor_ulid: ulid_from_sql_uuid(row.try_get("contractor_ulid")?),
-            other_fields: ContractorsIndexSqlHelper::from_row(row)?,
+            contractor_name: other_fields.contractor_name,
+            contract_name: other_fields.contract_name,
+            contract_status: other_fields.contract_status,
+            job_title: other_fields.job_title,
+            seniority: other_fields.seniority,
         })
     }
 }
@@ -179,61 +187,112 @@ pub enum ContractsIndex {
     Contractor(Vec<ContractsIndexForContractor>),
 }
 
+#[serde_as]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ContractsIndexForClient {
     contractor_name: String,
     contract_ulid: Ulid,
-    #[serde(flatten)]
-    common_info: ContractsIndexCommonInfoSqlHelper,
+    contract_name: String,
+    contract_type: String,
+    job_title: String,
+    contract_status: String,
+    contract_amount: sqlx::types::Decimal,
+    currency: Currency,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    begin_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    end_at: sqlx::types::time::Date,
 }
 
 impl<'r> FromRow<'r, PgRow> for ContractsIndexForClient {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let other_fields = ContractsIndexCommonInfoSqlHelper::from_row(row)?;
         Ok(Self {
             contractor_name: row.try_get("contractor_name")?,
             contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
-            common_info: ContractsIndexCommonInfoSqlHelper::from_row(row)?,
+            contract_name: other_fields.contract_name,
+            contract_type: other_fields.contract_type,
+            job_title: other_fields.job_title,
+            contract_status: other_fields.contract_status,
+            contract_amount: other_fields.contract_amount,
+            currency: other_fields.currency,
+            begin_at: other_fields.begin_at,
+            end_at: other_fields.end_at,
         })
     }
 }
 
+#[serde_as]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ContractsIndexForContractor {
     client_name: String,
     contract_ulid: Ulid,
-    #[serde(flatten)]
-    common_info: ContractsIndexCommonInfoSqlHelper,
+    contract_name: String,
+    contract_type: String,
+    job_title: String,
+    contract_status: String,
+    contract_amount: sqlx::types::Decimal,
+    currency: Currency,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    begin_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    end_at: sqlx::types::time::Date,
 }
 
 impl<'r> FromRow<'r, PgRow> for ContractsIndexForContractor {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let other_fields = ContractsIndexCommonInfoSqlHelper::from_row(row)?;
         Ok(Self {
             client_name: row.try_get("client_name")?,
             contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
-            common_info: ContractsIndexCommonInfoSqlHelper::from_row(row)?,
+            contract_name: other_fields.contract_name,
+            contract_type: other_fields.contract_type,
+            job_title: other_fields.job_title,
+            contract_status: other_fields.contract_status,
+            contract_amount: other_fields.contract_amount,
+            currency: other_fields.currency,
+            begin_at: other_fields.begin_at,
+            end_at: other_fields.end_at,
         })
     }
 }
 
+#[serde_as]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ContractsIndexForEorAdmin {
     client_name: String,
     contractor_name: String,
     contract_ulid: Ulid,
-    #[serde(flatten)]
-    common_info: ContractsIndexCommonInfoSqlHelper,
+    contract_name: String,
+    contract_type: String,
+    job_title: String,
+    contract_status: String,
+    contract_amount: sqlx::types::Decimal,
+    currency: Currency,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    begin_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    end_at: sqlx::types::time::Date,
 }
 
 impl<'r> FromRow<'r, PgRow> for ContractsIndexForEorAdmin {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let other_fields = ContractsIndexCommonInfoSqlHelper::from_row(row)?;
         Ok(Self {
             client_name: row.try_get("client_name")?,
             contractor_name: row.try_get("contractor_name")?,
             contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
-            common_info: ContractsIndexCommonInfoSqlHelper::from_row(row)?,
+            contract_name: other_fields.contract_name,
+            contract_type: other_fields.contract_type,
+            job_title: other_fields.job_title,
+            contract_status: other_fields.contract_status,
+            contract_amount: other_fields.contract_amount,
+            currency: other_fields.currency,
+            begin_at: other_fields.begin_at,
+            end_at: other_fields.end_at,
         })
     }
 }

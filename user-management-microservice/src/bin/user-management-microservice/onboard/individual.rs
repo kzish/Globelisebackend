@@ -52,10 +52,7 @@ pub async fn contractor_account_details(
         return Err(GlobeliseError::Forbidden);
     }
     let ulid = claims.payload.ulid;
-    let full_name = format!(
-        "{} {}",
-        request.common_info.first_name, request.common_info.last_name
-    );
+    let full_name = format!("{} {}", request.first_name, request.last_name);
 
     let database = database.lock().await;
     database
@@ -96,8 +93,23 @@ pub struct IndividualClientDetails {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct IndividualContractorDetails {
-    #[serde(flatten)]
-    pub common_info: IndividualClientDetails,
+    pub first_name: String,
+    pub last_name: String,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub dob: sqlx::types::time::Date,
+    pub dial_code: String,
+    pub phone_number: String,
+    pub country: String,
+    pub city: String,
+    pub address: String,
+    pub postal_code: String,
+    #[serde(default)]
+    pub tax_id: Option<String>,
+    pub time_zone: String,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub profile_picture: Option<ImageData>,
+
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub cv: Option<Vec<u8>>,
