@@ -101,6 +101,10 @@ async fn main() {
         )
         .route("/eor-admin/users", get(eor_admin::eor_admin_user_index))
         .route(
+            "/eor-admin/users/create_client_contractor_pairs",
+            post(eor_admin::eor_admin_create_client_contractor_pairs),
+        )
+        .route(
             "/eor-admin/users/add_individual_contractor",
             post(eor_admin::add_individual_contractor),
         )
