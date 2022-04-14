@@ -119,6 +119,7 @@ pub async fn eor_admin_contracts_index(
 
 #[serde_as]
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct UserIndex {
     pub ulid: Ulid,
     pub name: String,
