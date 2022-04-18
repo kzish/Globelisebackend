@@ -45,21 +45,19 @@ pub async fn signup(
 
     // Frontend validation can be bypassed, so perform basic validation
     // in the backend as well.
-    let email: EmailAddress = email
-        .parse()
-        .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
+    let email: EmailAddress = email.parse().map_err(GlobeliseError::bad_request)?;
     if password.len() < 8 {
-        return Err(GlobeliseError::BadRequest(
+        return Err(GlobeliseError::bad_request(
             "Password must be at least 8 characters long",
         ));
     }
     if password != confirm_password {
-        return Err(GlobeliseError::BadRequest("Passwords do not match"));
+        return Err(GlobeliseError::bad_request("Passwords do not match"));
     }
 
     let salt: [u8; 16] = rand::thread_rng().gen();
-    let hash = hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG)
-        .map_err(|_| GlobeliseError::Internal("Failed to hash password".into()))?;
+    let hash =
+        hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG).map_err(GlobeliseError::internal)?;
 
     let user = User {
         email,
@@ -87,9 +85,7 @@ pub async fn login(
     let email: String = request.email.trim().nfc().collect();
     let password: String = request.password.nfc().collect();
 
-    let email: EmailAddress = email
-        .parse()
-        .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
+    let email: EmailAddress = email.parse().map_err(GlobeliseError::bad_request)?;
 
     // NOTE: A timing attack can detect registered emails.
     // Mitigating this is not strictly necessary, as attackers can still find out
@@ -114,7 +110,7 @@ pub async fn login(
         }
     }
 
-    Err(GlobeliseError::Unauthorized("Email login failed"))
+    Err(GlobeliseError::unauthorized("Email login failed"))
 }
 
 /// Gets a new access token.
@@ -143,7 +139,7 @@ pub async fn access_token(
         }
     }
     if !is_session_valid {
-        return Err(GlobeliseError::Unauthorized("Refresh token rejected"));
+        return Err(GlobeliseError::unauthorized("Refresh token rejected"));
     }
 
     let database = database.lock().await;
@@ -156,7 +152,7 @@ pub async fn access_token(
         let (access_token, _) = create_token(access_token, &KEYS.encoding)?;
         Ok(access_token)
     } else {
-        Err(GlobeliseError::Unauthorized(
+        Err(GlobeliseError::unauthorized(
             "User does not exist in the database",
         ))
     }

@@ -17,7 +17,7 @@ pub async fn signup(
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
     let claims = id_token.decode(&*CLIENT_ID).await.map_err(|e| match e {
-        google_auth::Error::Decoding(_) => GlobeliseError::Unauthorized("Google login failed"),
+        google_auth::Error::Decoding(_) => GlobeliseError::unauthorized("Google login failed"),
         _ => GlobeliseError::Internal("Failed to decode Google ID token".into()),
     })?;
     let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
@@ -45,7 +45,7 @@ pub async fn login(
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
     let claims = id_token.decode(&*CLIENT_ID).await.map_err(|e| match e {
-        google_auth::Error::Decoding(_) => GlobeliseError::Unauthorized("Google login failed"),
+        google_auth::Error::Decoding(_) => GlobeliseError::unauthorized("Google login failed"),
         _ => GlobeliseError::Internal("Failed to decode Google ID token".into()),
     })?;
     let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
@@ -61,12 +61,12 @@ pub async fn login(
             Ok(refresh_token)
         } else {
             // TODO: Implement linking with an existing account.
-            Err(GlobeliseError::Unauthorized(
+            Err(GlobeliseError::unauthorized(
                 "Linking Google with existing account is not implemented",
             ))
         }
     } else {
-        Err(GlobeliseError::Unauthorized("Google login failed"))
+        Err(GlobeliseError::unauthorized("Google login failed"))
     }
 }
 /// The Google app's client ID.

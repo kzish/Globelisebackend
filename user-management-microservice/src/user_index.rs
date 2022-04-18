@@ -38,7 +38,7 @@ pub async fn eor_admin_onboarded_users(
         .await?;
     match response.status() {
         StatusCode::OK => Ok(response.json().await?),
-        StatusCode::UNAUTHORIZED => Err(GlobeliseError::Unauthorized(
+        StatusCode::UNAUTHORIZED => Err(GlobeliseError::unauthorized(
             "Not authorised to make the request",
         )),
         _ => Err(GlobeliseError::Internal(response.status().to_string())),

@@ -62,10 +62,7 @@ pub async fn add_individual_contractor(
     Json(request): Json<AddUserRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    let email_address: EmailAddress = request
-        .email
-        .parse()
-        .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
+    let email_address: EmailAddress = request.email.parse().map_err(GlobeliseError::bad_request)?;
 
     let database = database.lock().await;
 

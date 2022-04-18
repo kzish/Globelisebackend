@@ -81,11 +81,7 @@ impl PubSub {
             .await?;
         match response.status() {
             StatusCode::OK | StatusCode::NO_CONTENT => Ok(()),
-            e => Err(GlobeliseError::Internal(format!(
-                "code:{} text:{}",
-                e,
-                response.text().await?,
-            ))),
+            _ => Err(GlobeliseError::internal(response.text().await?)),
         }
     }
 }
