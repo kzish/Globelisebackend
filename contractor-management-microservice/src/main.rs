@@ -132,7 +132,7 @@ async fn main() {
 }
 
 async fn handle_healthz() -> &'static str {
-    dbg!(option_env!("GIT_HASH").unwrap_or(env!("CARGO_PKG_VERSION")))
+    option_env!("GIT_HASH").unwrap_or(env!("CARGO_PKG_VERSION"))
 }
 
 /// Handle errors from fallible services.
