@@ -11,8 +11,8 @@ use common_utils::{
 use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use reqwest::Client;
 use rusty_ulid::Ulid;
-use serde::Serialize;
-use serde_with::{serde_as, FromInto};
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, FromInto, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{
     token::AccessToken as UserAccessToken, user::Role, user_index::GetUserInfoRequest,
@@ -115,6 +115,16 @@ pub async fn eor_admin_contracts_index(
 ) -> GlobeliseResult<Json<Vec<ContractsIndexForEorAdmin>>> {
     let database = database.lock().await;
     Ok(Json(database.eor_admin_contracts_index(query).await?))
+}
+
+pub async fn eor_admin_create_contract(
+    _: Token<AdminAccessToken>,
+    Json(request): Json<CreateContractRequestForEorAdmin>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    let database = database.lock().await;
+    database.create_contract(request).await?;
+    Ok(())
 }
 
 #[serde_as]
@@ -258,6 +268,25 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForContractor {
             end_at: other_fields.end_at,
         })
     }
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct CreateContractRequestForEorAdmin {
+    client_ulid: Ulid,
+    contractor_ulid: Ulid,
+    contract_name: String,
+    contract_type: String,
+    job_title: String,
+    contract_status: String,
+    contract_amount: sqlx::types::Decimal,
+    currency: Currency,
+    seniority: String,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    begin_at: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    end_at: sqlx::types::time::Date,
 }
 
 #[serde_as]
