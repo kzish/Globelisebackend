@@ -9,11 +9,10 @@ use user_management_microservice_sdk::user_index::{OnboardedUserIndex, UserIndex
 use crate::eor_admin::{OnboardedUserIndexQuery, UserIndexQuery};
 
 mod auth;
-mod onboard;
 mod prefill_onboard;
 
 /// Convenience wrapper around PostgreSQL.
-pub struct Database(Pool<Postgres>);
+pub struct Database(pub Pool<Postgres>);
 
 pub type SharedDatabase = Arc<Mutex<Database>>;
 

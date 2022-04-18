@@ -1,11 +1,14 @@
 use axum::extract::{Extension, Json};
 use common_utils::{
+    custom_serde::{Currency, DateWrapper},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
     ulid_to_sql_uuid,
 };
 use rusty_ulid::Ulid;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, TryFromInto};
+use sqlx::FromRow;
 use user_management_microservice_sdk::{
     token::AccessToken,
     user::{Role, UserType},
@@ -13,50 +16,53 @@ use user_management_microservice_sdk::{
 
 use crate::database::{Database, SharedDatabase};
 
-pub async fn onboard_contractor_bank_details(
+pub async fn onboard_client_payment_details(
     claims: Token<AccessToken>,
-    Json(details): Json<BankDetails>,
+    Json(details): Json<PaymentDetails>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
     database
-        .onboard_contractor_bank_details(claims.payload.ulid, claims.payload.user_type, details)
+        .onboard_client_payment_details(claims.payload.ulid, claims.payload.user_type, details)
         .await
 }
 
-#[derive(Debug, Deserialize)]
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct BankDetails {
-    pub bank_name: String,
-    pub account_name: String,
-    pub account_number: String,
+pub struct PaymentDetails {
+    pub currency: Currency,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub payment_date: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub cutoff_date: sqlx::types::time::Date,
 }
 
 impl Database {
-    pub async fn onboard_contractor_bank_details(
+    pub async fn onboard_client_payment_details(
         &self,
         ulid: Ulid,
         user_type: UserType,
-        details: BankDetails,
+        details: PaymentDetails,
     ) -> GlobeliseResult<()> {
         if self.user(ulid, Some(user_type)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
         }
 
-        let target_table = user_type.db_onboard_details_prefix(Role::Contractor) + "_bank_details";
+        let target_table = user_type.db_onboard_details_prefix(Role::Client) + "_payment_details";
         let query = format!(
             "
             INSERT INTO {target_table}
-            (ulid, bank_name, bank_account_name, bank_account_number)
-            VALUES ($4, $1, $2, $3)
+            (ulid, currency, payment_date, cutoff_date)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT(ulid) DO UPDATE SET 
-            bank_name = $1, bank_account_name = $2, bank_account_number = $3",
+            currency = $2, payment_date = $3, cutoff_date = $4",
         );
         sqlx::query(&query)
-            .bind(details.bank_name)
-            .bind(details.account_name)
-            .bind(details.account_number)
             .bind(ulid_to_sql_uuid(ulid))
+            .bind(details.currency)
+            .bind(details.payment_date)
+            .bind(details.cutoff_date)
             .execute(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
