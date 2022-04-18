@@ -70,28 +70,31 @@ async fn main() {
         .route("/auth/public-key", get(auth::public_key))
         .route(
             "/onboard/individual-details/client",
-            post(onboard::individual::client_account_details),
+            post(onboard::individual::onboard_individual_client_account_details),
         )
         .route(
             "/onboard/individual-details/contractor",
-            post(onboard::individual::contractor_account_details),
+            post(onboard::individual::onboard_individual_contractor_account_details),
         )
         .route(
             "/onboard/entity-details/client",
-            post(onboard::entity::client_account_details),
+            post(onboard::entity::onboard_entity_client_account_details),
         )
         .route(
             "/onboard/entity-details/contractor",
-            post(onboard::entity::contractor_account_details),
+            post(onboard::entity::onboard_entity_contractor_account_details),
         )
         .route(
             "/onboard/pic-details/:role",
-            post(onboard::entity::pic_details),
+            post(onboard::pic::onboard_entity_pic_details),
         )
-        .route("/onboard/bank-details", post(onboard::bank::bank_details))
+        .route(
+            "/onboard/bank-details",
+            post(onboard::bank::onboard_contractor_bank_details),
+        )
         .route(
             "/onboard/payment-details",
-            post(onboard::bank::payment_details),
+            post(onboard::payment::onboard_client_payment_details),
         )
         .route(
             "/onboard/fully_onboarded/:role",
