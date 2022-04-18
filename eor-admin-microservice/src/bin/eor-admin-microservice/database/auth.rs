@@ -14,7 +14,7 @@ impl Database {
     /// Creates and stores a new admin.
     pub async fn create_admin(&self, admin: Admin) -> GlobeliseResult<Ulid> {
         if !admin.has_authentication() {
-            return Err(GlobeliseError::Unauthorized(
+            return Err(GlobeliseError::unauthorized(
                 "Refused to create admin: no authentication method provided",
             ));
         }

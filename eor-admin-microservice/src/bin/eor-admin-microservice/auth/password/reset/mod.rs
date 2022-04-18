@@ -36,7 +36,7 @@ pub async fn send_email(
     let email_address = request
         .email
         .parse::<EmailAddress>()
-        .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
+        .map_err(GlobeliseError::bad_request)?;
 
     let database = database.lock().await;
     let (admin_ulid, is_valid_attempt) = match database.admin_id(&email_address).await {
@@ -60,7 +60,7 @@ pub async fn send_email(
         // TODO: Get the name of the person associated to this email address
         .to_display("")
         .parse::<Mailbox>()
-        .map_err(|_| GlobeliseError::BadRequest("Bad request"))?;
+        .map_err(GlobeliseError::bad_request)?;
     let email = Message::builder()
         .from(GLOBELISE_SENDER_EMAIL.clone())
         .reply_to(GLOBELISE_SENDER_EMAIL.clone())
@@ -87,21 +87,17 @@ pub async fn send_email(
             (*EOR_ADMIN_MICROSERVICE_DOMAIN_URL),
             one_time_token
         ))
-        .map_err(|_| {
-            GlobeliseError::Internal("Could not create email for changing password".into())
-        })?;
+        .map_err(GlobeliseError::internal)?;
 
     // Open a remote connection to gmail
     let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)
-        .map_err(|_| GlobeliseError::Internal("Could not connect to SMTP server".into()))?
+        .map_err(GlobeliseError::internal)?
         .credentials(SMTP_CREDENTIAL.clone())
         .build();
 
     // Send the email
     if is_valid_attempt && created_valid_token {
-        mailer
-            .send(&email)
-            .map_err(|e| GlobeliseError::Internal(e.to_string()))?;
+        mailer.send(&email).map_err(GlobeliseError::internal)?;
     }
 
     Ok(())
@@ -133,7 +129,7 @@ pub async fn execute(
     let ulid: Ulid = claims.sub.parse().unwrap();
 
     if request.new_password != request.confirm_new_password {
-        return Err(GlobeliseError::BadRequest("Passwords do not match"));
+        return Err(GlobeliseError::bad_request("Passwords do not match"));
     }
 
     let database = database.lock().await;
@@ -143,7 +139,7 @@ pub async fn execute(
     // Either rely completely on SQL or use some kind of transaction commit.
     let salt: [u8; 16] = rand::thread_rng().gen();
     let hash = hash_encoded(request.new_password.as_bytes(), &salt, &HASH_CONFIG)
-        .map_err(|_| GlobeliseError::Internal("Failed to hash password".into()))?;
+        .map_err(GlobeliseError::internal)?;
 
     database.update_password(ulid, Some(hash)).await?;
     shared_state.revoke_all_sessions(ulid).await?;

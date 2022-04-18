@@ -13,62 +13,126 @@ pub enum GlobeliseError {
     UnavailableEmail,
     WrongUserType,
     UnsupportedImageFormat,
-    BadRequest(&'static str),
-    BadRequestOwned(String),
-    Unauthorized(&'static str),
+    BadRequest(String),
+    Unauthorized(String),
     Forbidden,
     #[allow(dead_code)]
     NotFound,
-    PayloadTooLarge(&'static str),
+    PayloadTooLarge(String),
     Internal(String),
 }
 
 impl GlobeliseError {
-    pub fn internal<E>(e: E) -> GlobeliseError
+    pub fn internal<S>(s: S) -> GlobeliseError
     where
-        E: std::error::Error,
+        S: ToString,
     {
-        GlobeliseError::Internal(format!("{:#?}", e))
+        GlobeliseError::Internal(s.to_string())
+    }
+
+    pub fn bad_request<S>(s: S) -> GlobeliseError
+    where
+        S: ToString,
+    {
+        GlobeliseError::BadRequest(s.to_string())
+    }
+
+    pub fn unauthorized<S>(s: S) -> GlobeliseError
+    where
+        S: ToString,
+    {
+        GlobeliseError::Unauthorized(s.to_string())
+    }
+
+    pub fn payload_too_large<S>(s: S) -> GlobeliseError
+    where
+        S: ToString,
+    {
+        GlobeliseError::PayloadTooLarge(s.to_string())
+    }
+
+    pub fn dapr<S>(s: S) -> GlobeliseError
+    where
+        S: ToString,
+    {
+        GlobeliseError::Dapr(s.to_string())
     }
 }
 
 impl IntoResponse for GlobeliseError {
     fn into_response(self) -> Response {
-        let (status, message) = match self {
+        match self {
             GlobeliseError::Dapr(message) => {
-                eprintln!("{:#?}", message);
+                #[cfg(debug_assertions)]
+                return (StatusCode::INTERNAL_SERVER_ERROR, message).into_response();
+                #[cfg(not(debug_assertions))]
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
             GlobeliseError::Database(message) => {
-                eprintln!("{:#?}", message);
+                #[cfg(debug_assertions)]
+                return (StatusCode::INTERNAL_SERVER_ERROR, message).into_response();
+                #[cfg(not(debug_assertions))]
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
             GlobeliseError::UnavailableEmail => {
-                (StatusCode::UNPROCESSABLE_ENTITY, "Email is unavailable")
+                #[cfg(debug_assertions)]
+                return (StatusCode::UNPROCESSABLE_ENTITY, "Email is unavailable").into_response();
+                #[cfg(not(debug_assertions))]
+                return StatusCode::UNPROCESSABLE_ENTITY.into_response();
             }
-            GlobeliseError::WrongUserType => return StatusCode::UNAUTHORIZED.into_response(),
-            GlobeliseError::UnsupportedImageFormat => (
-                StatusCode::UNSUPPORTED_MEDIA_TYPE,
-                "Image must be PNG or JPEG",
-            ),
-            GlobeliseError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
-            GlobeliseError::BadRequestOwned(message) => {
-                eprintln!("{:#?}", message);
+            GlobeliseError::WrongUserType => {
+                #[cfg(debug_assertions)]
+                return (StatusCode::UNAUTHORIZED, "Wrong user type").into_response();
+                #[cfg(not(debug_assertions))]
+                return StatusCode::UNAUTHORIZED.into_response();
+            }
+            GlobeliseError::UnsupportedImageFormat => {
+                #[cfg(debug_assertions)]
+                return (
+                    StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                    "Image must be PNG or JPEG",
+                )
+                    .into_response();
+                #[cfg(not(debug_assertions))]
+                return StatusCode::UNSUPPORTED_MEDIA_TYPE.into_response();
+            }
+            GlobeliseError::BadRequest(message) => {
+                #[cfg(debug_assertions)]
+                return (StatusCode::BAD_REQUEST, message).into_response();
+                #[cfg(not(debug_assertions))]
                 return StatusCode::BAD_REQUEST.into_response();
             }
             GlobeliseError::Unauthorized(message) => {
-                eprintln!("{:#?}", message);
+                #[cfg(debug_assertions)]
+                return (StatusCode::UNAUTHORIZED, message).into_response();
+                #[cfg(not(debug_assertions))]
                 return StatusCode::UNAUTHORIZED.into_response();
             }
-            GlobeliseError::Forbidden => return StatusCode::FORBIDDEN.into_response(),
-            GlobeliseError::NotFound => return StatusCode::NOT_FOUND.into_response(),
-            GlobeliseError::PayloadTooLarge(message) => (StatusCode::PAYLOAD_TOO_LARGE, message),
+            GlobeliseError::Forbidden => {
+                #[cfg(debug_assertions)]
+                return StatusCode::FORBIDDEN.into_response();
+                #[cfg(not(debug_assertions))]
+                return StatusCode::FORBIDDEN.into_response();
+            }
+            GlobeliseError::NotFound => {
+                #[cfg(debug_assertions)]
+                return StatusCode::NOT_FOUND.into_response();
+                #[cfg(not(debug_assertions))]
+                return StatusCode::NOT_FOUND.into_response();
+            }
+            GlobeliseError::PayloadTooLarge(message) => {
+                #[cfg(debug_assertions)]
+                return (StatusCode::PAYLOAD_TOO_LARGE, message).into_response();
+                #[cfg(not(debug_assertions))]
+                return StatusCode::PAYLOAD_TOO_LARGE.into_response();
+            }
             GlobeliseError::Internal(message) => {
-                eprintln!("{:#?}", message);
+                #[cfg(debug_assertions)]
+                return (StatusCode::INTERNAL_SERVER_ERROR, message).into_response();
+                #[cfg(not(debug_assertions))]
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
-        };
-        (status, message).into_response()
+        }
     }
 }
 
@@ -89,6 +153,6 @@ where
     T: std::error::Error,
 {
     fn from(e: T) -> Self {
-        GlobeliseError::internal(e)
+        GlobeliseError::internal(format!("{:#?}", e))
     }
 }

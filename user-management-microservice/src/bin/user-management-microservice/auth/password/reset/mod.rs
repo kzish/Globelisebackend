@@ -35,10 +35,7 @@ pub async fn send_email(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<()> {
-    let email_address: EmailAddress = request
-        .email
-        .parse()
-        .map_err(|_| GlobeliseError::BadRequest("Not a valid email address"))?;
+    let email_address: EmailAddress = request.email.parse().map_err(GlobeliseError::bad_request)?;
 
     let database = database.lock().await;
     let (user_ulid, user_type, is_valid_attempt) = match database.user_id(&email_address).await {
@@ -62,7 +59,7 @@ pub async fn send_email(
         // TODO: Get the name of the person associated to this email address
         .to_display("")
         .parse()
-        .map_err(|_| GlobeliseError::BadRequest("Bad request"))?;
+        .map_err(GlobeliseError::bad_request)?;
     let email = Message::builder()
         .from(GLOBELISE_SENDER_EMAIL.clone())
         .reply_to(GLOBELISE_SENDER_EMAIL.clone())
@@ -90,21 +87,17 @@ pub async fn send_email(
             user_type,
             one_time_token
         ))
-        .map_err(|_| {
-            GlobeliseError::Internal("Could not create email for changing password".into())
-        })?;
+        .map_err(GlobeliseError::internal)?;
 
     // Open a remote connection to gmail
     let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)
-        .map_err(|_| GlobeliseError::Internal("Could not connect to SMTP server".into()))?
+        .map_err(GlobeliseError::internal)?
         .credentials(SMTP_CREDENTIAL.clone())
         .build();
 
     // Send the email
     if is_valid_attempt && created_valid_token {
-        mailer
-            .send(&email)
-            .map_err(|e| GlobeliseError::Internal(e.to_string()))?;
+        mailer.send(&email).map_err(GlobeliseError::internal)?;
     }
 
     Ok(())
@@ -143,7 +136,7 @@ pub async fn execute(
     let confirm_new_password: String = request.new_password.nfc().collect();
 
     if new_password != confirm_new_password {
-        return Err(GlobeliseError::BadRequest("Passwords do not match"));
+        return Err(GlobeliseError::bad_request("Passwords do not match"));
     }
 
     let database = database.lock().await;
@@ -153,7 +146,7 @@ pub async fn execute(
     // Either rely completely on SQL or use some kind of transaction commit.
     let salt: [u8; 16] = rand::thread_rng().gen();
     let hash = hash_encoded(new_password.as_bytes(), &salt, &HASH_CONFIG)
-        .map_err(|_| GlobeliseError::Internal("Failed to hash password".into()))?;
+        .map_err(GlobeliseError::internal)?;
 
     database
         .update_password(ulid, user_type, Some(hash))

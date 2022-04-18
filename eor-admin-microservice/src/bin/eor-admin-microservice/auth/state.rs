@@ -60,7 +60,7 @@ impl State {
     ) -> GlobeliseResult<String> {
         // Validate that the admin exists
         if database.admin(ulid).await?.is_none() {
-            return Err(GlobeliseError::Unauthorized(
+            return Err(GlobeliseError::unauthorized(
                 "Refused to open session: invalid admin",
             ));
         }
@@ -165,8 +165,7 @@ impl State {
         T: Serialize,
     {
         let prefixed_key = category.to_string() + "--" + key;
-        let value =
-            serde_json::to_vec(&value).map_err(|e| GlobeliseError::Internal(e.to_string()))?;
+        let value = serde_json::to_vec(&value).map_err(GlobeliseError::internal)?;
         self.dapr_client
             .save_state(Self::STATE_STORE, vec![(&*prefixed_key, value)])
             .await?;
@@ -185,8 +184,8 @@ impl State {
             .await?;
 
         if !result.data.is_empty() {
-            let value: T = serde_json::from_slice(&result.data)
-                .map_err(|e| GlobeliseError::Internal(e.to_string()))?;
+            let value: T =
+                serde_json::from_slice(&result.data).map_err(GlobeliseError::internal)?;
             Ok(Some(value))
         } else {
             Ok(None)
@@ -217,7 +216,7 @@ impl Sessions {
         let (refresh_token, expiration) = create_token(payload, &KEYS.encoding)?;
         let salt: [u8; 16] = rand::thread_rng().gen();
         let hash = hash_encoded(refresh_token.as_bytes(), &salt, &HASH_CONFIG)
-            .map_err(|_| GlobeliseError::Internal("Failed to hash session".into()))?;
+            .map_err(GlobeliseError::internal)?;
         self.sessions.insert(hash, expiration);
         Ok(refresh_token)
     }
@@ -257,7 +256,7 @@ impl OneTimeSessions {
         let (one_time_token, expiration) = create_one_time_token::<T>(ulid)?;
         let salt: [u8; 16] = rand::thread_rng().gen();
         let hash = hash_encoded(one_time_token.as_bytes(), &salt, &HASH_CONFIG)
-            .map_err(|_| GlobeliseError::Internal("Failed to hash one-time session".into()))?;
+            .map_err(GlobeliseError::internal)?;
         self.sessions.insert(hash, expiration);
         Ok(one_time_token)
     }

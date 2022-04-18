@@ -42,7 +42,7 @@ where
 
     Ok((
         encode(&Header::new(Algorithm::RS256), &claims, &KEYS.encoding)
-            .map_err(|_| GlobeliseError::Internal("Failed to encode one-time token".into()))?,
+            .map_err(GlobeliseError::internal)?,
         expiration,
     ))
 }
@@ -74,7 +74,7 @@ where
 
         let TokenData { claims, .. } =
             decode::<OneTimeToken<T>>(input, &KEYS.decoding, &validation)
-                .map_err(|_| GlobeliseError::Unauthorized("Failed to decode one-time token"))?;
+                .map_err(GlobeliseError::unauthorized)?;
         Ok(claims)
     }
 }
@@ -107,33 +107,25 @@ where
     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
         let Query(params) = Query::<HashMap<String, String>>::from_request(req)
             .await
-            .map_err(|_| GlobeliseError::Unauthorized("No one-time token provided"))?;
+            .map_err(|_| GlobeliseError::unauthorized("No one-time token provided"))?;
         let Extension(database) = Extension::<SharedDatabase>::from_request(req)
             .await
-            .map_err(|_| {
-                GlobeliseError::Internal("Could not extract database from request".into())
-            })?;
-        let Extension(shared_state) =
-            Extension::<SharedState>::from_request(req)
-                .await
-                .map_err(|_| {
-                    GlobeliseError::Internal("Could not extract state store from request".into())
-                })?;
+            .map_err(GlobeliseError::internal)?;
+        let Extension(shared_state) = Extension::<SharedState>::from_request(req)
+            .await
+            .map_err(GlobeliseError::internal)?;
 
         let token = params
             .get("token")
-            .ok_or(GlobeliseError::Unauthorized("No one-time token provided"))?;
+            .ok_or_else(|| GlobeliseError::unauthorized("No one-time token provided"))?;
 
         let claims = OneTimeToken::<T>::decode(token)?;
-        let ulid: Ulid = claims
-            .sub
-            .parse()
-            .map_err(|_| GlobeliseError::Unauthorized("One-time token rejected: invalid ulid"))?;
+        let ulid: Ulid = claims.sub.parse().map_err(GlobeliseError::unauthorized)?;
 
         // Make sure the admin actually exists.
         let database = database.lock().await;
         if database.admin(ulid).await?.is_none() {
-            return Err(GlobeliseError::Unauthorized(
+            return Err(GlobeliseError::unauthorized(
                 "One-time token rejected: admin does not exist",
             ));
         }
@@ -146,7 +138,7 @@ where
         {
             Ok(OneTimeTokenParam(claims))
         } else {
-            Err(GlobeliseError::Unauthorized(
+            Err(GlobeliseError::unauthorized(
                 "One-time token rejected: invalid session",
             ))
         }
@@ -182,28 +174,20 @@ where
         let TypedHeader(Authorization(bearer)) =
             TypedHeader::<Authorization<Bearer>>::from_request(req)
                 .await
-                .map_err(|_| GlobeliseError::Unauthorized("No one-time token provided"))?;
+                .map_err(|_| GlobeliseError::unauthorized("No one-time token provided"))?;
         let Extension(database) = Extension::<SharedDatabase>::from_request(req)
             .await
-            .map_err(|_| {
-                GlobeliseError::Internal("Could not extract database from request".into())
-            })?;
-        let Extension(shared_state) =
-            Extension::<SharedState>::from_request(req)
-                .await
-                .map_err(|_| {
-                    GlobeliseError::Internal("Could not extract state store from request".into())
-                })?;
+            .map_err(GlobeliseError::internal)?;
+        let Extension(shared_state) = Extension::<SharedState>::from_request(req)
+            .await
+            .map_err(GlobeliseError::internal)?;
         let claims = OneTimeToken::<T>::decode(bearer.token())?;
-        let ulid: Ulid = claims
-            .sub
-            .parse()
-            .map_err(|_| GlobeliseError::Unauthorized("One-time token rejected: invalid ulid"))?;
+        let ulid: Ulid = claims.sub.parse().map_err(GlobeliseError::unauthorized)?;
 
         // Make sure the admin actually exists.
         let database = database.lock().await;
         if database.admin(ulid).await?.is_none() {
-            return Err(GlobeliseError::Unauthorized(
+            return Err(GlobeliseError::unauthorized(
                 "One-time token rejected: admin does not exist",
             ));
         }
@@ -216,7 +200,7 @@ where
         {
             Ok(OneTimeTokenBearer(claims))
         } else {
-            Err(GlobeliseError::Unauthorized(
+            Err(GlobeliseError::unauthorized(
                 "One-time token rejected: invalid session",
             ))
         }
