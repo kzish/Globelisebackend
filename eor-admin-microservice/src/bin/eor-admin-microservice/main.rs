@@ -70,7 +70,7 @@ async fn main() {
 
                             #[cfg(debug_assertions)]
                             {
-                                is_valid |= origin.as_bytes().starts_with(b"http://localhost:");
+                                is_valid |= origin.as_bytes().starts_with(b"http://localhost");
                             }
 
                             is_valid
