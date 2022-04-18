@@ -6,7 +6,7 @@ use crate::{common::PaginatedQuery, database::Database};
 
 use super::{
     ClientsIndex, ContractorsIndex, ContractsIndexForClient, ContractsIndexForContractor,
-    ContractsIndexForEorAdmin,
+    ContractsIndexForEorAdmin, CreateContractRequestForEorAdmin,
 };
 
 impl Database {
@@ -164,9 +164,8 @@ impl Database {
         let index = sqlx::query_as(
             "
             SELECT
-                contract_ulid, contract_name, contract_type, client_name
-                contractor_name, contract_status, contract_amount, currency,
-                begin_at, end_at
+                contract_ulid, contract_name, contract_type, client_name, contractor_name, 
+                contract_status, contract_amount, currency, begin_at, end_at, job_title
             FROM
                 contracts_index
             WHERE
@@ -184,5 +183,42 @@ impl Database {
         .await?;
 
         Ok(index)
+    }
+
+    /// Create contract
+    pub async fn create_contract(
+        &self,
+        request: CreateContractRequestForEorAdmin,
+    ) -> GlobeliseResult<()> {
+        let ulid = rusty_ulid::Ulid::generate();
+
+        sqlx::query(
+            "
+                    INSERT INTO contracts (
+                        ulid, client_ulid, contractor_ulid, contract_name, contract_type,
+                        contract_status, contract_amount, currency, job_title, seniority,
+                        begin_at, end_at
+                    ) VALUES (
+                        $1, $2, $3, $4, $5,
+                        $6, $7, $8, $9, $10,
+                        $11, $12
+                    )",
+        )
+        .bind(ulid_to_sql_uuid(ulid))
+        .bind(ulid_to_sql_uuid(request.client_ulid))
+        .bind(ulid_to_sql_uuid(request.contractor_ulid))
+        .bind(request.contract_name)
+        .bind(request.contract_type)
+        .bind(request.contract_status)
+        .bind(request.contract_amount)
+        .bind(request.currency)
+        .bind(request.job_title)
+        .bind(request.seniority)
+        .bind(request.begin_at)
+        .bind(request.end_at)
+        .execute(&self.0)
+        .await?;
+
+        Ok(())
     }
 }
