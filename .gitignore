@@ -18,3 +18,5 @@ target-coverage/
 .tmuxp.yaml
 .idea/
 *.sh
+
+*.bat
