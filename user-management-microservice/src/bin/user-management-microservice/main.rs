@@ -15,6 +15,7 @@ use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer, Origin};
 
 mod auth;
+mod branch;
 mod database;
 mod env;
 mod eor_admin;
@@ -92,6 +93,19 @@ async fn main() {
         .route(
             "/onboard/payment-details",
             post(onboard::bank::payment_details),
+        )
+        .route("/client/branch", post(branch::create_branch))
+        .route(
+            "/client/branch/branch-details",
+            post(branch::account::branch_account_details),
+        )
+        .route(
+            "/client/branch/bank-details",
+            post(branch::bank::branch_bank_details),
+        )
+        .route(
+            "/client/branch/payroll-details",
+            post(branch::payroll::branch_payroll_details),
         )
         .route(
             "/onboard/fully_onboarded/:role",

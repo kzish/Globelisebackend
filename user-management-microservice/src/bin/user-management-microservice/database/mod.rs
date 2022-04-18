@@ -13,7 +13,7 @@ mod onboard;
 mod prefill_onboard;
 
 /// Convenience wrapper around PostgreSQL.
-pub struct Database(Pool<Postgres>);
+pub struct Database(pub Pool<Postgres>);
 
 pub type SharedDatabase = Arc<Mutex<Database>>;
 
