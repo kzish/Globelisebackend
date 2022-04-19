@@ -29,6 +29,8 @@ use crate::{
     onboard::prefill::{PrefillBankDetails, PrefillIndividualDetails},
 };
 
+pub mod client_contractor_pair;
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct OnboardedUserIndexQuery {
@@ -303,34 +305,4 @@ pub async fn eor_admin_user_index(
     let database = database.lock().await;
     let result = database.user_index(query).await?;
     Ok(Json(result))
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct CreateClientContractorPairRequest {
-    pub client_ulid: Ulid,
-    pub contractor_ulid: Ulid,
-}
-
-pub async fn eor_admin_create_client_contractor_pairs(
-    // Only for validation
-    _: Token<AdminAccessToken>,
-    Json(request): Json<CreateClientContractorPairRequest>,
-    Extension(pubsub): Extension<SharedPubSub>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<()> {
-    let database = database.lock().await;
-    database
-        .create_client_contractor_pairs(request.client_ulid, request.contractor_ulid)
-        .await?;
-
-    // Publish event to DAPR
-    let pubsub = pubsub.lock().await;
-    pubsub
-        .publish_event(AddClientContractorPair {
-            client_ulid: request.client_ulid,
-            contractor_ulid: request.contractor_ulid,
-        })
-        .await?;
-    Ok(())
 }
