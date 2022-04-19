@@ -141,6 +141,26 @@ async fn main() {
             "/eor-admin/users/onboard/prefill_individual_contractor_bank_details",
             post(onboard::prefill::prefill_individual_contractor_bank_details),
         )
+        .route(
+            "/eor-admin/entities/onboard/create-entity-client",
+            post(onboard::prefill::prefill_onboard_auth_entity),
+        )
+        .route(
+            "/eor-admin/entities/onboard/prefill-entity-client",
+            post(onboard::prefill::prefill_entity_client_account_details),
+        )
+        .route(
+            "/eor-admin/entities/onboard/prefill-entity-client/pic-details",
+            post(onboard::prefill::prefill_entity_client_pic_details),
+        )
+        .route(
+            "/eor-admin/entities/onboard/prefill-entity-client/bank-details",
+            post(onboard::prefill::prefill_entity_client_bank_details),
+        )
+        .route(
+            "/eor-admin/entities/onboard/prefill-entity-client/payment-details",
+            post(onboard::prefill::prefill_entity_client_payment_details),
+        )
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
         .route("/healthz", get(handle_healthz))

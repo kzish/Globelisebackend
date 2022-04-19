@@ -38,6 +38,18 @@ pub struct PaymentDetails {
     pub cutoff_date: sqlx::types::time::Date,
 }
 
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefilledPaymentDetails {
+    pub client_ulid: rusty_ulid::Ulid,
+    pub currency: Currency,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub payment_date: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub cutoff_date: sqlx::types::time::Date,
+}
+
 impl Database {
     pub async fn onboard_client_payment_details(
         &self,

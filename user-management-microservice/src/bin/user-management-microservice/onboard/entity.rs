@@ -126,6 +126,68 @@ pub struct EntityPicDetails {
     pub profile_picture: Option<ImageData>,
 }
 
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct EntityDetails {
+    pub company_name: String,
+    pub country: String,
+    pub entity_type: String,
+    #[serde(default)]
+    pub registration_number: Option<String>,
+    #[serde(default)]
+    pub tax_id: Option<String>,
+    pub company_address: String,
+    pub city: String,
+    pub postal_code: String,
+    pub time_zone: String,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub logo: Option<ImageData>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefillAuthEntities {
+    pub email: String,
+}
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefilledPicDetails {
+    pub client_ulid: rusty_ulid::Ulid,
+    pub first_name: String,
+    pub last_name: String,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub dob: sqlx::types::time::Date,
+    pub dial_code: String,
+    pub phone_number: String,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub profile_picture: Option<ImageData>,
+}
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct EntityClientDetails {
+    pub common_info: EntityDetails,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub company_profile: Option<Vec<u8>>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefillEntityClientDetails {
+    pub client_ulid: rusty_ulid::Ulid,
+    pub common_info: EntityDetails,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub company_profile: Option<Vec<u8>>,
+}
+
 impl Database {
     pub async fn onboard_entity_client_account_details(
         &self,
