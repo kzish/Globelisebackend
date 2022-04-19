@@ -1,11 +1,12 @@
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{DateWrapper, EmailWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     pubsub::{SharedPubSub, UpdateUserName},
     token::Token,
     ulid_to_sql_uuid,
 };
+use email_address::EmailAddress;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
@@ -195,6 +196,83 @@ pub struct EntityPicDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub profile_picture: Option<ImageData>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct EntityDetails {
+    pub company_name: String,
+    pub country: String,
+    pub entity_type: String,
+    #[serde(default)]
+    pub registration_number: Option<String>,
+    #[serde(default)]
+    pub tax_id: Option<String>,
+    pub company_address: String,
+    pub city: String,
+    pub postal_code: String,
+    pub time_zone: String,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub logo: Option<ImageData>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefillAuthEntities {
+    pub email: String,
+}
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefilledPicDetails {
+    #[serde_as(as = "TryFromInto<EmailWrapper>")]
+    pub email: EmailAddress,
+    pub first_name: String,
+    pub last_name: String,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub dob: sqlx::types::time::Date,
+    pub dial_code: String,
+    pub phone_number: String,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub profile_picture: Option<ImageData>,
+}
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct EntityClientDetails {
+    pub common_info: EntityDetails,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub company_profile: Option<Vec<u8>>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefillEntityClientDetails {
+    #[serde_as(as = "TryFromInto<EmailWrapper>")]
+    pub email: EmailAddress,
+    pub company_name: String,
+    pub country: String,
+    pub entity_type: String,
+    #[serde(default)]
+    pub registration_number: Option<String>,
+    #[serde(default)]
+    pub tax_id: Option<String>,
+    pub company_address: String,
+    pub city: String,
+    pub postal_code: String,
+    pub time_zone: String,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub logo: Option<ImageData>,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub company_profile: Option<Vec<u8>>,
 }
 
 impl Database {

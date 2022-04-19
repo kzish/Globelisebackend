@@ -1,10 +1,11 @@
 use axum::extract::{Extension, Json};
 use common_utils::{
-    custom_serde::{Currency, DateWrapper},
+    custom_serde::{Currency, DateWrapper, EmailWrapper},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
     ulid_to_sql_uuid,
 };
+use email_address::EmailAddress;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
@@ -31,6 +32,19 @@ pub async fn onboard_client_payment_details(
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PaymentDetails {
+    pub currency: Currency,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub payment_date: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub cutoff_date: sqlx::types::time::Date,
+}
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefilledPaymentDetails {
+    #[serde_as(as = "TryFromInto<EmailWrapper>")]
+    pub email: EmailAddress,
     pub currency: Currency,
     #[serde_as(as = "TryFromInto<DateWrapper>")]
     pub payment_date: sqlx::types::time::Date,
