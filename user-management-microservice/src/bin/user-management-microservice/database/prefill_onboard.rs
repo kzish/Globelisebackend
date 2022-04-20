@@ -133,7 +133,7 @@ impl Database {
             ON CONFLICT(ulid) DO UPDATE SET 
             bank_name = $1, bank_account_name = $2, bank_account_number = $3";
 
-        sqlx::query(&query)
+        sqlx::query(query)
             .bind(details.bank_name)
             .bind(details.account_name)
             .bind(details.account_number)
@@ -156,7 +156,7 @@ impl Database {
             ON CONFLICT(ulid) DO UPDATE SET 
             currency = $2, payment_date = $3, cutoff_date = $4";
 
-        sqlx::query(&query)
+        sqlx::query(query)
             .bind(ulid_to_sql_uuid(details.client_ulid))
             .bind(details.currency)
             .bind(details.payment_date)
@@ -180,7 +180,7 @@ impl Database {
             first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
             profile_picture = $6";
 
-        sqlx::query(&query)
+        sqlx::query(query)
             .bind(details.first_name)
             .bind(details.last_name)
             .bind(details.dob)
