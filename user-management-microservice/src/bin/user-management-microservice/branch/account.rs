@@ -8,11 +8,12 @@ use common_utils::{
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
+use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{token::AccessToken, user::UserType};
 
 use crate::database::{Database, SharedDatabase};
 
-pub async fn branch_account_details(
+pub async fn post_branch_account_details(
     claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<BranchAccountDetails>,
@@ -26,14 +27,14 @@ pub async fn branch_account_details(
 
     let database = database.lock().await;
     database
-        .branch_account_details(claims.payload.ulid, request)
+        .post_branch_account_details(claims.payload.ulid, request)
         .await?;
 
     Ok(())
 }
 
 impl Database {
-    pub async fn branch_account_details(
+    pub async fn post_branch_account_details(
         &self,
         ulid: Ulid,
         details: BranchAccountDetails,
@@ -43,7 +44,7 @@ impl Database {
         }
 
         let query = "
-            INSERT INTO entity_clients_branch_account_details (
+            INSERT INTO entity_clients_branch_details (
                 ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
                 city, postal_code, time_zone, logo
             ) VALUES (
@@ -53,6 +54,7 @@ impl Database {
                 tax_id = $6, company_address = $7, city = $8, postal_code = $9, time_zone = $10,
                 logo = $11
             ";
+
         sqlx::query(query)
             .bind(ulid_to_sql_uuid(ulid))
             .bind(details.company_name)
@@ -70,6 +72,32 @@ impl Database {
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(())
+    }
+
+    pub async fn get_branch_account_details(
+        &self,
+        ulid: Ulid,
+    ) -> GlobeliseResult<BranchAccountDetails> {
+        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+            return Err(GlobeliseError::Forbidden);
+        }
+
+        let query = "
+            SELECT
+                ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
+                city, postal_code, time_zone, logo
+            FROM
+                entity_clients_branch_details
+            WHERE
+                ulid = $1";
+
+        let result = sqlx::query_as(query)
+            .bind(ulid_to_sql_uuid(ulid))
+            .fetch_one(&self.0)
+            .await
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+
+        Ok(result)
     }
 }
 
@@ -91,4 +119,22 @@ pub struct BranchAccountDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub logo: Option<ImageData>,
+}
+
+impl<'r> FromRow<'r, PgRow> for BranchAccountDetails {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let maybe_logo: Option<Vec<u8>> = row.try_get("logo")?;
+        Ok(BranchAccountDetails {
+            company_name: row.try_get("company_name")?,
+            country: row.try_get("country")?,
+            entity_type: row.try_get("entity_type")?,
+            registration_number: row.try_get("registration_number")?,
+            tax_id: row.try_get("tax_id")?,
+            company_address: row.try_get("company_address")?,
+            city: row.try_get("city")?,
+            postal_code: row.try_get("postal_code")?,
+            time_zone: row.try_get("time_zone")?,
+            logo: maybe_logo.map(ImageData),
+        })
+    }
 }

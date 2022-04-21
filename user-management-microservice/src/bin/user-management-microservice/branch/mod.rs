@@ -26,7 +26,7 @@ pub struct BranchDetails {
     pub payroll: BranchPaymentDetails,
 }
 
-pub async fn create_branch(
+pub async fn post_branch(
     claims: Token<AccessToken>,
     Json(request): Json<BranchDetails>,
     Extension(database): Extension<SharedDatabase>,
@@ -38,16 +38,46 @@ pub async fn create_branch(
     let database = database.lock().await;
     database.create_branch(claims.payload.ulid).await?;
     database
-        .branch_account_details(claims.payload.ulid, request.account)
+        .post_branch_account_details(claims.payload.ulid, request.account)
         .await?;
     database
-        .branch_bank_details(claims.payload.ulid, request.bank)
+        .post_branch_bank_details(claims.payload.ulid, request.bank)
         .await?;
     database
-        .branch_payroll_details(claims.payload.ulid, request.payroll)
+        .post_branch_payroll_details(claims.payload.ulid, request.payroll)
         .await?;
 
     Ok(())
+}
+
+pub async fn get_branch(
+    claims: Token<AccessToken>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<BranchDetails>> {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    let database = database.lock().await;
+    database.create_branch(claims.payload.ulid).await?;
+
+    let account = database
+        .get_branch_account_details(claims.payload.ulid)
+        .await?;
+
+    let bank = database
+        .get_branch_bank_details(claims.payload.ulid)
+        .await?;
+
+    let payroll = database
+        .get_branch_payroll_details(claims.payload.ulid)
+        .await?;
+
+    Ok(Json(BranchDetails {
+        account,
+        bank,
+        payroll,
+    }))
 }
 
 impl Database {

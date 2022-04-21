@@ -1,19 +1,21 @@
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{DateWrapper, EmailWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     pubsub::{SharedPubSub, UpdateUserName},
     token::Token,
     ulid_to_sql_uuid,
 };
+use email_address::EmailAddress;
 use rusty_ulid::Ulid;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
+use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{token::AccessToken, user::UserType};
 
 use crate::database::{Database, SharedDatabase};
 
-pub async fn onboard_entity_client_account_details(
+pub async fn post_onboard_entity_client_account_details(
     claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<EntityClientAccountDetails>,
@@ -29,7 +31,7 @@ pub async fn onboard_entity_client_account_details(
 
     let database = database.lock().await;
     database
-        .onboard_entity_client_account_details(claims.payload.ulid, request)
+        .post_onboard_entity_client_account_details(claims.payload.ulid, request)
         .await?;
 
     let pubsub = pubsub.lock().await;
@@ -40,7 +42,24 @@ pub async fn onboard_entity_client_account_details(
     Ok(())
 }
 
-pub async fn onboard_entity_contractor_account_details(
+pub async fn get_onboard_entity_client_account_details(
+    claims: Token<AccessToken>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<EntityClientAccountDetails>> {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    let database = database.lock().await;
+
+    Ok(Json(
+        database
+            .get_onboard_entity_client_account_details(claims.payload.ulid)
+            .await?,
+    ))
+}
+
+pub async fn post_onboard_entity_contractor_account_details(
     claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<EntityContractorAccountDetails>,
@@ -56,7 +75,7 @@ pub async fn onboard_entity_contractor_account_details(
 
     let database = database.lock().await;
     database
-        .onboard_entity_contractor_account_details(claims.payload.ulid, request)
+        .post_onboard_entity_contractor_account_details(claims.payload.ulid, request)
         .await?;
 
     let pubsub = pubsub.lock().await;
@@ -67,8 +86,25 @@ pub async fn onboard_entity_contractor_account_details(
     Ok(())
 }
 
+pub async fn get_onboard_entity_contractor_account_details(
+    claims: Token<AccessToken>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<EntityContractorAccountDetails>> {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    let database = database.lock().await;
+
+    Ok(Json(
+        database
+            .get_onboard_entity_contractor_account_details(claims.payload.ulid)
+            .await?,
+    ))
+}
+
 #[serde_as]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct EntityClientAccountDetails {
     pub company_name: String,
@@ -87,8 +123,26 @@ pub struct EntityClientAccountDetails {
     pub logo: Option<ImageData>,
 }
 
+impl FromRow<'_, PgRow> for EntityClientAccountDetails {
+    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
+        let maybe_logo: Option<Vec<u8>> = row.try_get("logo")?;
+        Ok(EntityClientAccountDetails {
+            company_name: row.try_get("company_name")?,
+            country: row.try_get("country")?,
+            entity_type: row.try_get("entity_type")?,
+            registration_number: row.try_get("registration_number")?,
+            tax_id: row.try_get("tax_id")?,
+            company_address: row.try_get("company_address")?,
+            city: row.try_get("city")?,
+            postal_code: row.try_get("postal_code")?,
+            time_zone: row.try_get("time_zone")?,
+            logo: maybe_logo.map(ImageData),
+        })
+    }
+}
+
 #[serde_as]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct EntityContractorAccountDetails {
     pub company_name: String,
@@ -105,10 +159,28 @@ pub struct EntityContractorAccountDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub logo: Option<ImageData>,
-
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub company_profile: Option<Vec<u8>>,
+}
+
+impl FromRow<'_, PgRow> for EntityContractorAccountDetails {
+    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
+        let maybe_logo: Option<Vec<u8>> = row.try_get("logo")?;
+        Ok(EntityContractorAccountDetails {
+            company_name: row.try_get("company_name")?,
+            country: row.try_get("country")?,
+            entity_type: row.try_get("entity_type")?,
+            registration_number: row.try_get("registration_number")?,
+            tax_id: row.try_get("tax_id")?,
+            company_address: row.try_get("company_address")?,
+            city: row.try_get("city")?,
+            postal_code: row.try_get("postal_code")?,
+            time_zone: row.try_get("time_zone")?,
+            logo: maybe_logo.map(ImageData),
+            company_profile: row.try_get("profile_picture")?,
+        })
+    }
 }
 
 #[serde_as]
@@ -149,14 +221,9 @@ pub struct EntityDetails {
 #[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct PrefillAuthEntities {
-    pub email: String,
-}
-#[serde_as]
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub struct PrefilledPicDetails {
-    pub client_ulid: rusty_ulid::Ulid,
+    #[serde_as(as = "TryFromInto<EmailWrapper>")]
+    pub email: EmailAddress,
     pub first_name: String,
     pub last_name: String,
     #[serde_as(as = "TryFromInto<DateWrapper>")]
@@ -167,6 +234,7 @@ pub struct PrefilledPicDetails {
     #[serde(default)]
     pub profile_picture: Option<ImageData>,
 }
+
 #[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -181,15 +249,29 @@ pub struct EntityClientDetails {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillEntityClientDetails {
-    pub client_ulid: rusty_ulid::Ulid,
-    pub common_info: EntityDetails,
+    #[serde_as(as = "TryFromInto<EmailWrapper>")]
+    pub email: EmailAddress,
+    pub company_name: String,
+    pub country: String,
+    pub entity_type: String,
+    #[serde(default)]
+    pub registration_number: Option<String>,
+    #[serde(default)]
+    pub tax_id: Option<String>,
+    pub company_address: String,
+    pub city: String,
+    pub postal_code: String,
+    pub time_zone: String,
+    #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
+    pub logo: Option<ImageData>,
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub company_profile: Option<Vec<u8>>,
 }
 
 impl Database {
-    pub async fn onboard_entity_client_account_details(
+    pub async fn post_onboard_entity_client_account_details(
         &self,
         ulid: Ulid,
         details: EntityClientAccountDetails,
@@ -226,7 +308,32 @@ impl Database {
         Ok(())
     }
 
-    pub async fn onboard_entity_contractor_account_details(
+    pub async fn get_onboard_entity_client_account_details(
+        &self,
+        ulid: Ulid,
+    ) -> GlobeliseResult<EntityClientAccountDetails> {
+        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+            return Err(GlobeliseError::Forbidden);
+        }
+
+        let query = "
+            SELECT
+                ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
+                city, postal_code, time_zone, logo
+            FROM
+                entity_clients_account_details 
+            WHERE
+                ulid = $1";
+        let result = sqlx::query_as(query)
+            .bind(ulid_to_sql_uuid(ulid))
+            .fetch_one(&self.0)
+            .await
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+
+        Ok(result)
+    }
+
+    pub async fn post_onboard_entity_contractor_account_details(
         &self,
         ulid: Ulid,
         details: EntityContractorAccountDetails,
@@ -262,5 +369,30 @@ impl Database {
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(())
+    }
+
+    pub async fn get_onboard_entity_contractor_account_details(
+        &self,
+        ulid: Ulid,
+    ) -> GlobeliseResult<EntityContractorAccountDetails> {
+        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+            return Err(GlobeliseError::Forbidden);
+        }
+
+        let query = "
+            SELECT
+                ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
+                city, postal_code, time_zone, logo, company_profile
+            FROM
+                entity_contractors_account_details
+            WHERE
+                ulid = $1";
+        let result = sqlx::query_as(query)
+            .bind(ulid_to_sql_uuid(ulid))
+            .fetch_one(&self.0)
+            .await
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+
+        Ok(result)
     }
 }

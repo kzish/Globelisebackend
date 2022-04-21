@@ -40,7 +40,7 @@ impl From<EmailAddress> for EmailWrapper {
 }
 
 #[derive(Debug)]
-pub struct ImageData(Vec<u8>);
+pub struct ImageData(pub Vec<u8>);
 
 impl AsRef<[u8]> for ImageData {
     fn as_ref(&self) -> &[u8] {

@@ -6,9 +6,6 @@ use common_utils::{
     token::Token,
 };
 
-use crate::onboard::entity::PrefillAuthEntities;
-use crate::onboard::entity::PrefillEntityClientDetails;
-use crate::onboard::entity::PrefilledPicDetails;
 use email_address::EmailAddress;
 use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
@@ -16,6 +13,7 @@ use serde::Deserialize;
 use serde_with::{serde_as, TryFromInto};
 
 use crate::database::SharedDatabase;
+use crate::onboard::entity::{PrefillEntityClientDetails, PrefilledPicDetails};
 
 pub async fn prefill_individual_contractor_account_details(
     // Only needed for validation
@@ -49,22 +47,6 @@ pub async fn prefill_individual_contractor_bank_details(
         .await?;
 
     Ok(())
-}
-
-pub async fn prefill_onboard_auth_entity(
-    // Only needed for validation
-    _: Token<AdminAccessToken>,
-    ContentLengthLimit(Json(request)): ContentLengthLimit<
-        Json<PrefillAuthEntities>,
-        FORM_DATA_LENGTH_LIMIT,
-    >,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<String> {
-    let database = database.lock().await;
-    let ulid = Ulid::generate();
-    database.prefill_onboard_auth_entity(ulid, request).await?;
-
-    Ok(ulid.to_string())
 }
 
 pub async fn prefill_entity_client_account_details(

@@ -71,44 +71,53 @@ async fn main() {
         .route("/auth/public-key", get(auth::public_key))
         .route(
             "/onboard/individual-details/client",
-            post(onboard::individual::onboard_individual_client_account_details),
+            get(onboard::individual::get_onboard_individual_client_account_details)
+                .post(onboard::individual::post_onboard_individual_client_account_details),
         )
         .route(
             "/onboard/individual-details/contractor",
-            post(onboard::individual::onboard_individual_contractor_account_details),
+            get(onboard::individual::get_onboard_individual_contractor_account_details)
+                .post(onboard::individual::post_onboard_individual_contractor_account_details),
         )
         .route(
             "/onboard/entity-details/client",
-            post(onboard::entity::onboard_entity_client_account_details),
+            get(onboard::entity::get_onboard_entity_client_account_details)
+                .post(onboard::entity::post_onboard_entity_client_account_details),
         )
         .route(
             "/onboard/entity-details/contractor",
-            post(onboard::entity::onboard_entity_contractor_account_details),
+            get(onboard::entity::get_onboard_entity_contractor_account_details)
+                .post(onboard::entity::post_onboard_entity_contractor_account_details),
         )
         .route(
             "/onboard/pic-details/:role",
-            post(onboard::pic::onboard_entity_pic_details),
+            get(onboard::pic::get_onboard_entity_pic_details)
+                .post(onboard::pic::post_onboard_entity_pic_details),
         )
         .route(
             "/onboard/bank-details",
-            post(onboard::bank::onboard_contractor_bank_details),
+            get(onboard::bank::get_onboard_contractor_bank_details)
+                .post(onboard::bank::post_onboard_contractor_bank_details),
         )
         .route(
             "/onboard/payment-details",
             post(onboard::payment::onboard_client_payment_details),
         )
-        .route("/client/branch", post(branch::create_branch))
+        .route(
+            "/client/branch",
+            get(branch::get_branch).post(branch::post_branch),
+        )
         .route(
             "/client/branch/branch-details",
-            post(branch::account::branch_account_details),
+            post(branch::account::post_branch_account_details),
         )
         .route(
             "/client/branch/bank-details",
-            post(branch::bank::branch_bank_details),
+            post(branch::bank::post_branch_bank_details),
         )
         .route(
             "/client/branch/payroll-details",
-            post(branch::payroll::branch_payroll_details),
+            post(branch::payroll::post_branch_payroll_details),
         )
         .route(
             "/onboard/fully_onboarded/:role",
@@ -140,10 +149,6 @@ async fn main() {
         .route(
             "/eor-admin/users/onboard/prefill_individual_contractor_bank_details",
             post(onboard::prefill::prefill_individual_contractor_bank_details),
-        )
-        .route(
-            "/eor-admin/entities/onboard/create-entity-client",
-            post(onboard::prefill::prefill_onboard_auth_entity),
         )
         .route(
             "/eor-admin/entities/onboard/prefill-entity-client",
