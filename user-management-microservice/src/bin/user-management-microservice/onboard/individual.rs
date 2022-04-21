@@ -7,13 +7,14 @@ use common_utils::{
     ulid_to_sql_uuid,
 };
 use rusty_ulid::Ulid;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
+use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{token::AccessToken, user::UserType};
 
 use crate::database::{Database, SharedDatabase};
 
-pub async fn onboard_individual_client_account_details(
+pub async fn post_onboard_individual_client_account_details(
     claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<IndividualClientAccountDetails>,
@@ -30,7 +31,7 @@ pub async fn onboard_individual_client_account_details(
 
     let database = database.lock().await;
     database
-        .onboard_individual_client_account_details(ulid, request)
+        .post_onboard_individual_client_account_details(ulid, request)
         .await?;
 
     let pubsub = pubsub.lock().await;
@@ -41,7 +42,23 @@ pub async fn onboard_individual_client_account_details(
     Ok(())
 }
 
-pub async fn onboard_individual_contractor_account_details(
+pub async fn get_onboard_individual_client_account_details(
+    claims: Token<AccessToken>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<IndividualClientAccountDetails>> {
+    if !matches!(claims.payload.user_type, UserType::Individual) {
+        return Err(GlobeliseError::Forbidden);
+    }
+    let database = database.lock().await;
+
+    Ok(Json(
+        database
+            .get_onboard_individual_client_account_details(claims.payload.ulid)
+            .await?,
+    ))
+}
+
+pub async fn post_onboard_individual_contractor_account_details(
     claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<IndividualContractorAccountDetails>,
@@ -58,7 +75,7 @@ pub async fn onboard_individual_contractor_account_details(
 
     let database = database.lock().await;
     database
-        .onboard_individual_contractor_account_details(ulid, request)
+        .post_onboard_individual_contractor_account_details(ulid, request)
         .await?;
 
     let pubsub = pubsub.lock().await;
@@ -69,8 +86,25 @@ pub async fn onboard_individual_contractor_account_details(
     Ok(())
 }
 
+pub async fn get_onboard_individual_contractor_account_details(
+    claims: Token<AccessToken>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<IndividualContractorAccountDetails>> {
+    if !matches!(claims.payload.user_type, UserType::Individual) {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    let database = database.lock().await;
+
+    Ok(Json(
+        database
+            .get_onboard_individual_contractor_account_details(claims.payload.ulid)
+            .await?,
+    ))
+}
+
 #[serde_as]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct IndividualClientAccountDetails {
     pub first_name: String,
@@ -91,8 +125,28 @@ pub struct IndividualClientAccountDetails {
     pub profile_picture: Option<ImageData>,
 }
 
+impl FromRow<'_, PgRow> for IndividualClientAccountDetails {
+    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
+        let meybe_profile_picture: Option<Vec<u8>> = row.try_get("logo")?;
+        Ok(IndividualClientAccountDetails {
+            first_name: row.try_get("first_name")?,
+            last_name: row.try_get("last_name")?,
+            dob: row.try_get("dob")?,
+            dial_code: row.try_get("dial_code")?,
+            phone_number: row.try_get("phone_number")?,
+            country: row.try_get("country")?,
+            city: row.try_get("city")?,
+            address: row.try_get("address")?,
+            postal_code: row.try_get("postal_code")?,
+            tax_id: row.try_get("tax_id")?,
+            time_zone: row.try_get("time_zone")?,
+            profile_picture: meybe_profile_picture.map(ImageData),
+        })
+    }
+}
+
 #[serde_as]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct IndividualContractorAccountDetails {
     pub first_name: String,
@@ -111,14 +165,34 @@ pub struct IndividualContractorAccountDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub profile_picture: Option<ImageData>,
-
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub cv: Option<Vec<u8>>,
 }
 
+impl FromRow<'_, PgRow> for IndividualContractorAccountDetails {
+    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
+        let meybe_profile_picture: Option<Vec<u8>> = row.try_get("logo")?;
+        Ok(IndividualContractorAccountDetails {
+            first_name: row.try_get("first_name")?,
+            last_name: row.try_get("last_name")?,
+            dob: row.try_get("dob")?,
+            dial_code: row.try_get("dial_code")?,
+            phone_number: row.try_get("phone_number")?,
+            country: row.try_get("country")?,
+            city: row.try_get("city")?,
+            address: row.try_get("address")?,
+            postal_code: row.try_get("postal_code")?,
+            tax_id: row.try_get("tax_id")?,
+            time_zone: row.try_get("time_zone")?,
+            profile_picture: meybe_profile_picture.map(ImageData),
+            cv: row.try_get("cv")?,
+        })
+    }
+}
+
 impl Database {
-    pub async fn onboard_individual_client_account_details(
+    pub async fn post_onboard_individual_client_account_details(
         &self,
         ulid: Ulid,
         details: IndividualClientAccountDetails,
@@ -157,7 +231,33 @@ impl Database {
         Ok(())
     }
 
-    pub async fn onboard_individual_contractor_account_details(
+    pub async fn get_onboard_individual_client_account_details(
+        &self,
+        ulid: Ulid,
+    ) -> GlobeliseResult<IndividualClientAccountDetails> {
+        if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
+            return Err(GlobeliseError::Forbidden);
+        }
+
+        let query = "
+            SELECT 
+                ulid, first_name, last_name, dob, dial_code, phone_number, country, city, address,
+                postal_code, tax_id, time_zone, profile_picture
+            FROM
+                individual_clients_account_details
+            WHERE
+                ulid = $1";
+
+        let result = sqlx::query_as(query)
+            .bind(ulid_to_sql_uuid(ulid))
+            .fetch_one(&self.0)
+            .await
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+
+        Ok(result)
+    }
+
+    pub async fn post_onboard_individual_contractor_account_details(
         &self,
         ulid: Ulid,
         details: IndividualContractorAccountDetails,
@@ -175,6 +275,7 @@ impl Database {
             first_name = $2, last_name = $3, dob = $4, dial_code = $5, phone_number = $6,
             country = $7, city = $8, address = $9, postal_code = $10, tax_id = $11,
             time_zone = $12, profile_picture = $13, cv = $14";
+
         sqlx::query(query)
             .bind(ulid_to_sql_uuid(ulid))
             .bind(details.first_name)
@@ -195,5 +296,31 @@ impl Database {
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(())
+    }
+
+    pub async fn get_onboard_individual_contractor_account_details(
+        &self,
+        ulid: Ulid,
+    ) -> GlobeliseResult<IndividualContractorAccountDetails> {
+        if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
+            return Err(GlobeliseError::Forbidden);
+        }
+
+        let query = "
+            SELECT
+                ulid, first_name, last_name, dob, dial_code, phone_number, country, city, address,
+                postal_code, tax_id, time_zone, profile_picture, cv
+            FROM
+                individual_contractors_account_details
+            WHERE
+                ulid = $1";
+
+        let result = sqlx::query_as(query)
+            .bind(ulid_to_sql_uuid(ulid))
+            .fetch_one(&self.0)
+            .await
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+
+        Ok(result)
     }
 }
