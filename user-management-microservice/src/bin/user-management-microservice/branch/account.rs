@@ -43,7 +43,7 @@ impl Database {
         }
 
         let query = "
-            INSERT INTO entity_clients_branch_account_details (
+            INSERT INTO entity_clients_branch_details (
                 ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
                 city, postal_code, time_zone, logo
             ) VALUES (
