@@ -96,8 +96,14 @@ async fn main() {
     .unwrap();
 }
 
-async fn handle_healthz() -> &'static str {
-    option_env!("GIT_HASH").unwrap_or(env!("CARGO_PKG_VERSION"))
+async fn handle_healthz() -> String {
+    if let Some(v) = option_env!("GIT_HASH") {
+        v.to_string()
+    } else if let Ok(v) = std::env::var("GIT_HASH") {
+        v
+    } else {
+        env!("CARGO_PKG_VERSION").to_string()
+    }
 }
 
 /// Handles errors from fallible services.
