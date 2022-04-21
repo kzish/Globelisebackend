@@ -23,19 +23,19 @@ pub struct BranchPaymentDetails {
     pub cutoff_date: sqlx::types::time::Date,
 }
 
-pub async fn branch_payroll_details(
+pub async fn post_branch_payroll_details(
     claims: Token<AccessToken>,
     Json(details): Json<BranchPaymentDetails>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
     database
-        .branch_payroll_details(claims.payload.ulid, details)
+        .post_branch_payroll_details(claims.payload.ulid, details)
         .await
 }
 
 impl Database {
-    pub async fn branch_payroll_details(
+    pub async fn post_branch_payroll_details(
         &self,
         ulid: Ulid,
         details: BranchPaymentDetails,
@@ -62,5 +62,31 @@ impl Database {
         .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(())
+    }
+
+    pub async fn get_branch_payroll_details(
+        &self,
+        ulid: Ulid,
+    ) -> GlobeliseResult<BranchPaymentDetails> {
+        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+            return Err(GlobeliseError::Forbidden);
+        }
+
+        let result = sqlx::query_as(
+            "
+        SELECT 
+            ulid, cutoff_date, payment_date
+        FROM
+            entity_clients_payroll_details
+        WHERE
+            ulid = $1
+        ",
+        )
+        .bind(ulid_to_sql_uuid(ulid))
+        .fetch_one(&self.0)
+        .await
+        .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+
+        Ok(result)
     }
 }
