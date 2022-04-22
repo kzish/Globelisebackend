@@ -1,5 +1,6 @@
-use axum::extract::{Extension, Json};
+use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
+    custom_serde::FORM_DATA_LENGTH_LIMIT,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
     ulid_to_sql_uuid,
@@ -26,9 +27,18 @@ pub struct BranchDetails {
     pub payroll: BranchPaymentDetails,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct BranchDetailsRequest {
+    pub branch_ulid: Ulid,
+}
+
 pub async fn post_branch(
     claims: Token<AccessToken>,
-    Json(request): Json<BranchDetails>,
+    ContentLengthLimit(Json(request)): ContentLengthLimit<
+        Json<BranchDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -36,15 +46,19 @@ pub async fn post_branch(
     }
 
     let database = database.lock().await;
-    database.create_branch(claims.payload.ulid).await?;
+
+    let ulid = database.create_branch(claims.payload.ulid).await?;
+
     database
-        .post_branch_account_details(claims.payload.ulid, request.account)
+        .post_branch_account_details(ulid, request.account)
         .await?;
+
     database
-        .post_branch_bank_details(claims.payload.ulid, request.bank)
+        .post_branch_bank_details(ulid, request.bank)
         .await?;
+
     database
-        .post_branch_payroll_details(claims.payload.ulid, request.payroll)
+        .post_branch_payroll_details(ulid, request.payroll)
         .await?;
 
     Ok(())
@@ -52,6 +66,10 @@ pub async fn post_branch(
 
 pub async fn get_branch(
     claims: Token<AccessToken>,
+    ContentLengthLimit(Json(request)): ContentLengthLimit<
+        Json<BranchDetailsRequest>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<BranchDetails>> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -59,18 +77,24 @@ pub async fn get_branch(
     }
 
     let database = database.lock().await;
-    database.create_branch(claims.payload.ulid).await?;
+
+    if !database
+        .client_owns_branch(claims.payload.ulid, request.branch_ulid)
+        .await?
+    {
+        return Err(GlobeliseError::Forbidden);
+    }
 
     let account = database
-        .get_branch_account_details(claims.payload.ulid)
+        .get_branch_account_details(request.branch_ulid)
         .await?;
 
     let bank = database
-        .get_branch_bank_details(claims.payload.ulid)
+        .get_branch_bank_details(request.branch_ulid)
         .await?;
 
     let payroll = database
-        .get_branch_payroll_details(claims.payload.ulid)
+        .get_branch_payroll_details(request.branch_ulid)
         .await?;
 
     Ok(Json(BranchDetails {
@@ -81,15 +105,7 @@ pub async fn get_branch(
 }
 
 impl Database {
-    pub async fn create_branch(&self, client_ulid: Ulid) -> GlobeliseResult<()> {
-        if self
-            .user(client_ulid, Some(UserType::Entity))
-            .await?
-            .is_none()
-        {
-            return Err(GlobeliseError::Forbidden);
-        }
-
+    pub async fn create_branch(&self, client_ulid: Ulid) -> GlobeliseResult<Ulid> {
         let ulid = Ulid::generate();
 
         let query = "
@@ -105,6 +121,28 @@ impl Database {
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
-        Ok(())
+        Ok(ulid)
+    }
+
+    pub async fn client_owns_branch(
+        &self,
+        client_ulid: Ulid,
+        branch_ulid: Ulid,
+    ) -> GlobeliseResult<bool> {
+        let query = "
+            INSERT INTO entity_client_branches (
+                ulid, client_ulid
+            ) VALUES (
+                $1, $2
+            )";
+
+        let result = sqlx::query(query)
+            .bind(ulid_to_sql_uuid(branch_ulid))
+            .bind(ulid_to_sql_uuid(client_ulid))
+            .fetch_optional(&self.0)
+            .await?
+            .is_some();
+
+        Ok(result)
     }
 }

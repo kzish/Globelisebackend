@@ -109,15 +109,17 @@ async fn main() {
         )
         .route(
             "/client/branch/branch-details",
-            post(branch::account::post_branch_account_details),
+            get(branch::account::get_branch_account_details)
+                .post(branch::account::post_branch_account_details),
         )
         .route(
             "/client/branch/bank-details",
-            post(branch::bank::post_branch_bank_details),
+            get(branch::bank::get_branch_bank_details).post(branch::bank::post_branch_bank_details),
         )
         .route(
             "/client/branch/payroll-details",
-            post(branch::payroll::post_branch_payroll_details),
+            get(branch::payroll::get_branch_payroll_details)
+                .post(branch::payroll::post_branch_payroll_details),
         )
         .route(
             "/onboard/fully_onboarded/:role",
