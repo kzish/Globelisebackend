@@ -1,6 +1,6 @@
-use axum::extract::{Extension, Json};
+use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::DateWrapper,
+    custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
     ulid_to_sql_uuid,
@@ -23,15 +23,57 @@ pub struct BranchPaymentDetails {
     pub cutoff_date: sqlx::types::time::Date,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct BranchPaymentDetailsRequest {
+    pub branch_ulid: Ulid,
+}
+
 pub async fn post_branch_payroll_details(
     claims: Token<AccessToken>,
-    Json(details): Json<BranchPaymentDetails>,
+    ContentLengthLimit(Json(details)): ContentLengthLimit<
+        Json<BranchPaymentDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
+        return Err(GlobeliseError::Forbidden);
+    }
+
     let database = database.lock().await;
+
     database
         .post_branch_payroll_details(claims.payload.ulid, details)
         .await
+}
+
+pub async fn get_branch_payroll_details(
+    claims: Token<AccessToken>,
+    ContentLengthLimit(Json(request)): ContentLengthLimit<
+        Json<BranchPaymentDetailsRequest>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<BranchPaymentDetails>> {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    let database = database.lock().await;
+
+    if !database
+        .client_owns_branch(claims.payload.ulid, request.branch_ulid)
+        .await?
+    {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    Ok(Json(
+        database
+            .get_branch_payroll_details(request.branch_ulid)
+            .await?,
+    ))
 }
 
 impl Database {
@@ -40,10 +82,6 @@ impl Database {
         ulid: Ulid,
         details: BranchPaymentDetails,
     ) -> GlobeliseResult<()> {
-        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
-            return Err(GlobeliseError::Forbidden);
-        }
-
         sqlx::query(
             "
         INSERT INTO entity_clients_payroll_details (
@@ -68,10 +106,6 @@ impl Database {
         &self,
         ulid: Ulid,
     ) -> GlobeliseResult<BranchPaymentDetails> {
-        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
-            return Err(GlobeliseError::Forbidden);
-        }
-
         let result = sqlx::query_as(
             "
         SELECT 

@@ -1,6 +1,6 @@
-use axum::extract::{Extension, Json};
+use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::Currency,
+    custom_serde::{Currency, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
     ulid_to_sql_uuid,
@@ -18,10 +18,6 @@ impl Database {
         ulid: Ulid,
         details: BranchBankDetails,
     ) -> GlobeliseResult<()> {
-        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
-            return Err(GlobeliseError::Forbidden);
-        }
-
         sqlx::query(
             "
             INSERT INTO entity_clients_bank_details (
@@ -46,10 +42,6 @@ impl Database {
     }
 
     pub async fn get_branch_bank_details(&self, ulid: Ulid) -> GlobeliseResult<BranchBankDetails> {
-        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
-            return Err(GlobeliseError::Forbidden);
-        }
-
         let result = sqlx::query_as(
             "
             SELECT  
@@ -71,13 +63,49 @@ impl Database {
 
 pub async fn post_branch_bank_details(
     claims: Token<AccessToken>,
-    Json(details): Json<BranchBankDetails>,
+    ContentLengthLimit(Json(details)): ContentLengthLimit<
+        Json<BranchBankDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
+        return Err(GlobeliseError::Forbidden);
+    }
+
     let database = database.lock().await;
+
     database
         .post_branch_bank_details(claims.payload.ulid, details)
         .await
+}
+
+pub async fn get_branch_bank_details(
+    claims: Token<AccessToken>,
+    ContentLengthLimit(Json(request)): ContentLengthLimit<
+        Json<BranchBankDetailsRequest>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<BranchBankDetails>> {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    let database = database.lock().await;
+
+    if !database
+        .client_owns_branch(claims.payload.ulid, request.branch_ulid)
+        .await?
+    {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    Ok(Json(
+        database
+            .get_branch_bank_details(request.branch_ulid)
+            .await?,
+    ))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -91,6 +119,12 @@ pub struct BranchBankDetails {
     pub bank_key: Option<String>,
     pub iban: Option<String>,
     pub bank_code: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct BranchBankDetailsRequest {
+    branch_ulid: Ulid,
 }
 
 impl<'r> FromRow<'r, PgRow> for BranchBankDetails {

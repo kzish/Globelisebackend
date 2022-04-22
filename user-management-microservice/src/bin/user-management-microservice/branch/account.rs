@@ -26,11 +26,40 @@ pub async fn post_branch_account_details(
     }
 
     let database = database.lock().await;
+
     database
         .post_branch_account_details(claims.payload.ulid, request)
         .await?;
 
     Ok(())
+}
+
+pub async fn get_branch_account_details(
+    claims: Token<AccessToken>,
+    ContentLengthLimit(Json(request)): ContentLengthLimit<
+        Json<BranchAccountDetailsRequest>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<BranchAccountDetails>> {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    let database = database.lock().await;
+
+    if !database
+        .client_owns_branch(claims.payload.ulid, request.branch_ulid)
+        .await?
+    {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    Ok(Json(
+        database
+            .get_branch_account_details(request.branch_ulid)
+            .await?,
+    ))
 }
 
 impl Database {
@@ -39,10 +68,6 @@ impl Database {
         ulid: Ulid,
         details: BranchAccountDetails,
     ) -> GlobeliseResult<()> {
-        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
-            return Err(GlobeliseError::Forbidden);
-        }
-
         let query = "
             INSERT INTO entity_clients_branch_details (
                 ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
@@ -78,10 +103,6 @@ impl Database {
         &self,
         ulid: Ulid,
     ) -> GlobeliseResult<BranchAccountDetails> {
-        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
-            return Err(GlobeliseError::Forbidden);
-        }
-
         let query = "
             SELECT
                 ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
@@ -119,6 +140,12 @@ pub struct BranchAccountDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub logo: Option<ImageData>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct BranchAccountDetailsRequest {
+    branch_ulid: Ulid,
 }
 
 impl<'r> FromRow<'r, PgRow> for BranchAccountDetails {
