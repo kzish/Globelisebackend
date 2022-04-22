@@ -27,6 +27,13 @@ pub struct BranchDetails {
     pub payroll: BranchPaymentDetails,
 }
 
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct DeleteBranchRequest {
+    pub branch_ulid: Ulid,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchDetailsRequest {
@@ -104,6 +111,21 @@ pub async fn get_branch(
     }))
 }
 
+pub async fn delete_branch(
+    claims: Token<AccessToken>,
+    Json(request): Json<DeleteBranchRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    let database = database.lock().await;
+    database.delete_branch(request, claims.payload.ulid).await?;
+
+    Ok(())
+}
+
 impl Database {
     pub async fn create_branch(&self, client_ulid: Ulid) -> GlobeliseResult<Ulid> {
         let ulid = Ulid::generate();
@@ -144,5 +166,35 @@ impl Database {
             .is_some();
 
         Ok(result)
+    }
+
+    pub async fn delete_branch(
+        &self,
+        request: DeleteBranchRequest,
+        client_ulid: Ulid,
+    ) -> GlobeliseResult<()> {
+        if self
+            .user(client_ulid, Some(UserType::Entity))
+            .await?
+            .is_none()
+        {
+            return Err(GlobeliseError::Forbidden);
+        }
+
+        let query = "
+            DELETE FROM
+                entity_client_branches 
+            WHERE 
+                ulid = $1
+            AND
+                client_ulid = $2";
+        sqlx::query(query)
+            .bind(ulid_to_sql_uuid(request.branch_ulid))
+            .bind(ulid_to_sql_uuid(client_ulid))
+            .execute(&self.0)
+            .await
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+
+        Ok(())
     }
 }
