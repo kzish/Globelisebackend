@@ -16,7 +16,7 @@ use crate::database::{Database, SharedDatabase};
 #[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct BranchPaymentDetails {
+pub struct BranchPayrollDetails {
     #[serde_as(as = "TryFromInto<DateWrapper>")]
     pub payment_date: sqlx::types::time::Date,
     #[serde_as(as = "TryFromInto<DateWrapper>")]
@@ -32,7 +32,7 @@ pub struct BranchPaymentDetailsRequest {
 pub async fn post_branch_payroll_details(
     claims: Token<AccessToken>,
     ContentLengthLimit(Json(details)): ContentLengthLimit<
-        Json<BranchPaymentDetails>,
+        Json<BranchPayrollDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
@@ -55,7 +55,7 @@ pub async fn get_branch_payroll_details(
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<BranchPaymentDetails>> {
+) -> GlobeliseResult<Json<BranchPayrollDetails>> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
         return Err(GlobeliseError::Forbidden);
     }
@@ -71,7 +71,7 @@ pub async fn get_branch_payroll_details(
 
     Ok(Json(
         database
-            .get_branch_payroll_details(request.branch_ulid)
+            .get_one_branch_payroll_details(request.branch_ulid)
             .await?,
     ))
 }
@@ -80,11 +80,11 @@ impl Database {
     pub async fn post_branch_payroll_details(
         &self,
         ulid: Ulid,
-        details: BranchPaymentDetails,
+        details: BranchPayrollDetails,
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "
-        INSERT INTO entity_clients_payroll_details (
+        INSERT INTO entity_clients_branch_payroll_details (
             ulid, cutoff_date, payment_date
         ) VALUES (
             $1, $2, $3
@@ -102,16 +102,16 @@ impl Database {
         Ok(())
     }
 
-    pub async fn get_branch_payroll_details(
+    pub async fn get_one_branch_payroll_details(
         &self,
         ulid: Ulid,
-    ) -> GlobeliseResult<BranchPaymentDetails> {
+    ) -> GlobeliseResult<BranchPayrollDetails> {
         let result = sqlx::query_as(
             "
         SELECT 
             ulid, cutoff_date, payment_date
         FROM
-            entity_clients_payroll_details
+            entity_clients_branch_payroll_details
         WHERE
             ulid = $1
         ",

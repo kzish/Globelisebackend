@@ -1,4 +1,6 @@
-use axum::extract::{ContentLengthLimit, Extension, Json};
+use std::num::NonZeroU32;
+
+use axum::extract::{ContentLengthLimit, Extension, Json, Path, Query};
 use common_utils::{
     custom_serde::FORM_DATA_LENGTH_LIMIT,
     error::{GlobeliseError, GlobeliseResult},
@@ -8,11 +10,12 @@ use common_utils::{
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
+use sqlx::{postgres::PgRow, FromRow};
 use user_management_microservice_sdk::{token::AccessToken, user::UserType};
 
 use crate::database::{Database, SharedDatabase};
 
-use self::{account::BranchAccountDetails, bank::BranchBankDetails, payroll::BranchPaymentDetails};
+use self::{account::BranchAccountDetails, bank::BranchBankDetails, payroll::BranchPayrollDetails};
 
 pub mod account;
 pub mod bank;
@@ -24,7 +27,20 @@ pub mod payroll;
 pub struct BranchDetails {
     pub account: BranchAccountDetails,
     pub bank: BranchBankDetails,
-    pub payroll: BranchPaymentDetails,
+    pub payroll: BranchPayrollDetails,
+}
+
+impl FromRow<'_, PgRow> for BranchDetails {
+    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
+        let account = BranchAccountDetails::from_row(row)?;
+        let bank = BranchBankDetails::from_row(row)?;
+        let payroll = BranchPayrollDetails::from_row(row)?;
+        Ok(BranchDetails {
+            account,
+            bank,
+            payroll,
+        })
+    }
 }
 
 #[serde_as]
@@ -37,7 +53,8 @@ pub struct DeleteBranchRequest {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchDetailsRequest {
-    pub branch_ulid: Ulid,
+    pub page: NonZeroU32,
+    pub per_page: NonZeroU32,
 }
 
 pub async fn post_branch(
@@ -47,7 +64,7 @@ pub async fn post_branch(
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<()> {
+) -> GlobeliseResult<String> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
         return Err(GlobeliseError::Forbidden);
     }
@@ -68,15 +85,30 @@ pub async fn post_branch(
         .post_branch_payroll_details(ulid, request.payroll)
         .await?;
 
-    Ok(())
+    Ok(ulid.to_string())
 }
 
 pub async fn get_branch(
     claims: Token<AccessToken>,
-    ContentLengthLimit(Json(request)): ContentLengthLimit<
-        Json<BranchDetailsRequest>,
-        FORM_DATA_LENGTH_LIMIT,
-    >,
+    Query(query): Query<BranchDetailsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<BranchDetails>>> {
+    if !matches!(claims.payload.user_type, UserType::Entity) {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    let database = database.lock().await;
+
+    let result = database
+        .get_entity_clients_branch_details(claims.payload.ulid, query)
+        .await?;
+
+    Ok(Json(result))
+}
+
+pub async fn get_one_branch(
+    claims: Token<AccessToken>,
+    Path(branch_ulid): Path<Ulid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<BranchDetails>> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -86,23 +118,17 @@ pub async fn get_branch(
     let database = database.lock().await;
 
     if !database
-        .client_owns_branch(claims.payload.ulid, request.branch_ulid)
+        .client_owns_branch(claims.payload.ulid, branch_ulid)
         .await?
     {
         return Err(GlobeliseError::Forbidden);
     }
 
-    let account = database
-        .get_branch_account_details(request.branch_ulid)
-        .await?;
+    let account = database.get_one_branch_account_details(branch_ulid).await?;
 
-    let bank = database
-        .get_branch_bank_details(request.branch_ulid)
-        .await?;
+    let bank = database.get_one_branch_bank_details(branch_ulid).await?;
 
-    let payroll = database
-        .get_branch_payroll_details(request.branch_ulid)
-        .await?;
+    let payroll = database.get_one_branch_payroll_details(branch_ulid).await?;
 
     Ok(Json(BranchDetails {
         account,
@@ -196,5 +222,38 @@ impl Database {
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
         Ok(())
+    }
+
+    pub async fn get_entity_clients_branch_details(
+        &self,
+        client_ulid: Ulid,
+        request: BranchDetailsRequest,
+    ) -> GlobeliseResult<Vec<BranchDetails>> {
+        let query = "
+            SELECT
+                -- account details
+                ulid, company_name, country, entity_type, registration_number, tax_id, 
+                statutory_contribution_submission_number, company_address, city, 
+                postal_code, time_zone, logo,
+                -- bank details
+                currency, bank_name, bank_account_name, bank_account_number,
+                swift_code, bank_key, iban, bank_code, branch_code,
+                -- payment details
+                cutoff_date, payment_date
+            FROM
+                entity_clients_branch_details
+            WHERE
+                client_ulid = $1
+            LIMIT $2 OFFSET $3";
+
+        let result = sqlx::query_as(query)
+            .bind(ulid_to_sql_uuid(client_ulid))
+            .bind(request.per_page.get())
+            .bind((request.page.get() - 1) * request.per_page.get())
+            .fetch_all(&self.0)
+            .await
+            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+
+        Ok(result)
     }
 }

@@ -56,6 +56,7 @@ pub async fn eor_admin_onboarded_user_index(
 #[serde(rename_all = "kebab-case")]
 pub struct AddUserRequest {
     email: String,
+    debug: Option<bool>,
 }
 
 pub async fn add_individual_contractor(
@@ -71,6 +72,11 @@ pub async fn add_individual_contractor(
     if (database.user_id(&email_address).await?).is_some() {
         return Err(GlobeliseError::UnavailableEmail);
     };
+
+    // If  in debug mode, skip sending emails
+    if let Some(true) = request.debug {
+        return Ok(());
+    }
 
     let receiver_email = email_address
         // TODO: Get the name of the person associated to this email address
@@ -120,6 +126,7 @@ pub struct AddEmployeesInBulk {
     #[serde_as(as = "Base64")]
     pub uploaded_file: Vec<u8>,
     pub client_ulid: Ulid,
+    pub debug: Option<bool>,
 }
 
 #[serde_as]
@@ -242,6 +249,10 @@ pub async fn eor_admin_add_employees_in_bulk(
                         contractor_ulid,
                     })
                     .await?;
+
+                if let Some(true) = request.debug {
+                    return Ok(());
+                }
 
                 // Send email to the contractor
                 let receiver_email = value

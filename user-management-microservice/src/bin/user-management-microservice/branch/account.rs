@@ -57,7 +57,7 @@ pub async fn get_branch_account_details(
 
     Ok(Json(
         database
-            .get_branch_account_details(request.branch_ulid)
+            .get_one_branch_account_details(request.branch_ulid)
             .await?,
     ))
 }
@@ -69,12 +69,12 @@ impl Database {
         details: BranchAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO entity_clients_branch_details (
+            INSERT INTO entity_clients_branch_account_details (
                 ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
                 city, postal_code, time_zone, logo
             ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            ON CONFLICT(ulid) DO UPDATE SET 
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+            ) ON CONFLICT(ulid) DO UPDATE SET 
                 company_name = $2, country = $3, entity_type = $4, registration_number = $5,
                 tax_id = $6, company_address = $7, city = $8, postal_code = $9, time_zone = $10,
                 logo = $11
@@ -99,7 +99,7 @@ impl Database {
         Ok(())
     }
 
-    pub async fn get_branch_account_details(
+    pub async fn get_one_branch_account_details(
         &self,
         ulid: Ulid,
     ) -> GlobeliseResult<BranchAccountDetails> {
@@ -108,7 +108,7 @@ impl Database {
                 ulid, company_name, country, entity_type, registration_number, tax_id, company_address,
                 city, postal_code, time_zone, logo
             FROM
-                entity_clients_branch_details
+                entity_clients_branch_account_details
             WHERE
                 ulid = $1";
 
@@ -133,6 +133,7 @@ pub struct BranchAccountDetails {
     pub registration_number: Option<String>,
     #[serde(default)]
     pub tax_id: Option<String>,
+    pub statutory_contribution_submission_number: Option<String>,
     pub company_address: String,
     pub city: String,
     pub postal_code: String,
@@ -157,6 +158,8 @@ impl<'r> FromRow<'r, PgRow> for BranchAccountDetails {
             entity_type: row.try_get("entity_type")?,
             registration_number: row.try_get("registration_number")?,
             tax_id: row.try_get("tax_id")?,
+            statutory_contribution_submission_number: row
+                .try_get("statutory_contribution_submission_number")?,
             company_address: row.try_get("company_address")?,
             city: row.try_get("city")?,
             postal_code: row.try_get("postal_code")?,

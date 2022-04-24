@@ -109,6 +109,7 @@ async fn main() {
                 .post(branch::post_branch)
                 .delete(branch::delete_branch),
         )
+        .route("/client/branch/:branch_ulid", get(branch::get_one_branch))
         .route(
             "/client/branch/branch-details",
             get(branch::account::get_branch_account_details)
