@@ -17,6 +17,7 @@ use tower_http::cors::{Any, CorsLayer, Origin};
 mod auth;
 mod branch;
 mod database;
+mod department;
 mod env;
 mod eor_admin;
 mod onboard;
@@ -125,6 +126,10 @@ async fn main() {
                 .post(branch::payroll::post_branch_payroll_details),
         )
         .route(
+            "/client/department",
+            get(department::user_get_departments).post(department::user_post_department),
+        )
+        .route(
             "/onboard/fully_onboarded/:role",
             get(onboard::fully_onboarded),
         )
@@ -170,6 +175,10 @@ async fn main() {
         .route(
             "/eor-admin/entities/onboard/prefill-entity-client/payment-details",
             post(onboard::prefill::prefill_entity_client_payment_details),
+        )
+        .route(
+            "/eor-admin/department",
+            get(department::eor_admin_get_departments).post(department::eor_admin_post_department),
         )
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
