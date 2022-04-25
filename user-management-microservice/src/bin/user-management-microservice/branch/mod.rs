@@ -178,11 +178,13 @@ impl Database {
         branch_ulid: Ulid,
     ) -> GlobeliseResult<bool> {
         let query = "
-            INSERT INTO entity_client_branches (
-                ulid, client_ulid
-            ) VALUES (
-                $1, $2
-            )";
+            SELECT
+                *
+            FROM
+                entity_client_branches
+            WHERE
+                ulid = $1 AND
+                client_ulid = $2";
 
         let result = sqlx::query(query)
             .bind(ulid_to_sql_uuid(branch_ulid))
