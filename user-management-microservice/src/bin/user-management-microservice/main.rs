@@ -16,6 +16,7 @@ use tower_http::cors::{Any, CorsLayer, Origin};
 
 mod auth;
 mod branch;
+mod custom_field;
 mod database;
 mod department;
 mod env;
@@ -128,6 +129,10 @@ async fn main() {
         .route(
             "/client/department",
             get(department::user_get_departments).post(department::user_post_department),
+        )
+        .route(
+            "/client/custom-field",
+            get(custom_field::user_get_custom_fields).post(custom_field::user_post_custom_field),
         )
         .route(
             "/onboard/fully_onboarded/:role",
