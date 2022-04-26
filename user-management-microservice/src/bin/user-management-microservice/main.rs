@@ -106,7 +106,7 @@ async fn main() {
         )
         .route(
             "/client/branch",
-            get(branch::get_branch)
+            get(branch::get_branches)
                 .post(branch::post_branch)
                 .delete(branch::delete_branch),
         )

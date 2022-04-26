@@ -5,12 +5,12 @@ use common_utils::{
     custom_serde::FORM_DATA_LENGTH_LIMIT,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
-    ulid_to_sql_uuid,
+    ulid_from_sql_uuid, ulid_to_sql_uuid,
 };
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-use sqlx::{postgres::PgRow, FromRow};
+use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{token::AccessToken, user::UserType};
 
 use crate::database::{Database, SharedDatabase};
@@ -25,6 +25,7 @@ pub mod payroll;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchDetails {
+    pub ulid: Ulid,
     pub account: BranchAccountDetails,
     pub bank: BranchBankDetails,
     pub payroll: BranchPayrollDetails,
@@ -32,10 +33,12 @@ pub struct BranchDetails {
 
 impl FromRow<'_, PgRow> for BranchDetails {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
+        let ulid = ulid_from_sql_uuid(row.try_get("ulid")?);
         let account = BranchAccountDetails::from_row(row)?;
         let bank = BranchBankDetails::from_row(row)?;
         let payroll = BranchPayrollDetails::from_row(row)?;
         Ok(BranchDetails {
+            ulid,
             account,
             bank,
             payroll,
@@ -88,7 +91,7 @@ pub async fn post_branch(
     Ok(ulid.to_string())
 }
 
-pub async fn get_branch(
+pub async fn get_branches(
     claims: Token<AccessToken>,
     Query(query): Query<BranchDetailsRequest>,
     Extension(database): Extension<SharedDatabase>,
@@ -131,6 +134,7 @@ pub async fn get_one_branch(
     let payroll = database.get_one_branch_payroll_details(branch_ulid).await?;
 
     Ok(Json(BranchDetails {
+        ulid: branch_ulid,
         account,
         bank,
         payroll,
