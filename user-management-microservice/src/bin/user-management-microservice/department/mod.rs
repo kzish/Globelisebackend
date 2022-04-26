@@ -136,8 +136,6 @@ pub async fn user_get_departments(
 
     let result = database.get_departments(request).await?;
 
-    println!("result:{:#?}", result);
-
     Ok(Json(result))
 }
 
