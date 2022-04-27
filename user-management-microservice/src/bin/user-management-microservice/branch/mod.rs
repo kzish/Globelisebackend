@@ -18,6 +18,7 @@ use self::{account::BranchAccountDetails, bank::BranchBankDetails, payroll::Bran
 
 pub mod account;
 pub mod bank;
+pub mod pay_items;
 pub mod payroll;
 
 #[serde_as]
