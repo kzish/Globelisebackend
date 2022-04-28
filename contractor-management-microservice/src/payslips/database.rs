@@ -1,4 +1,4 @@
-use common_utils::{error::GlobeliseResult, ulid_to_sql_uuid};
+use common_utils::{calc_limit_and_offset, error::GlobeliseResult, ulid_to_sql_uuid};
 
 use rusty_ulid::Ulid;
 
@@ -12,6 +12,8 @@ impl Database {
         &self,
         query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<PayslipsIndex>> {
+        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+
         let index = sqlx::query_as(
             "
             SELECT
@@ -28,8 +30,8 @@ impl Database {
         .bind(query.client_ulid.map(ulid_to_sql_uuid))
         .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
         .bind(query.query)
-        .bind(query.per_page.get())
-        .bind((query.page.get() - 1) * query.per_page.get())
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.0)
         .await?;
 

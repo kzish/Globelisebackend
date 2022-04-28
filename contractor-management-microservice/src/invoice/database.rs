@@ -1,4 +1,4 @@
-use common_utils::{error::GlobeliseResult, ulid_to_sql_uuid};
+use common_utils::{calc_limit_and_offset, error::GlobeliseResult, ulid_to_sql_uuid};
 
 use crate::database::Database;
 
@@ -12,6 +12,8 @@ impl Database {
         &self,
         query: InvoiceIndividualIndexQuery,
     ) -> GlobeliseResult<Vec<InvoiceIndividualIndex>> {
+        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+
         let index = sqlx::query_as(
             "
                 SELECT
@@ -30,8 +32,8 @@ impl Database {
         .bind(query.query)
         .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
         .bind(query.client_ulid.map(ulid_to_sql_uuid))
-        .bind(query.per_page.get())
-        .bind((query.page.get() - 1) * query.per_page.get())
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.0)
         .await?;
 
@@ -43,6 +45,8 @@ impl Database {
         &self,
         query: InvoiceGroupIndexQuery,
     ) -> GlobeliseResult<Vec<InvoiceGroupIndex>> {
+        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+
         let index = sqlx::query_as(
             "
                 SELECT
@@ -54,13 +58,16 @@ impl Database {
                     ($1 IS NULL OR ($1 = ANY(invoice_name))) AND
                     ($2 IS NULL OR ($2= ANY(contractor_ulid))) AND
                     ($3 IS NULL OR ($3 = ANY(client_ulid)))
-                LIMIT $4 OFFSET $5",
+                LIMIT
+                    $4
+                OFFSET
+                    $5",
         )
         .bind(query.query)
         .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
         .bind(query.client_ulid.map(ulid_to_sql_uuid))
-        .bind(query.per_page.get())
-        .bind((query.page.get() - 1) * query.per_page.get())
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.0)
         .await?;
 

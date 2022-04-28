@@ -1,5 +1,3 @@
-use std::num::NonZeroU32;
-
 use common_utils::{
     custom_serde::DateWrapper,
     error::{GlobeliseError, GlobeliseResult},
@@ -48,8 +46,8 @@ pub async fn eor_admin_onboarded_users(
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GetUserInfoRequest {
-    pub page: NonZeroU32,
-    pub per_page: NonZeroU32,
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
     pub search_text: Option<String>,
     pub user_type: Option<UserType>,
     pub user_role: Option<Role>,

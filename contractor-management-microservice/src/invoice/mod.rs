@@ -1,5 +1,3 @@
-use std::num::NonZeroU32;
-
 use axum::{
     extract::{Extension, Path, Query},
     Json,
@@ -78,8 +76,8 @@ pub async fn eor_admin_invoice_group_index(
 pub struct InvoiceIndividualIndexQuery {
     pub invoice_group_ulid: Ulid,
     pub invoice_status: Option<String>,
-    pub page: NonZeroU32,
-    pub per_page: NonZeroU32,
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
     pub query: Option<String>,
     pub contractor_ulid: Option<Ulid>,
     pub client_ulid: Option<Ulid>,
@@ -131,8 +129,8 @@ pub struct InvoiceIndividualIndexSqlHelper {
 #[serde(rename_all = "kebab-case")]
 pub struct InvoiceGroupIndexQuery {
     pub invoice_status: Option<String>,
-    pub page: NonZeroU32,
-    pub per_page: NonZeroU32,
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
     pub query: Option<String>,
     pub contractor_ulid: Option<Ulid>,
     pub client_ulid: Option<Ulid>,
