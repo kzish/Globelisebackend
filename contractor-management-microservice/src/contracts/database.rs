@@ -1,4 +1,4 @@
-use common_utils::{error::GlobeliseResult, ulid_to_sql_uuid};
+use common_utils::{calc_limit_and_offset, error::GlobeliseResult, ulid_to_sql_uuid};
 use rusty_ulid::Ulid;
 use user_management_microservice_sdk::user::Role;
 
@@ -45,6 +45,8 @@ impl Database {
         contractor_ulid: Ulid,
         query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ClientsIndex>> {
+        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+
         let index = sqlx::query_as(
             "
             SELECT DISTINCT
@@ -58,8 +60,8 @@ impl Database {
         )
         .bind(ulid_to_sql_uuid(contractor_ulid))
         .bind(query.query)
-        .bind(query.per_page.get())
-        .bind((query.page.get() - 1) * query.per_page.get())
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.0)
         .await?;
 
@@ -72,6 +74,8 @@ impl Database {
         client_ulid: Ulid,
         query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractorsIndex>> {
+        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+
         let index = sqlx::query_as(
             "
             SELECT
@@ -86,8 +90,8 @@ impl Database {
         )
         .bind(ulid_to_sql_uuid(client_ulid))
         .bind(query.query)
-        .bind(query.per_page.get())
-        .bind((query.page.get() - 1) * query.per_page.get())
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.0)
         .await?;
 
@@ -100,6 +104,8 @@ impl Database {
         client_ulid: Ulid,
         query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractsIndexForClient>> {
+        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+
         let index = sqlx::query_as(
             "
             SELECT
@@ -117,8 +123,8 @@ impl Database {
         .bind(ulid_to_sql_uuid(client_ulid))
         .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
         .bind(query.query)
-        .bind(query.per_page.get())
-        .bind((query.page.get() - 1) * query.per_page.get())
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.0)
         .await?;
 
@@ -131,6 +137,8 @@ impl Database {
         contractor_ulid: Ulid,
         query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractsIndexForContractor>> {
+        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+
         let index = sqlx::query_as(
             "
             SELECT
@@ -148,8 +156,8 @@ impl Database {
         .bind(ulid_to_sql_uuid(contractor_ulid))
         .bind(query.client_ulid.map(ulid_to_sql_uuid))
         .bind(query.query)
-        .bind(query.per_page.get())
-        .bind((query.page.get() - 1) * query.per_page.get())
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.0)
         .await?;
 
@@ -161,6 +169,8 @@ impl Database {
         &self,
         query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractsIndexForEorAdmin>> {
+        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+
         let index = sqlx::query_as(
             "
             SELECT
@@ -177,8 +187,8 @@ impl Database {
         .bind(query.client_ulid.map(ulid_to_sql_uuid))
         .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
         .bind(query.query)
-        .bind(query.per_page.get())
-        .bind((query.page.get() - 1) * query.per_page.get())
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.0)
         .await?;
 

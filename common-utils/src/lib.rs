@@ -48,3 +48,12 @@ pub fn ulid_to_sql_uuid(ulid: Ulid) -> sqlx::types::Uuid {
 pub fn ulid_from_sql_uuid(uuid: sqlx::types::Uuid) -> Ulid {
     Ulid::from(*uuid.as_bytes())
 }
+
+pub fn calc_limit_and_offset(
+    per_page: Option<u32>,
+    page: Option<u32>,
+) -> (Option<u32>, Option<u32>) {
+    let limit = per_page;
+    let offset = limit.and_then(|v| page.map(|w| (w - 1) * v));
+    (limit, offset)
+}

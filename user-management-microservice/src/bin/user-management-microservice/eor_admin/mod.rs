@@ -1,5 +1,3 @@
-use std::num::NonZeroU32;
-
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
     custom_serde::{DateWrapper, EmailWrapper, FORM_DATA_LENGTH_LIMIT},
@@ -34,8 +32,8 @@ pub mod client_contractor_pair;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct OnboardedUserIndexQuery {
-    pub page: NonZeroU32,
-    pub per_page: NonZeroU32,
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
     pub search_text: Option<String>,
     pub user_type: Option<UserType>,
     pub user_role: Option<Role>,
@@ -302,8 +300,8 @@ pub async fn eor_admin_add_employees_in_bulk(
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct UserIndexQuery {
-    pub page: NonZeroU32,
-    pub per_page: NonZeroU32,
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
     pub search_text: Option<String>,
 }
 

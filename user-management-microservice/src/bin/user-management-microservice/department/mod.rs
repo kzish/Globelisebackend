@@ -1,10 +1,9 @@
-use std::num::NonZeroU32;
-
 use axum::{
     extract::{ContentLengthLimit, Query},
     Extension, Json,
 };
 use common_utils::{
+    calc_limit_and_offset,
     custom_serde::{Currency, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
@@ -34,8 +33,8 @@ pub struct PostDepartmentRequest {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GetDepartmentRequest {
-    page: NonZeroU32,
-    per_page: NonZeroU32,
+    page: Option<u32>,
+    per_page: Option<u32>,
     client_ulid: Option<Ulid>,
 }
 
@@ -167,6 +166,8 @@ impl Database {
         &self,
         request: GetDepartmentRequest,
     ) -> GlobeliseResult<Vec<GetDepartmentResponse>> {
+        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+
         let query = "
             SELECT
                 ulid, branch_ulid, branch_name, department_name, country, classification, 
@@ -175,12 +176,15 @@ impl Database {
                 entity_client_branch_departments_index
             WHERE
                 ($1 IS NULL OR client_ulid = $1)
-            LIMIT $2 OFFSET $3";
+            LIMIT 
+                $2 
+            OFFSET 
+                $3";
 
         let result = sqlx::query_as(query)
             .bind(request.client_ulid.map(ulid_to_sql_uuid))
-            .bind(request.per_page.get())
-            .bind((request.page.get() - 1) * request.per_page.get())
+            .bind(limit)
+            .bind(offset)
             .fetch_all(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;

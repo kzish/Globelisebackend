@@ -1,7 +1,6 @@
-use std::num::NonZeroU32;
-
 use axum::extract::{ContentLengthLimit, Extension, Json, Path, Query};
 use common_utils::{
+    calc_limit_and_offset,
     custom_serde::FORM_DATA_LENGTH_LIMIT,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
@@ -56,8 +55,8 @@ pub struct DeleteBranchRequest {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchDetailsRequest {
-    pub page: NonZeroU32,
-    pub per_page: NonZeroU32,
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
 }
 
 pub async fn post_branch(
@@ -235,6 +234,8 @@ impl Database {
         client_ulid: Ulid,
         request: BranchDetailsRequest,
     ) -> GlobeliseResult<Vec<BranchDetails>> {
+        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+
         let query = "
             SELECT
                 -- account details
@@ -254,8 +255,8 @@ impl Database {
 
         let result = sqlx::query_as(query)
             .bind(ulid_to_sql_uuid(client_ulid))
-            .bind(request.per_page.get())
-            .bind((request.page.get() - 1) * request.per_page.get())
+            .bind(limit)
+            .bind(offset)
             .fetch_all(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;

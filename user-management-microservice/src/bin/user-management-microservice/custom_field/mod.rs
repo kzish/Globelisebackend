@@ -1,10 +1,9 @@
-use std::num::NonZeroU32;
-
 use axum::{
     extract::{ContentLengthLimit, Query},
     Extension, Json,
 };
 use common_utils::{
+    calc_limit_and_offset,
     custom_serde::FORM_DATA_LENGTH_LIMIT,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
@@ -64,8 +63,8 @@ pub struct PostCustomFieldRequest {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GetCustomFieldRequest {
-    page: NonZeroU32,
-    per_page: NonZeroU32,
+    page: Option<u32>,
+    per_page: Option<u32>,
 }
 
 #[serde_as]
@@ -178,6 +177,8 @@ impl Database {
         client_ulid: Ulid,
         request: GetCustomFieldRequest,
     ) -> GlobeliseResult<Vec<GetCustomFieldResponse>> {
+        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+
         let query = "
             SELECT
                 ulid, client_ulid, field_name, field_detail_type, field_format,
@@ -186,12 +187,15 @@ impl Database {
                 entity_client_custom_fields_index
             WHERE
                 client_ulid = $1
-            LIMIT $2 OFFSET $3";
+            LIMIT 
+                $2 
+            OFFSET 
+                $3";
 
         let result = sqlx::query_as(query)
             .bind(ulid_to_sql_uuid(client_ulid))
-            .bind(request.per_page.get())
-            .bind((request.page.get() - 1) * request.per_page.get())
+            .bind(limit)
+            .bind(offset)
             .fetch_all(&self.0)
             .await?;
 

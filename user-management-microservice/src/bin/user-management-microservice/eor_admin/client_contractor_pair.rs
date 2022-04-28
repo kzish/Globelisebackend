@@ -1,7 +1,6 @@
-use std::num::NonZeroU32;
-
 use axum::{extract::Query, Extension, Json};
 use common_utils::{
+    calc_limit_and_offset,
     error::GlobeliseResult,
     pubsub::{AddClientContractorPair, SharedPubSub},
     token::Token,
@@ -56,8 +55,8 @@ pub async fn eor_admin_create_client_contractor_pairs(
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ClientContractorPairQueryRequest {
-    pub page: NonZeroU32,
-    pub per_page: NonZeroU32,
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
     pub client_ulid: Option<Ulid>,
     pub contractor_ulid: Option<Ulid>,
 }
@@ -97,8 +96,8 @@ impl Database {
         &self,
         query: ClientContractorPairQueryRequest,
     ) -> GlobeliseResult<Vec<ClientContractorPair>> {
-        let limit = query.per_page.get();
-        let offset = (query.page.get() - 1) * limit;
+        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+
         let result = sqlx::query_as(
             "
             SELECT 

@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use common_utils::error::GlobeliseResult;
+use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
 use user_management_microservice_sdk::user_index::{OnboardedUserIndex, UserIndex};
@@ -39,6 +39,8 @@ impl Database {
         &self,
         query: OnboardedUserIndexQuery,
     ) -> GlobeliseResult<Vec<OnboardedUserIndex>> {
+        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+
         let result = sqlx::query_as(
             "
             SELECT 
@@ -62,8 +64,8 @@ impl Database {
         .bind(query.search_text)
         .bind(query.user_role.map(|s| s.to_string()))
         .bind(query.user_type.map(|s| s.to_string()))
-        .bind(query.per_page.get())
-        .bind((query.page.get() - 1) * query.per_page.get())
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.0)
         .await?;
         Ok(result)
@@ -73,6 +75,8 @@ impl Database {
     ///
     /// This does not require users to be fully onboarded.
     pub async fn user_index(&self, query: UserIndexQuery) -> GlobeliseResult<Vec<UserIndex>> {
+        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+
         let result = sqlx::query_as(
             "
             SELECT 
@@ -89,8 +93,8 @@ impl Database {
                 $3",
         )
         .bind(query.search_text)
-        .bind(query.per_page.get())
-        .bind((query.page.get() - 1) * query.per_page.get())
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.0)
         .await?;
         Ok(result)
