@@ -60,9 +60,9 @@ impl TryFrom<Vec<u8>> for ImageData {
         let image = image::load_from_memory(&image_data).map_err(GlobeliseError::internal)?;
         let (width, height) = image::GenericImageView::dimensions(&image);
         if width > IMAGE_DIMENSION_LIMIT || height > IMAGE_DIMENSION_LIMIT {
-            return Err(GlobeliseError::payload_too_large(
-                "Image dimensions cannot exceed 400px x 400px",
-            ));
+            return Err(GlobeliseError::payload_too_large(format!(
+                "Image dimensions cannot exceed {IMAGE_DIMENSION_LIMIT} x {IMAGE_DIMENSION_LIMIT}",
+            )));
         }
 
         Ok(Self(image_data))
@@ -262,7 +262,8 @@ pub const FORM_DATA_LENGTH_LIMIT: u64 = 1024 * 1024 + BASE64_ENCODED_IMAGE_SIZE_
 const BASE64_ENCODED_IMAGE_SIZE_LIMIT: u64 = IMAGE_SIZE_LIMIT * 4 / 3 + 1;
 
 /// Maximum size of an uploaded image.
+/// 8MB
 const IMAGE_SIZE_LIMIT: u64 = 8 * 1024 * 1024;
 
 /// Maximum dimensions of an uploaded image.
-const IMAGE_DIMENSION_LIMIT: u32 = 400;
+const IMAGE_DIMENSION_LIMIT: u32 = 10000;
