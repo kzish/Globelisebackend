@@ -102,11 +102,11 @@ impl Database {
         let result = sqlx::query_as(
             "
             SELECT 
-                (client_ulid, contractor_ulid)
+                client_ulid, contractor_ulid
             FROM
                 client_contractor_pairs
             WHERE
-                ($1 IS NULL OR (client = $1)) AND
+                ($1 IS NULL OR (client_ulid = $1)) AND
                 ($2 IS NULL OR (contractor_ulid = $2))
             LIMIT
                 $3
