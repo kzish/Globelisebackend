@@ -28,6 +28,7 @@ use crate::{
 };
 
 pub mod client_contractor_pair;
+pub mod individual_contractor_branch_pair;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
