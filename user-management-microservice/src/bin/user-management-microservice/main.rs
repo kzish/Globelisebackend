@@ -151,8 +151,9 @@ async fn main() {
         )
         .route(
             "/eor-admin/users/contractor_branch_pairs",
-            get(eor_admin::individual_contractor_branch_pair::eor_admin_client_contractor_index)
-                .post(eor_admin::individual_contractor_branch_pair::eor_admin_create_entity_contractor_branch_pairs),
+            get(eor_admin::individual_contractor_branch_pair::eor_admin_get_individual_contractor_branch_pairs)
+                .post(eor_admin::individual_contractor_branch_pair::eor_admin_post_individual_contractor_branch_pairs)
+                .delete(eor_admin::individual_contractor_branch_pair::eor_admin_delete_individual_contractor_branch_pairs),
         )
         .route(
             "/eor-admin/users/add_individual_contractor",
