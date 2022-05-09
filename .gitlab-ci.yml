@@ -1,7 +1,7 @@
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-        && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production|feature/DevOPs01)$/'
+        && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production)$/'
 
 stages:
   - build
@@ -15,7 +15,5 @@ build:
   script:
     - cargo build
   artifacts:
-    untracked: false
-    expire_in: 1 days
     paths:
       - ./target
