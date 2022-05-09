@@ -135,6 +135,16 @@ async fn main() {
             get(custom_field::user_get_custom_fields).post(custom_field::user_post_custom_field),
         )
         .route(
+            "/client/branch/pay-items",
+            get(branch::pay_items::get_pay_items)
+                .post(branch::pay_items::create_pay_item)
+                .put(branch::pay_items::update_pay_item),
+        )
+        .route(
+            "/client/branch/pay-items/:pay_item_ulid",
+            get(branch::pay_items::get_pay_item_by_id).delete(branch::pay_items::delete_pay_item),
+        )
+        .route(
             "/onboard/fully_onboarded/:role",
             get(onboard::fully_onboarded),
         )
@@ -190,6 +200,17 @@ async fn main() {
         .route(
             "/eor-admin/department",
             get(department::eor_admin_get_departments).post(department::eor_admin_post_department),
+        )
+        .route(
+            "/eor-admin/client/branch/pay-items",
+            get(eor_admin::pay_items::get_pay_items)
+                .post(eor_admin::pay_items::create_pay_item)
+                .put(eor_admin::pay_items::update_pay_item),
+        )
+        .route(
+            "/eor-admin/client/branch/pay-items/:pay_item_ulid",
+            get(eor_admin::pay_items::get_pay_item_by_id)
+                .delete(eor_admin::pay_items::delete_pay_item),
         )
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))

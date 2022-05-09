@@ -6,7 +6,7 @@ use common_utils::{
 use crate::onboard::{
     entity::{PrefillEntityClientDetails, PrefilledPicDetails},
     payment::PrefilledPaymentDetails,
-    prefill::{PrefillBankDetails, PrefillIndividualDetails},
+    prefill::{PrefillBankDetails, PrefillBankDetailsNoULID, PrefillIndividualDetails},
 };
 
 use super::Database;
@@ -103,20 +103,20 @@ impl Database {
 
     pub async fn prefill_onboard_entity_clients_bank_details(
         &self,
-        details: PrefillBankDetails,
+        details: PrefillBankDetailsNoULID,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO prefilled_entity_clients_bank_details
             (email, bank_name, bank_account_name, bank_account_number)
-            VALUES ($4, $1, $2, $3)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT(email) DO UPDATE SET 
-            bank_name = $1, bank_account_name = $2, bank_account_number = $3";
+            bank_name = $2, bank_account_name = $3, bank_account_number = $4";
 
         sqlx::query(query)
+            .bind(details.email.to_string())
             .bind(details.bank_name)
             .bind(details.account_name)
             .bind(details.account_number)
-            .bind(details.client_ulid.to_string())
             .execute(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -154,19 +154,19 @@ impl Database {
         let query = "
             INSERT INTO prefilled_entity_clients_pic_details
             (email, first_name, last_name, dob, dial_code, phone_number, profile_picture)
-            VALUES ($7, $1, $2, $3, $4, $5, $6)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT(email) DO UPDATE SET 
-            first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
-            profile_picture = $6";
+            first_name = $2, last_name = $3, dob = $4, dial_code = $5, phone_number = $6,
+            profile_picture = $7";
 
         sqlx::query(query)
+            .bind(details.email.to_string())
             .bind(details.first_name)
             .bind(details.last_name)
             .bind(details.dob)
             .bind(details.dial_code)
             .bind(details.phone_number)
             .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
-            .bind(details.email.to_string())
             .execute(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;

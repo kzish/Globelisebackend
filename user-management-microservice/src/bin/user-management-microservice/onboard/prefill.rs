@@ -68,7 +68,7 @@ pub async fn prefill_entity_client_account_details(
 
 pub async fn prefill_entity_client_bank_details(
     _: Token<AdminAccessToken>,
-    Json(details): Json<PrefillBankDetails>,
+    Json(details): Json<PrefillBankDetailsNoULID>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
@@ -131,6 +131,17 @@ pub struct PrefillBankDetails {
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
     pub email: EmailAddress,
     pub client_ulid: Ulid,
+    pub bank_name: String,
+    pub account_name: String,
+    pub account_number: String,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefillBankDetailsNoULID {
+    #[serde_as(as = "TryFromInto<EmailWrapper>")]
+    pub email: EmailAddress,
     pub bank_name: String,
     pub account_name: String,
     pub account_number: String,

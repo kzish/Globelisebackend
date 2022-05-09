@@ -29,6 +29,7 @@ use crate::{
 
 pub mod client_contractor_pair;
 pub mod individual_contractor_branch_pair;
+pub mod pay_items;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
