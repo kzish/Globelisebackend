@@ -20,6 +20,25 @@ impl From<sqlx::types::time::Date> for DateWrapper {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct OptionDateWrapper(Option<String>);
+
+impl TryFrom<OptionDateWrapper> for Option<sqlx::types::time::Date> {
+    type Error = GlobeliseError;
+
+    fn try_from(date: OptionDateWrapper) -> Result<Self, Self::Error> {
+        date.0
+            .map(|v| sqlx::types::time::Date::parse(v, "%F").map_err(GlobeliseError::bad_request))
+            .transpose()
+    }
+}
+
+impl From<Option<sqlx::types::time::Date>> for OptionDateWrapper {
+    fn from(date: Option<sqlx::types::time::Date>) -> Self {
+        Self(date.map(|d| d.format("%F")))
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct EmailWrapper(String);
 
 impl TryFrom<EmailWrapper> for EmailAddress {

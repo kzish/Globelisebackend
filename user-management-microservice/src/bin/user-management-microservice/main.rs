@@ -16,6 +16,7 @@ use tower_http::cors::{Any, CorsLayer, Origin};
 
 mod auth;
 mod branch;
+mod bulk_add;
 mod custom_field;
 mod database;
 mod department;
@@ -171,7 +172,8 @@ async fn main() {
         )
         .route(
             "/eor-admin/users/add_bulk_employees",
-            post(eor_admin::eor_admin_add_employees_in_bulk),
+            get(bulk_add::eor_admin_get_prefilled_individual_contractors_details_for_bulk_upload).
+            post(bulk_add::eor_admin_post_prefilled_individual_contractors_details_for_bulk_upload),
         )
         .route(
             "/eor-admin/users/onboard/prefill_individual_contractor_account_details",
