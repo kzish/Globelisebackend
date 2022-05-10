@@ -1,7 +1,7 @@
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-        && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production|*DevOPs01)$/'
+        && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production|devops01)$/'
 
 stages:
   - build
@@ -23,7 +23,7 @@ deploy globelise_backend:
   image: ubuntu:20.04
   stage: deploy
   only:
-    - feature/DevOPs01
+    - devops01
     - development
     - integration
     - master
