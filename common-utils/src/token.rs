@@ -55,21 +55,7 @@ where
 {
     let claims = Token::new(payload)?;
     let token = encode(&Header::new(Algorithm::EdDSA), &claims, encoding)
-        .map_err(|_| GlobeliseError::Internal("Failed to encode token".into()))?;
-    Ok((token, claims.exp))
-}
-
-/// Creates an access token.
-pub fn create_one_time_token<P>(
-    payload: P,
-    encoding: &EncodingKey,
-) -> Result<(String, i64), GlobeliseError>
-where
-    P: std::fmt::Debug + Serialize + DeserializeOwned + TokenLike + OneTimeTokenLike,
-{
-    let claims = Token::new(payload)?;
-    let token = encode(&Header::new(Algorithm::EdDSA), &claims, encoding)
-        .map_err(|_| GlobeliseError::Internal("Failed to encode one time token".into()))?;
+        .map_err(GlobeliseError::internal)?;
     Ok((token, claims.exp))
 }
 
@@ -79,10 +65,9 @@ pub trait TokenLike {
     fn dapr_app_id() -> DaprAppId;
 }
 
-pub trait OneTimeTokenLike {}
-
 /// Claims for access tokens.
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Token<P>
 where
     P: TokenLike,
@@ -98,14 +83,14 @@ where
     P: TokenLike,
 {
     pub fn new(payload: P) -> GlobeliseResult<Self> {
-        let exp = match OffsetDateTime::now_utc().checked_add(P::exp()) {
-            Some(datetime) => datetime.unix_timestamp(),
-            None => {
-                return Err(GlobeliseError::Internal(
+        let exp = OffsetDateTime::now_utc()
+            .unix_timestamp()
+            .checked_add(P::exp().whole_seconds())
+            .ok_or_else(|| {
+                GlobeliseError::Internal(
                     "Could not calculate access token expiration timestamp".into(),
-                ))
-            }
-        };
+                )
+            })?;
 
         Ok(Token {
             payload,
@@ -128,7 +113,7 @@ where
         };
 
         let TokenData { claims, .. } = decode::<Token<P>>(input, decoding, &validation)
-            .map_err(|_| GlobeliseError::Unauthorized("Failed to decode access token"))?;
+            .map_err(|e| GlobeliseError::unauthorized(e.to_string()))?;
 
         Ok(claims)
     }
@@ -143,9 +128,7 @@ where
     type Rejection = GlobeliseError;
 
     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let Extension(public_keys) = Extension::<SharedPublicKeys>::from_request(req)
-            .await
-            .map_err(GlobeliseError::internal)?;
+        let Extension(public_keys) = Extension::<SharedPublicKeys>::from_request(req).await?;
         let mut public_keys = public_keys.lock().await;
         let decoding_key = public_keys.get(P::dapr_app_id()).await?;
         if let Ok(TypedHeader(Authorization(bearer))) =
@@ -153,13 +136,15 @@ where
         {
             Ok(Token::decode(bearer.token(), decoding_key).await?)
         } else if let Ok(Query(param)) = Query::<HashMap<String, String>>::from_request(req).await {
-            let token = param.get("token").ok_or(GlobeliseError::Unauthorized(
-                "Please provide access token in the query param or as auth bearer",
-            ))?;
+            let token = param.get("token").ok_or_else(|| {
+                GlobeliseError::unauthorized(
+                    "Please provide access token in the query param or as auth bearer",
+                )
+            })?;
             Ok(Token::decode(token.as_str(), decoding_key).await?)
         } else {
-            Err(GlobeliseError::Unauthorized(
-                "No valid access token provided",
+            Err(GlobeliseError::unauthorized(
+                "Please provide access token in the query param or as auth bearer",
             ))
         }
     }
@@ -180,12 +165,14 @@ where
         {
             Ok(TokenString(bearer.token().to_string()))
         } else if let Ok(Query(param)) = Query::<HashMap<String, String>>::from_request(req).await {
-            let token = param.get("token").ok_or(GlobeliseError::Unauthorized(
-                "Please provide access token in the query param or as auth bearer",
-            ))?;
+            let token = param.get("token").ok_or_else(|| {
+                GlobeliseError::unauthorized(
+                    "Please provide access token in the query param or as auth bearer",
+                )
+            })?;
             Ok(TokenString(token.to_string()))
         } else {
-            Err(GlobeliseError::Unauthorized(
+            Err(GlobeliseError::unauthorized(
                 "No valid access token provided",
             ))
         }

@@ -1,0 +1,1213 @@
+{
+	"info": {
+		"_postman_id": "f7d0dcc7-ee49-44d2-aff4-1b206b3a9538",
+		"name": "Contractor Management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Payslips",
+			"item": [
+				{
+					"name": "EOR",
+					"item": [
+						{
+							"name": "Payslips index",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{contractor-management-host}}/eor-admin/payslips?page=1&per-page=25",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"eor-admin",
+										"payslips"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Page number"
+										},
+										{
+											"key": "per-page",
+											"value": "25",
+											"description": "Results per page"
+										},
+										{
+											"key": "query",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "contractor_ulid",
+											"value": "",
+											"description": "ULID of the contractor",
+											"disabled": true
+										},
+										{
+											"key": "client_ulid",
+											"value": "",
+											"description": "ULID of the client",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Upload payslip",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"client-ulid\" : \"01G0XVXMDH02D917AYTZJG308Q\",\n    \"contractor-ulid\" : \"01G0XYTHCNVS6ZKBX3APD0PX61\",\n    \"payslip-title\" : \"Payslip Title\",\n    \"payment-date\" : \"2022-04-01\",\n    \"begin-period\" : \"2022-01-01\",\n    \"end-period\" : \"2022-03-01\",\n    \"payslip-file\" : \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{contractor-management-host}}/eor-admin/payslips",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"eor-admin",
+										"payslips"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Contractor",
+					"item": [
+						{
+							"name": "Payslips Index",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{contractor-management-host}}/payslips/contractor?page=1&per_page=25",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"payslips",
+										"contractor"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Page of result"
+										},
+										{
+											"key": "per_page",
+											"value": "25",
+											"description": "Number of rows per page"
+										},
+										{
+											"key": "query",
+											"value": "",
+											"description": "Name of contractor/client",
+											"disabled": true
+										},
+										{
+											"key": "contractor_ulid",
+											"value": null,
+											"description": "ULID of the contractor",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Client",
+					"item": [
+						{
+							"name": "Payslips Index",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{contractor-management-host}}/payslips/client?page=1&per_page=25",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"payslips",
+										"client"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Page of result"
+										},
+										{
+											"key": "per_page",
+											"value": "25",
+											"description": "Number of rows per page"
+										},
+										{
+											"key": "query",
+											"value": "",
+											"description": "Name of contractor/client",
+											"disabled": true
+										},
+										{
+											"key": "client_ulid",
+											"value": null,
+											"description": "ULID of the client",
+											"disabled": true
+										},
+										{
+											"key": "contractor_ulid",
+											"value": null,
+											"description": "ULID of the contractor",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Tax reports",
+			"item": [
+				{
+					"name": "EOR",
+					"item": [
+						{
+							"name": "Tax reports index",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{contractor-management-host}}/eor-admin/tax-reports?page=1&per_page=25",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"eor-admin",
+										"tax-reports"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Page of result"
+										},
+										{
+											"key": "per_page",
+											"value": "25",
+											"description": "How many rows per page"
+										},
+										{
+											"key": "query",
+											"value": "",
+											"description": "Name of contractor/client",
+											"disabled": true
+										},
+										{
+											"key": "contractor_ulid",
+											"value": "",
+											"description": "ULID of the contractor",
+											"disabled": true
+										},
+										{
+											"key": "client_ulid",
+											"value": "",
+											"description": "ULID of the client",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Upload tax report",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"client-ulid\" : \"1234567\",\n    \"contractor-ulid\" : \"1234567\",\n    \"contract-ulid\" : \"1234567\",\n    \"tax-interval\" : \"monthly\",\n    \"tax-name\" : \"Tax Name\",\n    \"begin-period\" : \"2022-01-01\",\n    \"end-period\" : \"2022-03-01\",\n    \"country\" : \"Malaysia\",\n    \"tax-report-file\" : \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{contractor-management-host}}/eor-admin/tax-reports",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"eor-admin",
+										"tax-reports"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Contractors",
+					"item": [
+						{
+							"name": "Tax Report Index",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{contractor-management-host}}/tax-reports/contractor?page=1&per_page=25",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"tax-reports",
+										"contractor"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Page of result"
+										},
+										{
+											"key": "per_page",
+											"value": "25",
+											"description": "Number of rows per page"
+										},
+										{
+											"key": "query",
+											"value": "",
+											"description": "Name of contractor/client",
+											"disabled": true
+										},
+										{
+											"key": "client_ulid",
+											"value": null,
+											"description": "ULID of the client",
+											"disabled": true
+										},
+										{
+											"key": "contractor_ulid",
+											"value": null,
+											"description": "ULDI of the contractor",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Clients",
+					"item": [
+						{
+							"name": "Tax Report Index",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{contractor-management-host}}/tax-reports/client?page=1&per_page=25",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"tax-reports",
+										"client"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Page of result"
+										},
+										{
+											"key": "per_page",
+											"value": "25",
+											"description": "Number of rows per page"
+										},
+										{
+											"key": "query",
+											"value": "",
+											"description": "Name of contractor/client",
+											"disabled": true
+										},
+										{
+											"key": "contractor_ulid",
+											"value": "",
+											"description": "ULID of the contractor",
+											"disabled": true
+										},
+										{
+											"key": "client_ulid",
+											"value": "",
+											"description": "ULID of the client",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "User indices",
+			"item": [
+				{
+					"name": "EOR",
+					"item": [
+						{
+							"name": "Users index",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{contractor-management-host}}/eor-admin/users?page=1&per-page=25",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"eor-admin",
+										"users"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Page number"
+										},
+										{
+											"key": "per-page",
+											"value": "25",
+											"description": "Results per page"
+										},
+										{
+											"key": "query",
+											"value": "",
+											"description": "Name of the client/contractor",
+											"disabled": true
+										},
+										{
+											"key": "user_type",
+											"value": null,
+											"description": "Type of the user",
+											"disabled": true
+										},
+										{
+											"key": "user_role",
+											"value": null,
+											"description": "Role of the user",
+											"disabled": true
+										},
+										{
+											"key": "sign_up_date",
+											"value": null,
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Clients",
+					"item": [
+						{
+							"name": "Contractors Index",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{contractor-management-host}}/contractors?page=1&per_page=25",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"contractors"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Page of result"
+										},
+										{
+											"key": "per_page",
+											"value": "25",
+											"description": "Number of rows per page"
+										},
+										{
+											"key": "query",
+											"value": "",
+											"description": "Name of contractor/client",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Contractors",
+					"item": [
+						{
+							"name": "Clients Index",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{contractor-management-host}}/clients?page=1&per_page=25&query=",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"clients"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Page of result"
+										},
+										{
+											"key": "per_page",
+											"value": "25",
+											"description": "Number of rows per page"
+										},
+										{
+											"key": "query",
+											"value": "",
+											"description": "Name of client"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Contracts",
+			"item": [
+				{
+					"name": "EOR",
+					"item": [
+						{
+							"name": "Contracts Index",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{contractor-management-host}}/eor-admin/contracts?page=1&per-page=25",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"eor-admin",
+										"contracts"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "per-page",
+											"value": "25"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Contracts",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"client-ulid\" : \"01G0XVB3Q8HJ7T9GD20HX8XFPB\",\r\n    \"contractor-ulid\" : \"01G0XYTHCNVS6ZKBX3APD0PX61\",\r\n    \"contract-type\": \"Some Contract Type\",\r\n    \"contract-name\" : \"Hello World\",\r\n    \"job-title\" : \"Some Job Title\",\r\n    \"contract-status\" : \"Some Contract Status\",\r\n    \"contract-amount\" : 1000,\r\n    \"currency\" : \"USD\",\r\n    \"seniority\" : \"Some Seniority\",\r\n    \"begin-at\": \"2020-01-01\",\r\n    \"end-at\" :\"2022-01-01\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{contractor-management-host}}/eor-admin/contracts",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"eor-admin",
+										"contracts"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Contractors",
+					"item": [
+						{
+							"name": "Contracts Index",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{contractor-management-host}}/contracts/contractor?page=1&per_page=25",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"contracts",
+										"contractor"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "per_page",
+											"value": "25"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Clients",
+					"item": [
+						{
+							"name": "Contracts Index",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-refresh-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{contractor-management-host}}/contracts/client?page=1&per_page=25",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"contracts",
+										"client"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "per_page",
+											"value": "25"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Account Settings",
+			"item": [
+				{
+					"name": "Entity",
+					"item": [
+						{
+							"name": "bank details",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{contractor-management-host}}/account-settings/bank-details/entity",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"account-settings",
+										"bank-details",
+										"entity"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "bank details",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n\t\"bank-name\": \"bank abc2\",\r\n\t\"bank-account-name\": \"kz2\",\r\n\t\"bank-account-number\": \"1234\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{contractor-management-host}}/account-settings/bank-details/entity",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"account-settings",
+										"bank-details",
+										"entity"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "profile_details",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n   \"company-name\": \"sircorp2\",\r\n   \"country\": \"zim2\",\r\n   \"entity-type\": \"type of entity2\",\r\n   \"registration-number\": \"12345678902\",\r\n   \"tax-id\": \"ewijniwnedi2\",\r\n   \"company-address\": \"right here2\",\r\n   \"city\": \"joina2\",\r\n   \"postal-code\": \"2262\",\r\n   \"time-zone\": \"harare/joburg2\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{contractor-management-host}}/account-settings/profile/entity",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"account-settings",
+										"profile",
+										"entity"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "profile_details",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{contractor-management-host}}/account-settings/profile/entity",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"account-settings",
+										"profile",
+										"entity"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Individual",
+					"item": [
+						{
+							"name": "bank details",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{contractor-management-host}}/account-settings/bank-details/individual",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"account-settings",
+										"bank-details",
+										"individual"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "bank details",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n\t\"bank-name\": \"individual\",\r\n\t\"bank-account-name\": \"kz\",\r\n\t\"bank-account-number\": \"1234-individual\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{contractor-management-host}}/account-settings/bank-details/individual",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"account-settings",
+										"bank-details",
+										"individual"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "profile_details",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n   \"first-name\": \"kz\",\r\n   \"last-name\": \"z\",\r\n   \"dob\": \"10-09-1222\",\r\n   \"dial-code\": \"234\",\r\n   \"phone-number\": \"07733773\",\r\n   \"country\": \"bots\",\r\n   \"city\": \"joina\",\r\n   \"address\": \"3k k w k kjs k\",\r\n   \"postal-code\": \"234\",\r\n   \"tax-id\": \"xxww\",\r\n   \"time-zone\": \"swswsww\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{contractor-management-host}}/account-settings/profile/individual",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"account-settings",
+										"profile",
+										"individual"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "profile_details",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{user-access-token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{contractor-management-host}}/account-settings/profile/individual",
+									"host": [
+										"{{contractor-management-host}}"
+									],
+									"path": [
+										"account-settings",
+										"profile",
+										"individual"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "ChangePassword",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user-access-token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"current-password\": \"password2\",\r\n  \"new-password\": \"password\",\r\n  \"confirm-password\": \"password2\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{contractor-management-host}}/account-settings/change-password",
+							"host": [
+								"{{contractor-management-host}}"
+							],
+							"path": [
+								"account-settings",
+								"change-password"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "CORS preflight",
+			"request": {
+				"method": "OPTIONS",
+				"header": [
+					{
+						"key": "Origin",
+						"value": "{{frontend-host}}",
+						"type": "text"
+					},
+					{
+						"key": "Access-Control-Request-Method",
+						"value": "POST",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{contractor-management-host}}",
+					"host": [
+						"{{contractor-management-host}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Health",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{contractor-management-host}}/healthz",
+					"host": [
+						"{{contractor-management-host}}"
+					],
+					"path": [
+						"healthz"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

@@ -1,18 +1,34 @@
 use std::{sync::Arc, time::Duration};
 
-use axum::{error_handling::HandleErrorLayer, http::StatusCode, routing::get, BoxError, Router};
-use common_utils::token::PublicKeys;
+use axum::{
+    error_handling::HandleErrorLayer,
+    extract::Extension,
+    http::{HeaderValue, Method, StatusCode},
+    routing::{get, post},
+    BoxError, Json, Router,
+};
+use common_utils::{
+    error::GlobeliseResult,
+    pubsub::{AddClientContractorPair, PubSubData, TopicSubscription, UpdateUserName},
+    token::PublicKeys,
+};
 use database::Database;
+use pubsub::{update_client_contractor_pair, update_user_name};
 use reqwest::Client;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
-use tower_http::add_extension::AddExtensionLayer;
+use tower_http::cors::{Any, CorsLayer, Origin};
 
+mod common;
 mod contracts;
 mod database;
 mod env;
+mod invoice;
+mod payslips;
+mod pubsub;
+mod tax_report;
 
-use env::LISTENING_ADDRESS;
+use env::{FRONTEND_URL, LISTENING_ADDRESS};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -31,18 +47,77 @@ async fn main() {
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
-        .route("/users/index", get(contracts::user_index))
-        .route("/contractors/index", get(contracts::contractor_index))
+        .route("/clients", get(contracts::clients_index))
+        .route("/contractors", get(contracts::contractors_index))
+        .route("/contracts/:role", get(contracts::contracts_index))
+        .route("/payslips/:role", get(payslips::user_payslips_index))
+        .route("/tax-reports/:role", get(tax_report::user_tax_report_index))
+        .route(
+            "/invoices/individual/:role",
+            get(invoice::user_invoice_individual_index),
+        )
+        .route(
+            "/invoices/group/:role",
+            get(invoice::user_invoice_group_index),
+        )
+        // ========== ADMIN PAGES ==========
+        .route("/eor-admin/users", get(contracts::eor_admin_user_index))
+        .route(
+            "/eor-admin/payslips",
+            get(payslips::eor_admin_payslips_index).post(payslips::eor_admin_create_payslip),
+        )
+        .route(
+            "/eor-admin/tax-reports",
+            get(tax_report::eor_admin_tax_report_index)
+                .post(tax_report::eor_admin_create_tax_report),
+        )
+        .route(
+            "/eor-admin/contracts",
+            get(contracts::eor_admin_contracts_index).post(contracts::eor_admin_create_contract),
+        )
+        .route(
+            "/eor-admin/invoices/individual",
+            get(invoice::eor_admin_invoice_individual_index),
+        )
+        .route(
+            "/eor-admin/invoices/group",
+            get(invoice::eor_admin_invoice_group_index),
+        )
+        // ========== PUBSUB PAGES ==========
+        .route("/dapr/subscribe", get(dapr_subscription_list))
+        .route(
+            "/update_client_contractor_pair",
+            post(update_client_contractor_pair),
+        )
+        .route("/update_user_name", post(update_user_name))
         // ========== DEBUG PAGES ==========
+        .route("/healthz", get(handle_healthz))
+        // ========== CONFIGURATIONS ==========
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(handle_error))
                 .load_shed()
                 .concurrency_limit(1024)
                 .timeout(Duration::from_secs(10))
-                .layer(AddExtensionLayer::new(database))
-                .layer(AddExtensionLayer::new(reqwest_client))
-                .layer(AddExtensionLayer::new(public_keys)),
+                .layer(
+                    CorsLayer::new()
+                        .allow_origin(Origin::predicate(|origin: &HeaderValue, _| {
+                            let mut is_valid = origin == *FRONTEND_URL;
+
+                            #[cfg(debug_assertions)]
+                            {
+                                is_valid |= origin.as_bytes().starts_with(b"http://localhost");
+                            }
+
+                            is_valid
+                        }))
+                        .allow_methods(vec![Method::GET, Method::POST])
+                        .allow_credentials(true)
+                        .allow_headers(Any),
+                )
+                .layer(Extension(database))
+                .layer(Extension(reqwest_client))
+                .layer(Extension(public_keys)),
         );
 
     axum::Server::bind(
@@ -54,6 +129,16 @@ async fn main() {
     .serve(app.into_make_service())
     .await
     .unwrap();
+}
+
+async fn handle_healthz() -> String {
+    if let Some(v) = option_env!("GIT_HASH") {
+        v.to_string()
+    } else if let Ok(v) = std::env::var("GIT_HASH") {
+        v
+    } else {
+        env!("CARGO_PKG_VERSION").to_string()
+    }
 }
 
 /// Handle errors from fallible services.
@@ -68,4 +153,13 @@ async fn handle_error(error: BoxError) -> (StatusCode, &'static str) {
     } else {
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
     }
+}
+
+/// DAPR will invoke this endpoint to know which pubsub and topic names this app
+/// will listen to.
+pub async fn dapr_subscription_list() -> GlobeliseResult<Json<Vec<TopicSubscription>>> {
+    Ok(Json(vec![
+        AddClientContractorPair::create_topic_subscription("update_client_contractor_pair"),
+        UpdateUserName::create_topic_subscription("update_user_name"),
+    ]))
 }

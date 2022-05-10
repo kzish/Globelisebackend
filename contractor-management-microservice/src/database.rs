@@ -1,17 +1,14 @@
 use std::{sync::Arc, time::Duration};
 
-use common_utils::error::{GlobeliseError, GlobeliseResult};
+use common_utils::{error::GlobeliseResult, ulid_to_sql_uuid};
 use rusty_ulid::Ulid;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
-use user_management_microservice_sdk::Role;
-
-use crate::contracts::{ContractorIndex, ContractorIndexQuery};
 
 pub type SharedDatabase = Arc<Mutex<Database>>;
 
 /// Convenience wrapper around PostgreSQL.
-pub struct Database(Pool<Postgres>);
+pub struct Database(pub Pool<Postgres>);
 
 impl Database {
     /// Connects to PostgreSQL.
@@ -27,52 +24,67 @@ impl Database {
 
         Self(pool)
     }
-}
 
-impl Database {
-    /// Counts the number of contracts.
-    pub async fn count_number_of_contracts(
-        &self,
-        ulid: &Ulid,
-        role: &Role,
-    ) -> GlobeliseResult<i64> {
-        let result = sqlx::query_scalar(&format!(
-            "SELECT COUNT(*) FROM contractors WHERE {} = $1",
-            match role {
-                Role::Client => "client_ulid",
-                Role::Contractor => "contractor_ulid",
-            }
-        ))
-        .bind(ulid_to_sql_uuid(*ulid))
-        .fetch_one(&self.0)
-        .await
-        .map_err(|e| GlobeliseError::Internal(e.to_string()))?;
-        Ok(result)
-    }
-
-    /// Indexes contractors working for a client.
-    pub async fn contractor_index(
+    /// Create a client/contractor pair
+    ///
+    /// This does not require users to be fully onboarded.
+    pub async fn update_client_contractor_pair(
         &self,
         client_ulid: Ulid,
-        query: ContractorIndexQuery,
-    ) -> GlobeliseResult<Vec<ContractorIndex>> {
-        let index = sqlx::query_as(&format!(
-            "SELECT * FROM contractor_index WHERE client_ulid = $1 {} LIMIT $2 OFFSET $3",
-            match query.search_text {
-                Some(search_text) => format!("AND name ~* '{}'", search_text),
-                None => "".into(),
-            }
-        ))
+        contractor_ulid: Ulid,
+    ) -> GlobeliseResult<()> {
+        sqlx::query(
+            "
+            INSERT INTO client_contractor_pairs 
+                (client_ulid, contractor_ulid)
+            VALUES
+                ($1, $2)
+            ON CONFLICT 
+                (client_ulid, contractor_ulid)
+            DO NOTHING",
+        )
         .bind(ulid_to_sql_uuid(client_ulid))
-        .bind(query.per_page)
-        .bind((query.page - 1) * query.per_page)
-        .fetch_all(&self.0)
+        .bind(ulid_to_sql_uuid(contractor_ulid))
+        .execute(&self.0)
         .await?;
-
-        Ok(index)
+        Ok(())
     }
-}
 
-fn ulid_to_sql_uuid(ulid: Ulid) -> sqlx::types::Uuid {
-    sqlx::types::Uuid::from_bytes(ulid.into())
+    /// Update a client's name
+    pub async fn update_client_name(&self, ulid: Ulid, name: String) -> GlobeliseResult<()> {
+        sqlx::query(
+            "
+            INSERT INTO client_names
+                (ulid, name)
+            VALUES
+                ($1, $2)
+            ON CONFLICT (ulid)
+            DO UPDATE SET
+                name = $2",
+        )
+        .bind(ulid_to_sql_uuid(ulid))
+        .bind(name)
+        .execute(&self.0)
+        .await?;
+        Ok(())
+    }
+
+    /// Update a contractor's name
+    pub async fn update_contractor_name(&self, ulid: Ulid, name: String) -> GlobeliseResult<()> {
+        sqlx::query(
+            "
+            INSERT INTO contractor_names 
+                (ulid, name)
+            VALUES
+                ($1, $2)
+            ON CONFLICT (ulid)
+            DO UPDATE SET
+                name = $2",
+        )
+        .bind(ulid_to_sql_uuid(ulid))
+        .bind(name)
+        .execute(&self.0)
+        .await?;
+        Ok(())
+    }
 }

@@ -1,37 +1,37 @@
-use std::collections::HashMap;
-
 use axum::{
-    extract::{Extension, Query},
+    extract::{Extension, Path, Query},
     Json,
 };
 use common_utils::{
+    custom_serde::{Currency, DateWrapper},
     error::GlobeliseResult,
     token::{Token, TokenString},
+    ulid_from_sql_uuid,
 };
+use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use reqwest::Client;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
-use user_management_microservice_sdk::{AccessToken, Role};
+use serde_with::{serde_as, FromInto, TryFromInto};
+use sqlx::{postgres::PgRow, FromRow, Row};
+use user_management_microservice_sdk::{
+    token::AccessToken as UserAccessToken, user::Role, user_index::GetUserInfoRequest,
+};
 
-use crate::{database::SharedDatabase, env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL};
+use crate::{
+    common::PaginatedQuery, database::SharedDatabase, env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
+};
+
+mod database;
 
 /// Lists all the users plus some information about them.
-pub async fn user_index(
+pub async fn eor_admin_user_index(
     TokenString(access_token): TokenString,
-    Query(query): Query<HashMap<String, String>>,
+    Query(request): Query<GetUserInfoRequest>,
     Extension(shared_client): Extension<Client>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<UserIndex>>> {
-    let request = user_management_microservice_sdk::GetUserInfoRequest {
-        page: query.get("page").map(|v| v.parse()).transpose()?,
-        per_page: query.get("per_page").map(|v| v.parse()).transpose()?,
-        search_text: query.get("search_text").map(|v| v.parse()).transpose()?,
-        user_type: query.get("user_type").map(|v| v.parse()).transpose()?,
-        user_role: query.get("user_role").map(|v| v.parse()).transpose()?,
-    };
-
-    let response = user_management_microservice_sdk::get_users_info(
+    let response = user_management_microservice_sdk::user_index::eor_admin_onboarded_users(
         &shared_client,
         &*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
         access_token,
@@ -45,7 +45,7 @@ pub async fn user_index(
 
     for v in response {
         let count = database
-            .count_number_of_contracts(&v.ulid, &v.user_role)
+            .count_number_of_contracts(v.ulid, v.user_role)
             .await?;
         result.push(UserIndex {
             ulid: v.ulid,
@@ -59,51 +59,302 @@ pub async fn user_index(
     Ok(Json(result))
 }
 
-pub async fn contractor_index(
-    access_token: Token<AccessToken>,
-    Query(query): Query<ContractorIndexQuery>,
+pub async fn clients_index(
+    access_token: Token<UserAccessToken>,
+    Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ContractorIndex>>> {
-    let ulid = access_token.payload.ulid.parse::<Ulid>().unwrap();
+) -> GlobeliseResult<Json<Vec<ClientsIndex>>> {
     let database = database.lock().await;
-    Ok(Json(database.contractor_index(ulid, query).await?))
+    Ok(Json(
+        database
+            .clients_index(access_token.payload.ulid, query)
+            .await?,
+    ))
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+pub async fn contractors_index(
+    access_token: Token<UserAccessToken>,
+    Query(query): Query<PaginatedQuery>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ContractorsIndex>>> {
+    let database = database.lock().await;
+    Ok(Json(
+        database
+            .contractors_index(access_token.payload.ulid, query)
+            .await?,
+    ))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GetContractsRequest {
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+    pub query: Option<String>,
+    pub contractor_ulid: Option<Ulid>,
+    pub client_ulid: Option<Ulid>,
+    pub branch_ulid: Option<Ulid>,
+}
+
+pub async fn contracts_index(
+    access_token: Token<UserAccessToken>,
+    Path(role): Path<Role>,
+    Query(query): Query<GetContractsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<ContractsIndex>> {
+    let database = database.lock().await;
+    let results = match role {
+        Role::Client => ContractsIndex::Client(
+            database
+                .contracts_index_for_client(access_token.payload.ulid, query)
+                .await?,
+        ),
+        Role::Contractor => ContractsIndex::Contractor(
+            database
+                .contracts_index_for_contractor(access_token.payload.ulid, query)
+                .await?,
+        ),
+    };
+
+    Ok(Json(results))
+}
+
+pub async fn eor_admin_contracts_index(
+    _: Token<AdminAccessToken>,
+    Query(query): Query<PaginatedQuery>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ContractsIndexForEorAdmin>>> {
+    let database = database.lock().await;
+    Ok(Json(database.eor_admin_contracts_index(query).await?))
+}
+
+pub async fn eor_admin_create_contract(
+    _: Token<AdminAccessToken>,
+    Json(request): Json<CreateContractRequestForEorAdmin>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    let database = database.lock().await;
+    database.create_contract(request).await?;
+    Ok(())
+}
+
+#[serde_as]
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct UserIndex {
     pub ulid: Ulid,
     pub name: String,
     pub role: Role,
     pub contract_count: i64,
-    pub created_at: String,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    pub created_at: sqlx::types::time::Date,
     pub email: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ContractorIndexQuery {
-    #[serde(default = "ContractorIndexQuery::default_page")]
-    pub page: i64,
-    #[serde(default = "ContractorIndexQuery::default_per_page")]
-    pub per_page: i64,
-    pub search_text: Option<String>,
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ClientsIndex {
+    client_ulid: Ulid,
+    client_name: String,
 }
 
-impl ContractorIndexQuery {
-    fn default_page() -> i64 {
-        1
-    }
-
-    fn default_per_page() -> i64 {
-        25
+impl<'r> FromRow<'r, PgRow> for ClientsIndex {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            client_ulid: ulid_from_sql_uuid(row.try_get("client_ulid")?),
+            client_name: row.try_get("client_name")?,
+        })
     }
 }
 
-#[derive(Debug, FromRow, Deserialize, Serialize)]
-pub struct ContractorIndex {
-    #[sqlx(rename = "contractor_name")]
-    pub name: String,
-    pub contract_name: String,
-    pub contract_status: String,
-    pub job_title: String,
-    pub seniority: String,
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractorsIndex {
+    contractor_ulid: Ulid,
+    contractor_name: String,
+    contract_name: Option<String>,
+    contract_status: Option<String>,
+    job_title: Option<String>,
+    seniority: Option<String>,
+}
+
+impl<'r> FromRow<'r, PgRow> for ContractorsIndex {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let other_fields = ContractorsIndexSqlHelper::from_row(row)?;
+        Ok(Self {
+            contractor_ulid: ulid_from_sql_uuid(row.try_get("contractor_ulid")?),
+            contractor_name: other_fields.contractor_name,
+            contract_name: other_fields.contract_name,
+            contract_status: other_fields.contract_status,
+            job_title: other_fields.job_title,
+            seniority: other_fields.seniority,
+        })
+    }
+}
+
+#[derive(Debug, FromRow, Serialize)]
+#[serde(rename_all = "kebab-case")]
+struct ContractorsIndexSqlHelper {
+    contractor_name: String,
+    contract_name: Option<String>,
+    contract_status: Option<String>,
+    job_title: Option<String>,
+    seniority: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+pub enum ContractsIndex {
+    Client(Vec<ContractsIndexForClient>),
+    Contractor(Vec<ContractsIndexForContractor>),
+}
+
+#[serde_as]
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractsIndexForClient {
+    contractor_name: String,
+    contract_ulid: Ulid,
+    branch_ulid: Ulid,
+    contract_name: String,
+    contract_type: String,
+    job_title: String,
+    contract_status: String,
+    contract_amount: sqlx::types::Decimal,
+    currency: Currency,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    begin_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    end_at: sqlx::types::time::Date,
+}
+
+impl<'r> FromRow<'r, PgRow> for ContractsIndexForClient {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let other_fields = ContractsIndexCommonInfoSqlHelper::from_row(row)?;
+        Ok(Self {
+            contractor_name: row.try_get("contractor_name")?,
+            contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
+            branch_ulid: ulid_from_sql_uuid(row.try_get("branch_ulid")?),
+            contract_name: other_fields.contract_name,
+            contract_type: other_fields.contract_type,
+            job_title: other_fields.job_title,
+            contract_status: other_fields.contract_status,
+            contract_amount: other_fields.contract_amount,
+            currency: other_fields.currency,
+            begin_at: other_fields.begin_at,
+            end_at: other_fields.end_at,
+        })
+    }
+}
+
+#[serde_as]
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractsIndexForContractor {
+    client_name: String,
+    contract_ulid: Ulid,
+    branch_ulid: Ulid,
+    contract_name: String,
+    contract_type: String,
+    job_title: String,
+    contract_status: String,
+    contract_amount: sqlx::types::Decimal,
+    currency: Currency,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    begin_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    end_at: sqlx::types::time::Date,
+}
+
+impl<'r> FromRow<'r, PgRow> for ContractsIndexForContractor {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let other_fields = ContractsIndexCommonInfoSqlHelper::from_row(row)?;
+        Ok(Self {
+            client_name: row.try_get("client_name")?,
+            contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
+            branch_ulid: ulid_from_sql_uuid(row.try_get("branch_ulid")?),
+            contract_name: other_fields.contract_name,
+            contract_type: other_fields.contract_type,
+            job_title: other_fields.job_title,
+            contract_status: other_fields.contract_status,
+            contract_amount: other_fields.contract_amount,
+            currency: other_fields.currency,
+            begin_at: other_fields.begin_at,
+            end_at: other_fields.end_at,
+        })
+    }
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct CreateContractRequestForEorAdmin {
+    client_ulid: Ulid,
+    contractor_ulid: Ulid,
+    branch_ulid: Ulid,
+    contract_name: String,
+    contract_type: String,
+    job_title: String,
+    contract_status: String,
+    contract_amount: sqlx::types::Decimal,
+    currency: Currency,
+    seniority: String,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    begin_at: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    end_at: sqlx::types::time::Date,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractsIndexForEorAdmin {
+    client_name: String,
+    contractor_name: String,
+    contract_ulid: Ulid,
+    contract_name: String,
+    contract_type: String,
+    job_title: String,
+    contract_status: String,
+    contract_amount: sqlx::types::Decimal,
+    currency: Currency,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    begin_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    end_at: sqlx::types::time::Date,
+}
+
+impl<'r> FromRow<'r, PgRow> for ContractsIndexForEorAdmin {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let other_fields = ContractsIndexCommonInfoSqlHelper::from_row(row)?;
+        Ok(Self {
+            client_name: row.try_get("client_name")?,
+            contractor_name: row.try_get("contractor_name")?,
+            contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
+            contract_name: other_fields.contract_name,
+            contract_type: other_fields.contract_type,
+            job_title: other_fields.job_title,
+            contract_status: other_fields.contract_status,
+            contract_amount: other_fields.contract_amount,
+            currency: other_fields.currency,
+            begin_at: other_fields.begin_at,
+            end_at: other_fields.end_at,
+        })
+    }
+}
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize)]
+#[serde(rename_all = "kebab-case")]
+struct ContractsIndexCommonInfoSqlHelper {
+    contract_name: String,
+    contract_type: String,
+    job_title: String,
+    contract_status: String,
+    contract_amount: sqlx::types::Decimal,
+    currency: Currency,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    begin_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<DateWrapper>")]
+    end_at: sqlx::types::time::Date,
 }

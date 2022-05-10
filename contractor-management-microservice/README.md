@@ -9,13 +9,28 @@ Microservice for the management of contractors
   - Depends on Docker
 - Environment variables:
   - `LISTENING_ADDRESS`: IP address and port that the server will listen on
-    - e.g. `localhost:3001`
-  - `DAPR_ADDRESS`: IP address and port of the DAPR sidecar.
-    - e.g. `localhost:3501`
+    - e.g. `localhost:4001`
     - All occurences of `localhost` will be replaced by `127.0.0.1`
   - `DATABASE_URL`: URL for connecting to the PostgreSQL database
     - e.g. `postgres://postgres:<password>@localhost/globelise_eor_admin_management`
-  - `GOOGLE_CLIENT_ID`: Google client ID
-  - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for user management microservice
-  - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for contractor management microservice
-  - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: IP address and port of the DAPR sidecar for eor admin microservice
+  - `FRONTEND_URL`: URL of frontend
+    - e.g. `https://globelise.com`
+  - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the Dapr sidecar for user management microservice
+  - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the Dapr sidecar for contractor management microservice
+  - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: URL of the Dapr sidecar for EOR admin microservice
+
+## Build
+
+```
+cargo build
+```
+
+## Run
+
+Inside the project's root directory, run the following command:
+
+```
+dapr run --app-id eor-admin-microservice --app-port 4001 --dapr-http-port 3991 --components-path ./components target/debug/eor-admin-microservice
+```
+
+If it is not starting, you may have to run Dapr using `sudo` for it to work properly.
