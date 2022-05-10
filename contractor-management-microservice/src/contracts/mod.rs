@@ -85,10 +85,21 @@ pub async fn contractors_index(
     ))
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GetContractsRequest {
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+    pub query: Option<String>,
+    pub contractor_ulid: Option<Ulid>,
+    pub client_ulid: Option<Ulid>,
+    pub branch_ulid: Option<Ulid>,
+}
+
 pub async fn contracts_index(
     access_token: Token<UserAccessToken>,
     Path(role): Path<Role>,
-    Query(query): Query<PaginatedQuery>,
+    Query(query): Query<GetContractsRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<ContractsIndex>> {
     let database = database.lock().await;
@@ -204,6 +215,7 @@ pub enum ContractsIndex {
 pub struct ContractsIndexForClient {
     contractor_name: String,
     contract_ulid: Ulid,
+    branch_ulid: Ulid,
     contract_name: String,
     contract_type: String,
     job_title: String,
@@ -222,6 +234,7 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForClient {
         Ok(Self {
             contractor_name: row.try_get("contractor_name")?,
             contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
+            branch_ulid: ulid_from_sql_uuid(row.try_get("branch_ulid")?),
             contract_name: other_fields.contract_name,
             contract_type: other_fields.contract_type,
             job_title: other_fields.job_title,
@@ -240,6 +253,7 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForClient {
 pub struct ContractsIndexForContractor {
     client_name: String,
     contract_ulid: Ulid,
+    branch_ulid: Ulid,
     contract_name: String,
     contract_type: String,
     job_title: String,
@@ -258,6 +272,7 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForContractor {
         Ok(Self {
             client_name: row.try_get("client_name")?,
             contract_ulid: ulid_from_sql_uuid(row.try_get("contract_ulid")?),
+            branch_ulid: ulid_from_sql_uuid(row.try_get("branch_ulid")?),
             contract_name: other_fields.contract_name,
             contract_type: other_fields.contract_type,
             job_title: other_fields.job_title,
@@ -276,6 +291,7 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForContractor {
 pub struct CreateContractRequestForEorAdmin {
     client_ulid: Ulid,
     contractor_ulid: Ulid,
+    branch_ulid: Ulid,
     contract_name: String,
     contract_type: String,
     job_title: String,
