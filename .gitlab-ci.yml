@@ -40,9 +40,9 @@ deploy globelise_backend:
     - chmod 644 ~/.ssh/known_hosts
     - ssh-keyscan -t rsa,dsa 54.255.80.105 2>&1 | sort -u - ~/.ssh/known_hosts > ~/.ssh/tmp_hosts 
     - mv ~/.ssh/tmp_hosts ~/.ssh/known_hosts
-    - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/ && exit"
-    - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/ && sudo systemctl start stopdaprapps.service && sleep 5  && exit"
-    - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/ && sudo chown -R ubuntu /opt/backend-cd/ && sudo rm -rf /opt/backend-cd/globelise-backend/user-management-microservice/user-management-microservice && sudo rm -rf /opt/backend-cd/globelise-backend/eor-admin-microservice/eor-admin-microservice && sudo rm -rf /opt/backend-cd/globelise-backend/contractor-management-microservice/contractor-management-microservice && exit"
+    - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/globelise-backend && exit"
+    - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/globelise-backend && sudo systemctl start stopdaprapps.service && sleep 5  && exit"
+    - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/globelise-backend && sudo chown -R ubuntu /opt/backend-cd/ && sudo rm -rf /opt/backend-cd/globelise-backend/user-management-microservice/user-management-microservice && sudo rm -rf /opt/backend-cd/globelise-backend/eor-admin-microservice/eor-admin-microservice && sudo rm -rf /opt/backend-cd/globelise-backend/contractor-management-microservice/contractor-management-microservice && exit"
     
     - scp -C -i ~/.ssh/GlobeliseAppsKey.pem -r ./target/debug/user-management-microservice ubuntu@54.255.80.105:/opt/backend-cd/globelise-backend/user-management-microservice/
     - scp -C -i ~/.ssh/GlobeliseAppsKey.pem -r ./target/debug/eor-admin-microservice ubuntu@54.255.80.105:/opt/backend-cd/globelise-backend/eor-admin-microservice/
