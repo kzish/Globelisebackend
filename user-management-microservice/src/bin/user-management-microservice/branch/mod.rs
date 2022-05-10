@@ -24,6 +24,15 @@ pub mod payroll;
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+pub struct PostBranchDetailsRequest {
+    pub account: BranchAccountDetails,
+    pub bank: BranchBankDetails,
+    pub payroll: BranchPayrollDetails,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct BranchDetails {
     pub ulid: Ulid,
     pub account: BranchAccountDetails,
@@ -55,7 +64,7 @@ pub struct DeleteBranchRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct BranchDetailsRequest {
+pub struct GetBranchDetailsRequest {
     pub page: Option<u32>,
     pub per_page: Option<u32>,
 }
@@ -63,7 +72,7 @@ pub struct BranchDetailsRequest {
 pub async fn post_branch(
     claims: Token<AccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
-        Json<BranchDetails>,
+        Json<PostBranchDetailsRequest>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
@@ -93,7 +102,7 @@ pub async fn post_branch(
 
 pub async fn get_branches(
     claims: Token<AccessToken>,
-    Query(query): Query<BranchDetailsRequest>,
+    Query(query): Query<GetBranchDetailsRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<BranchDetails>>> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -233,7 +242,7 @@ impl Database {
     pub async fn get_entity_clients_branch_details(
         &self,
         client_ulid: Ulid,
-        request: BranchDetailsRequest,
+        request: GetBranchDetailsRequest,
     ) -> GlobeliseResult<Vec<BranchDetails>> {
         let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
 
