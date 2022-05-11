@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "96f695fb-0b58-4682-9faa-d2a4ff16ebf3",
+    "_postman_id": "3084063b-41d3-4986-b9f2-c704d8720c09",
     "name": "Globelise API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -1543,6 +1543,51 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "Search Client Employee Contractors",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{user-access-token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{user-management-host}}/client-contractors/search?page=1&per-page=2&client-ulid=01G1RXJ0E5N1Z2C5T204SSP1X2&branch-ulid=01G1RXJ0E5N1Z2C5T204SSP1X2&employee-contractor-name=name",
+                  "host": ["{{user-management-host}}"],
+                  "path": ["client-contractors", "search"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "per-page",
+                      "value": "2"
+                    },
+                    {
+                      "key": "client-ulid",
+                      "value": "01G1RXJ0E5N1Z2C5T204SSP1X2"
+                    },
+                    {
+                      "key": "branch-ulid",
+                      "value": "01G1RXJ0E5N1Z2C5T204SSP1X2"
+                    },
+                    {
+                      "key": "employee-contractor-name",
+                      "value": "name"
+                    }
+                  ]
+                }
+              },
+              "response": []
             }
           ]
         },
@@ -2102,6 +2147,177 @@
                       "response": []
                     }
                   ]
+                },
+                {
+                  "name": "Create Branch",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"client-ulid\": \"01G1FXNN4N06T55C3N83G2Y8FC\",\n    \"account\": {\n        \"company-name\": \"Company Name\",\n        \"country\": \"Some Country\",\n        \"entity-type\": \"Some Entity Type\",\n        \"registration-number\": \"QWERTY123456\",\n        \"company-address\": \"123 Street\",\n        \"city\": \"Some City\",\n        \"postal-code\": \"QWE123\",\n        \"time-zone\": \"Eastern/US\"\n    },\n    \"bank\": {\n        \"currency\": \"USD\",\n        \"bank-name\": \"Some Bank Name\",\n        \"bank-account-name\": \"Some Account Name\",\n        \"bank-account-number\": \"QWER1234\"\n    },\n    \"payroll\": {\n        \"payment-date\": \"2020-01-01\",\n        \"cutoff-date\": \"2022-01-01\"\n    }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/branch",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["eor-admin", "branch"]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Branch",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/client/branch?page=1&per-page=100",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["client", "branch"],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "per-page",
+                          "value": "100"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Branch",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n    \"branch-ulid\": \"01G1RXH0AGB3AT8X78CS0KRDMJ\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/client/branch",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["client", "branch"]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Department",
+              "item": [
+                {
+                  "name": "Get Deparments",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/department?page=1&per-page=2&client-ulid=01G1FXNN4N06T55C3N83G2Y8FC",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["eor-admin", "department"],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "per-page",
+                          "value": "2"
+                        },
+                        {
+                          "key": "client-ulid",
+                          "value": "01G1FXNN4N06T55C3N83G2Y8FC"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Create Department",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n    \"client-ulid\": \"01G1FXNN4N06T55C3N83G2Y8FC\",\r\n    \"department-name\" : \"Some Department Name\",\r\n    \"branch-ulid\" : \"01G1JGPRSH72NKJJBK6YCCC0J8\",\r\n    \"country\" : \"Some Country\",\r\n    \"classification\" : \"Some Classification\",\r\n    \"currency\" : \"USD\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/department",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["eor-admin", "department"]
+                    }
+                  },
+                  "response": []
                 }
               ]
             },
@@ -2168,7 +2384,7 @@
                   }
                 },
                 "url": {
-                  "raw": "{{user-management-host}}/eor-admin/onboarded-users?user-role=client&user-type=entity",
+                  "raw": "{{user-management-host}}/eor-admin/onboarded-users?user-role=contractor",
                   "host": ["{{user-management-host}}"],
                   "path": ["eor-admin", "onboarded-users"],
                   "query": [
@@ -2184,11 +2400,12 @@
                     },
                     {
                       "key": "user-role",
-                      "value": "client"
+                      "value": "contractor"
                     },
                     {
                       "key": "user-type",
-                      "value": "entity"
+                      "value": "entity",
+                      "disabled": true
                     }
                   ]
                 }
@@ -2223,6 +2440,51 @@
                   "raw": "{{user-management-host}}/eor-admins/users/add_individual_contractor",
                   "host": ["{{user-management-host}}"],
                   "path": ["eor-admins", "users", "add_individual_contractor"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Search Client Employee Contractors",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin-access-token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{user-management-host}}/eor-admin/client-contractors/search?page=1&per-page=2&client-ulid=01G1RXJ0E5N1Z2C5T204SSP1X2&branch-ulid=01G1RXJ0E5N1Z2C5T204SSP1X2&employee-contractor-name=name",
+                  "host": ["{{user-management-host}}"],
+                  "path": ["eor-admin", "client-contractors", "search"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "per-page",
+                      "value": "2"
+                    },
+                    {
+                      "key": "client-ulid",
+                      "value": "01G1RXJ0E5N1Z2C5T204SSP1X2"
+                    },
+                    {
+                      "key": "branch-ulid",
+                      "value": "01G1RXJ0E5N1Z2C5T204SSP1X2"
+                    },
+                    {
+                      "key": "employee-contractor-name",
+                      "value": "name"
+                    }
+                  ]
                 }
               },
               "response": []
@@ -3463,19 +3725,19 @@
                         },
                         {
                           "key": "user_type",
-                          "value": null,
+                          "value": "",
                           "description": "Type of the user",
                           "disabled": true
                         },
                         {
                           "key": "user_role",
-                          "value": null,
+                          "value": "",
                           "description": "Role of the user",
                           "disabled": true
                         },
                         {
                           "key": "sign_up_date",
-                          "value": null,
+                          "value": "",
                           "disabled": true
                         }
                       ]
@@ -3711,7 +3973,7 @@
                         },
                         {
                           "key": "contractor_ulid",
-                          "value": null,
+                          "value": "",
                           "description": "ULID of the contractor",
                           "disabled": true
                         }
@@ -3763,13 +4025,13 @@
                         },
                         {
                           "key": "client_ulid",
-                          "value": null,
+                          "value": "",
                           "description": "ULID of the client",
                           "disabled": true
                         },
                         {
                           "key": "contractor_ulid",
-                          "value": null,
+                          "value": "",
                           "description": "ULID of the contractor",
                           "disabled": true
                         }
@@ -4073,13 +4335,13 @@
                         },
                         {
                           "key": "client_ulid",
-                          "value": null,
+                          "value": "",
                           "description": "ULID of the client",
                           "disabled": true
                         },
                         {
                           "key": "contractor_ulid",
-                          "value": null,
+                          "value": "",
                           "description": "ULDI of the contractor",
                           "disabled": true
                         }

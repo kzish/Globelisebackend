@@ -20,6 +20,7 @@ mod bulk_add;
 mod custom_field;
 mod database;
 mod department;
+mod employee_contractors;
 mod env;
 mod eor_admin;
 mod onboard;
@@ -146,6 +147,10 @@ async fn main() {
             get(branch::pay_items::get_pay_item_by_id).delete(branch::pay_items::delete_pay_item),
         )
         .route(
+            "/client-contractors/search",
+            get(employee_contractors::search_employee_contractors::get_employee_contractors)
+        )
+        .route(
             "/onboard/fully_onboarded/:role",
             get(onboard::fully_onboarded),
         )
@@ -161,10 +166,15 @@ async fn main() {
                 .post(eor_admin::client_contractor_pair::eor_admin_create_client_contractor_pairs),
         )
         .route(
-            "/eor-admin/users/contractor_branch_pairs",
+            "/eor-admin/users/individual/contractor_branch_pairs",
             get(eor_admin::individual_contractor_branch_pair::eor_admin_get_individual_contractor_branch_pairs)
                 .post(eor_admin::individual_contractor_branch_pair::eor_admin_post_individual_contractor_branch_pairs)
                 .delete(eor_admin::individual_contractor_branch_pair::eor_admin_delete_individual_contractor_branch_pairs),
+        ).route(
+            "/eor-admin/users/entity/contractor_branch_pairs",
+            get(eor_admin::entity_contractor_branch_pair::eor_admin_get_entity_contractor_branch_pairs)
+                .post(eor_admin::entity_contractor_branch_pair::eor_admin_post_entity_contractor_branch_pairs)
+                .delete(eor_admin::entity_contractor_branch_pair::eor_admin_delete_entity_contractor_branch_pairs),
         )
         .route(
             "/eor-admin/users/add_individual_contractor",
@@ -221,6 +231,10 @@ async fn main() {
             "/eor-admin/client/branch/pay-items/:pay_item_ulid",
             get(eor_admin::pay_items::get_pay_item_by_id)
                 .delete(eor_admin::pay_items::delete_pay_item),
+        )
+        .route(
+            "/eor-admin/client-contractors/search",
+            get(eor_admin::search_employee_contractors::eor_admin_get_employee_contractors)
         )
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
