@@ -146,7 +146,7 @@ impl Database {
             SELECT
                 contract_ulid, contract_name, contract_type,
                 client_name, contract_status, contract_amount, currency,
-                begin_at, end_at, branch_ulid
+                begin_at, end_at, branch_ulid, job_title
             FROM
                 contracts_index
             WHERE
