@@ -111,7 +111,7 @@ impl Database {
             SELECT
                 contract_ulid, contract_name, contract_type,
                 contractor_name, contract_status, contract_amount, currency,
-                begin_at, end_at, branch_ulid
+                begin_at, end_at, branch_ulid, job_title
             FROM
                 contracts_index
             WHERE
@@ -208,14 +208,14 @@ impl Database {
 
         sqlx::query(
             "
-                    INSERT INTO contracts (
-                        ulid, client_ulid, contractor_ulid, contract_name, contract_type,
-                        contract_status, contract_amount, currency, job_title, seniority,
-                        begin_at, end_at, branch_ulid
-                    ) VALUES (
-                        $1, $2, $3, $4, $5,
-                        $6, $7, $8, $9, $10,
-                        $11, $12, 13$
+            INSERT INTO contracts (
+                ulid, client_ulid, contractor_ulid, contract_name, contract_type,
+                contract_status, contract_amount, currency, job_title, seniority,
+                begin_at, end_at, branch_ulid
+            ) VALUES (
+                $1, $2, $3, $4, $5,
+                $6, $7, $8, $9, $10,
+                $11, $12, $13
                     )",
         )
         .bind(ulid_to_sql_uuid(ulid))

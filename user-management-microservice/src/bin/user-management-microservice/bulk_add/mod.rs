@@ -318,15 +318,15 @@ impl Database {
                 $36, $37, $38, $39, $40,
                 $41, $42, $43
             ) ON CONFLICT(email) DO UPDATE SET 
-                client_ulid = 1$, branch_ulid = 2$, department_ulid = $3, first_name = 4$, last_name = 5$, 
-                gender = 6$, marital_status = $7, nationality = 8$, dob = 9$, dial_code = 10$,
-                phone_number = 11$, email = 12$, address = 13$, country = 14$, city = 15$, 
-                postal_code = 16$, national_id = 17$, passport_number = 18$, passport_expiry_date = 19$, work_permit = 20$, 
-                tax_id = 21$, contribution_id_1 = 22$, contribution_id_2 = 23$, total_dependants = 24$, time_zone = 25$,
-                employee_id = 26$, designation = 27$, start_date = 28$, end_date = 29$, employment_status = 30$, 
-                bank_name = 31$, bank_account_owner_name = 32$, bank_account_number = 33$, bank_code = 34$, bank_branch_code = 35$, 
-                currency = 36$, basic_salary = 37$, additional_item_1 = 38$, additional_item_2 = 39$, deduction_1 = 40$, 
-                deduction_2 = 41$, other_pay_item_1 = 42$, other_pay_item_2 = 43$";
+                client_ulid = $1, branch_ulid = $2, department_ulid = $3, first_name = $4, last_name = $5, 
+                gender = $6, marital_status = $$7, nationality = $8, dob = $9, dial_code = $$10,
+                phone_number = $11, email = $12, address = $13, country = $14, city = $15, 
+                postal_code = $16, national_id = $17, passport_number = $18, passport_expiry_date = $19, work_permit = $20, 
+                tax_id = $21, contribution_id_1 = $22, contribution_id_2 = $23, total_dependants = $24, time_zone = $25,
+                employee_id = $26, designation = $27, start_date = $28, end_date = $29$ employment_status = $30, 
+                bank_name = $31, bank_account_owner_name = $32, bank_account_number = $33, bank_code = $34, bank_branch_code = $35, 
+                currency = $36, basic_salary = $37, additional_item_1 = $38, additional_item_2 = $39, deduction_1 = $40, 
+                deduction_2 = $41, other_pay_item_1 = $42, other_pay_item_2 = $43";
         sqlx::query(query)
             .bind(ulid_to_sql_uuid(details.client_ulid))
             .bind(ulid_to_sql_uuid(details.branch_ulid))
