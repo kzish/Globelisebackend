@@ -19,14 +19,8 @@ build:
     paths:
       - ./target
 
-deploy globelise_backend:
-  image: ubuntu:20.04
+deploy globelise_backend:  
   stage: deploy
-  only:
-    - devops01
-    - development
-    - integration
-    - master
   script:
     - apt update -y
     - apt-get install -y ssh
