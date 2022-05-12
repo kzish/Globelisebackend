@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS public.prefilled_entity_clients_account_details
 (
     created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    email text NOT NULL,
+    email uuid NOT NULL,
     company_name text NOT NULL,
     country text NOT NULL,
     entity_type text NOT NULL,
