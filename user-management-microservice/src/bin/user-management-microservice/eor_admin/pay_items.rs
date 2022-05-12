@@ -5,6 +5,7 @@ use crate::database::SharedDatabase;
 
 use axum::extract::{Extension, Json, Path, Query};
 
+use common_utils::error::GlobeliseError;
 use common_utils::{error::GlobeliseResult, token::Token};
 use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
@@ -69,7 +70,9 @@ pub async fn get_pay_item_by_id(
 ) -> GlobeliseResult<Json<PayItem>> {
     let database = database.lock().await;
 
-    let pay_item = database.get_pay_item_by_id(pay_item_ulid).await?;
-
-    Ok(Json(pay_item))
+    if let Some(pay_item) = database.get_pay_item_by_id(pay_item_ulid).await? {
+        Ok(Json(pay_item))
+    } else {
+        Err(GlobeliseError::NotFound)
+    }
 }
