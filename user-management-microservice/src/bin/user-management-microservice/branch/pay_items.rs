@@ -16,7 +16,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use serde_with::TryFromInto;
 use sqlx::{postgres::PgRow, FromRow, Row};
-use unicode_normalization::UnicodeNormalization;
 use user_management_microservice_sdk::{token::AccessToken, user::UserType};
 
 pub async fn get_pay_items(
@@ -97,30 +96,30 @@ pub async fn delete_pay_item(
         return Err(GlobeliseError::Forbidden);
     }
 
-    let _password: String = request.password.nfc().collect();
-
     let database = database.lock().await;
 
-    let pay_item = database.get_pay_item_by_id(pay_item_ulid).await?;
+    if let Some(pay_item) = database.get_pay_item_by_id(pay_item_ulid).await? {
+        if !database
+            .client_owns_branch(claims.payload.ulid, pay_item.branch_ulid)
+            .await?
+        {
+            return Err(GlobeliseError::Forbidden);
+        }
 
-    if !database
-        .client_owns_branch(claims.payload.ulid, pay_item.branch_ulid)
-        .await?
-    {
-        return Err(GlobeliseError::Forbidden);
+        let res_verify_password = database
+            .verify_password(claims.payload.ulid, request.password)
+            .await?;
+
+        if !res_verify_password {
+            return Err(GlobeliseError::unauthorized("Invalid password"));
+        }
+
+        database.delete_pay_item(pay_item_ulid).await?;
+
+        Ok(())
+    } else {
+        Err(GlobeliseError::NotFound)
     }
-
-    let res_verify_password = database
-        .verify_password(claims.payload.ulid, request.password)
-        .await?;
-
-    if !res_verify_password {
-        return Err(GlobeliseError::unauthorized("Invalid password"));
-    }
-
-    database.delete_pay_item(pay_item_ulid).await?;
-
-    Ok(())
 }
 
 pub async fn get_pay_item_by_id(
@@ -134,16 +133,18 @@ pub async fn get_pay_item_by_id(
 
     let database = database.lock().await;
 
-    let pay_item = database.get_pay_item_by_id(pay_item_ulid).await?;
+    if let Some(pay_item) = database.get_pay_item_by_id(pay_item_ulid).await? {
+        if !database
+            .client_owns_branch(claims.payload.ulid, pay_item.branch_ulid)
+            .await?
+        {
+            return Err(GlobeliseError::Forbidden);
+        }
 
-    if !database
-        .client_owns_branch(claims.payload.ulid, pay_item.branch_ulid)
-        .await?
-    {
-        return Err(GlobeliseError::Forbidden);
+        Ok(Json(pay_item))
+    } else {
+        Err(GlobeliseError::NotFound)
     }
-
-    Ok(Json(pay_item))
 }
 
 impl Database {
@@ -244,7 +245,7 @@ impl Database {
         Ok(())
     }
 
-    pub async fn get_pay_item_by_id(&self, ulid: Ulid) -> GlobeliseResult<PayItem> {
+    pub async fn get_pay_item_by_id(&self, ulid: Ulid) -> GlobeliseResult<Option<PayItem>> {
         let query = "
             SELECT * FROM 
                 entity_clients_branch_pay_items 
@@ -252,7 +253,7 @@ impl Database {
                 ulid = $1";
         let pay_item = sqlx::query_as(query)
             .bind(ulid_to_sql_uuid(ulid))
-            .fetch_one(&self.0)
+            .fetch_optional(&self.0)
             .await?;
 
         Ok(pay_item)
