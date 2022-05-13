@@ -10,14 +10,14 @@ use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{
-    token::AccessToken,
+    token::UserAccessToken,
     user::{Role, UserType},
 };
 
 use crate::database::{Database, SharedDatabase};
 
 pub async fn post_onboard_entity_pic_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<EntityPicDetails>,
         FORM_DATA_LENGTH_LIMIT,
@@ -37,7 +37,7 @@ pub async fn post_onboard_entity_pic_details(
 }
 
 pub async fn get_onboard_entity_pic_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<EntityPicDetails>> {

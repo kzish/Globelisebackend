@@ -9,7 +9,7 @@ use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 use sqlx::FromRow;
-use user_management_microservice_sdk::{token::AccessToken, user::UserType};
+use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 
 use crate::database::{Database, SharedDatabase};
 
@@ -30,7 +30,7 @@ pub struct BranchPaymentDetailsRequest {
 }
 
 pub async fn post_branch_payroll_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(details)): ContentLengthLimit<
         Json<BranchPayrollDetails>,
         FORM_DATA_LENGTH_LIMIT,
@@ -49,7 +49,7 @@ pub async fn post_branch_payroll_details(
 }
 
 pub async fn get_branch_payroll_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<BranchPaymentDetailsRequest>,
         FORM_DATA_LENGTH_LIMIT,

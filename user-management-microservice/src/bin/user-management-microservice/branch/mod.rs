@@ -10,7 +10,7 @@ use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{token::AccessToken, user::UserType};
+use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 
 use crate::database::{Database, SharedDatabase};
 
@@ -70,7 +70,7 @@ pub struct GetBranchDetailsRequest {
 }
 
 pub async fn post_branch(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<PostBranchDetailsRequest>,
         FORM_DATA_LENGTH_LIMIT,
@@ -101,7 +101,7 @@ pub async fn post_branch(
 }
 
 pub async fn get_branches(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Query(query): Query<GetBranchDetailsRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<BranchDetails>>> {
@@ -119,7 +119,7 @@ pub async fn get_branches(
 }
 
 pub async fn get_one_branch(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Path(branch_ulid): Path<Ulid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<BranchDetails>> {
@@ -151,7 +151,7 @@ pub async fn get_one_branch(
 }
 
 pub async fn delete_branch(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Json(request): Json<DeleteBranchRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {

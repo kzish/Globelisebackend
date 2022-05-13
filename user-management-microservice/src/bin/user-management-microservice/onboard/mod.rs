@@ -2,7 +2,7 @@ use axum::{extract::Path, Extension, Json};
 use common_utils::{error::GlobeliseResult, token::Token, ulid_to_sql_uuid};
 use rusty_ulid::Ulid;
 use user_management_microservice_sdk::{
-    token::AccessToken,
+    token::UserAccessToken,
     user::{Role, UserType},
 };
 
@@ -16,7 +16,7 @@ pub mod pic;
 pub mod prefill;
 
 pub async fn fully_onboarded(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Path(role): Path<Role>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<bool>> {

@@ -4,14 +4,14 @@ use common_utils::{
     error::GlobeliseResult,
     token::Token,
 };
-use eor_admin_microservice_sdk::token::AccessToken;
+use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 
 use crate::database::SharedDatabase;
 
 pub async fn account_details(
-    claims: Token<AccessToken>,
+    claims: Token<AdminAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<IndividualDetails>,
         FORM_DATA_LENGTH_LIMIT,

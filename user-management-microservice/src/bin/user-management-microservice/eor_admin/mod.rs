@@ -4,7 +4,7 @@ use common_utils::{
     token::Token,
 };
 use email_address::EmailAddress;
-use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
 use user_management_microservice_sdk::{

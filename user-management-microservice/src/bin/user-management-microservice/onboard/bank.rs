@@ -7,12 +7,12 @@ use common_utils::{
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{token::AccessToken, user::UserType};
+use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 
 use crate::database::{Database, SharedDatabase};
 
 pub async fn post_onboard_contractor_bank_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Json(details): Json<BankDetails>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
@@ -32,7 +32,7 @@ pub async fn post_onboard_contractor_bank_details(
 }
 
 pub async fn get_onboard_contractor_bank_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<BankDetails>> {
     let database = database.lock().await;

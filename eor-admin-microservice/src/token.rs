@@ -6,12 +6,12 @@ use time::Duration;
 /// Claims for access tokens.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct AccessToken {
+pub struct AdminAccessToken {
     pub ulid: Ulid,
     pub email: String,
 }
 
-impl TokenLike for AccessToken {
+impl TokenLike for AdminAccessToken {
     fn aud() -> &'static str {
         "access_token"
     }

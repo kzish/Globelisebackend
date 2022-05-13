@@ -10,12 +10,12 @@ use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{token::AccessToken, user::UserType};
+use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 
 use crate::database::{Database, SharedDatabase};
 
 pub async fn post_onboard_individual_client_account_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<IndividualClientAccountDetails>,
         FORM_DATA_LENGTH_LIMIT,
@@ -43,7 +43,7 @@ pub async fn post_onboard_individual_client_account_details(
 }
 
 pub async fn get_onboard_individual_client_account_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<IndividualClientAccountDetails>> {
     if !matches!(claims.payload.user_type, UserType::Individual) {
@@ -59,7 +59,7 @@ pub async fn get_onboard_individual_client_account_details(
 }
 
 pub async fn post_onboard_individual_contractor_account_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<IndividualContractorAccountDetails>,
         FORM_DATA_LENGTH_LIMIT,
@@ -87,7 +87,7 @@ pub async fn post_onboard_individual_contractor_account_details(
 }
 
 pub async fn get_onboard_individual_contractor_account_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<IndividualContractorAccountDetails>> {
     if !matches!(claims.payload.user_type, UserType::Individual) {
