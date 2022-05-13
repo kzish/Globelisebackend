@@ -9,12 +9,12 @@ use common_utils::{
     token::Token,
     ulid_from_sql_uuid, ulid_to_sql_uuid,
 };
-use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AdminAccessToken;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{token::AccessToken as UserAccessToken, user::UserType};
+use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 
 use crate::database::{Database, SharedDatabase};
 

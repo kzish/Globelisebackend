@@ -5,13 +5,13 @@ use axum::{
 use common_utils::{
     custom_serde::DateWrapper, error::GlobeliseResult, token::Token, ulid_from_sql_uuid,
 };
-use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AdminAccessToken;
 use itertools::izip;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, FromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{token::AccessToken as UserAccessToken, user::Role};
+use user_management_microservice_sdk::{token::UserAccessToken, user::Role};
 
 use crate::database::SharedDatabase;
 

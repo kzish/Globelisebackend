@@ -7,7 +7,7 @@ use axum::extract::{Extension, Json, Path, Query};
 
 use common_utils::error::GlobeliseError;
 use common_utils::{error::GlobeliseResult, token::Token};
-use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AdminAccessToken;
 use rusty_ulid::Ulid;
 
 pub async fn get_pay_items(

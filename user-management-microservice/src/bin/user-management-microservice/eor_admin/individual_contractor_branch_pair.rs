@@ -3,7 +3,7 @@ use common_utils::{
     calc_limit_and_offset, error::GlobeliseResult, token::Token, ulid_from_sql_uuid,
     ulid_to_sql_uuid,
 };
-use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AdminAccessToken;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, Row};

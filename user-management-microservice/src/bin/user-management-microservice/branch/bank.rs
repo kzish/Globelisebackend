@@ -8,7 +8,7 @@ use common_utils::{
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{token::AccessToken, user::UserType};
+use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 
 use crate::database::{Database, SharedDatabase};
 
@@ -71,7 +71,7 @@ impl Database {
 }
 
 pub async fn post_branch_bank_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(details)): ContentLengthLimit<
         Json<BranchBankDetails>,
         FORM_DATA_LENGTH_LIMIT,
@@ -90,7 +90,7 @@ pub async fn post_branch_bank_details(
 }
 
 pub async fn get_branch_bank_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<BranchBankDetailsRequest>,
         FORM_DATA_LENGTH_LIMIT,

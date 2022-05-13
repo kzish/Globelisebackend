@@ -6,7 +6,7 @@ use common_utils::{
     token::Token,
     ulid_from_sql_uuid, ulid_to_sql_uuid,
 };
-use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
+use eor_admin_microservice_sdk::token::AdminAccessToken;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, Row};

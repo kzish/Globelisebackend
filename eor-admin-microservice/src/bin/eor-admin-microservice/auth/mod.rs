@@ -7,7 +7,7 @@ use common_utils::{
     token::{create_token, Token},
 };
 use email_address::EmailAddress;
-use eor_admin_microservice_sdk::token::AccessToken;
+use eor_admin_microservice_sdk::token::AdminAccessToken;
 use once_cell::sync::Lazy;
 use rand::Rng;
 use serde::Deserialize;
@@ -131,7 +131,7 @@ pub async fn access_token(
 
     let database = database.lock().await;
     if let Some(Admin { email, .. }) = database.admin(ulid).await? {
-        let access = AccessToken {
+        let access = AdminAccessToken {
             ulid: claims.payload.ulid,
             email: email.to_string(),
         };

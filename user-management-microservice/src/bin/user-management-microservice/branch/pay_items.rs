@@ -16,10 +16,10 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use serde_with::TryFromInto;
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{token::AccessToken, user::UserType};
+use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 
 pub async fn get_pay_items(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Query(request): Query<PayItemsIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<PayItem>>> {
@@ -42,7 +42,7 @@ pub async fn get_pay_items(
 }
 
 pub async fn create_pay_item(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Json(pay_item): Json<CreatePayItem>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
@@ -64,7 +64,7 @@ pub async fn create_pay_item(
 }
 
 pub async fn update_pay_item(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Json(pay_item): Json<PayItem>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
@@ -87,7 +87,7 @@ pub async fn update_pay_item(
 
 //requires password to delete
 pub async fn delete_pay_item(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Path(pay_item_ulid): Path<Ulid>,
     Json(request): Json<DeletePayItemRequest>,
     Extension(database): Extension<SharedDatabase>,
@@ -123,7 +123,7 @@ pub async fn delete_pay_item(
 }
 
 pub async fn get_pay_item_by_id(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Path(pay_item_ulid): Path<Ulid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<PayItem>> {

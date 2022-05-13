@@ -11,14 +11,14 @@ use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 use sqlx::FromRow;
 use user_management_microservice_sdk::{
-    token::AccessToken,
+    token::UserAccessToken,
     user::{Role, UserType},
 };
 
 use crate::database::{Database, SharedDatabase};
 
 pub async fn onboard_client_payment_details(
-    claims: Token<AccessToken>,
+    claims: Token<UserAccessToken>,
     Json(details): Json<PaymentDetails>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
