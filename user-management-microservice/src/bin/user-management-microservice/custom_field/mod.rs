@@ -1,5 +1,5 @@
 use axum::{
-    extract::{ContentLengthLimit, Query},
+    extract::{ContentLengthLimit, Path, Query},
     Extension, Json,
 };
 use common_utils::{
@@ -9,6 +9,7 @@ use common_utils::{
     token::Token,
     ulid_from_sql_uuid, ulid_to_sql_uuid,
 };
+use eor_admin_microservice_sdk::token::AccessToken as AdminAccessToken;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
@@ -50,26 +51,6 @@ impl FieldDetailType {
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct PostCustomFieldRequest {
-    field_name: String,
-    field_detail_type: FieldDetailType,
-    // Should be an enum in the future
-    field_format: String,
-    option_1: String,
-    option_2: String,
-}
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct GetCustomFieldRequest {
-    page: Option<u32>,
-    per_page: Option<u32>,
-}
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub struct GetCustomFieldResponse {
     ulid: Ulid,
     client_ulid: Ulid,
@@ -97,10 +78,22 @@ impl<'r> FromRow<'r, PgRow> for GetCustomFieldResponse {
     }
 }
 
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PostCustomFieldRequestForClient {
+    field_name: String,
+    field_detail_type: FieldDetailType,
+    // Should be an enum in the future
+    field_format: String,
+    option_1: String,
+    option_2: String,
+}
+
 pub async fn user_post_custom_field(
     claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
-        Json<PostCustomFieldRequest>,
+        Json<PostCustomFieldRequestForClient>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
@@ -116,10 +109,25 @@ pub async fn user_post_custom_field(
         .await?;
 
     let ulid = database
-        .create_custom_field(claims.payload.ulid, field_type_ulid, request)
+        .create_custom_field(
+            claims.payload.ulid,
+            request.field_name,
+            field_type_ulid,
+            request.field_format,
+            request.option_1,
+            request.option_2,
+        )
         .await?;
 
     Ok(ulid.to_string())
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GetCustomFieldRequest {
+    page: Option<u32>,
+    per_page: Option<u32>,
 }
 
 pub async fn user_get_custom_fields(
@@ -134,7 +142,85 @@ pub async fn user_get_custom_fields(
     let database = database.lock().await;
 
     let result = database
-        .get_custom_fields(claims.payload.ulid, request)
+        .get_custom_fields(Some(claims.payload.ulid), request.page, request.per_page)
+        .await?;
+
+    Ok(Json(result))
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PostCustomFieldRequestForAdmin {
+    client_ulid: Ulid,
+    field_name: String,
+    field_detail_type: FieldDetailType,
+    // Should be an enum in the future
+    field_format: String,
+    option_1: String,
+    option_2: String,
+}
+
+pub async fn admin_post_custom_field(
+    _: Token<AdminAccessToken>,
+    ContentLengthLimit(Json(request)): ContentLengthLimit<
+        Json<PostCustomFieldRequestForAdmin>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<String> {
+    let database = database.lock().await;
+
+    let field_type_ulid = database
+        .get_ulid_custom_field_type(request.field_detail_type)
+        .await?;
+
+    let ulid = database
+        .create_custom_field(
+            request.client_ulid,
+            request.field_name,
+            field_type_ulid,
+            request.field_format,
+            request.option_1,
+            request.option_2,
+        )
+        .await?;
+
+    Ok(ulid.to_string())
+}
+
+pub async fn admin_get_custom_field_by_ulid(
+    _: Token<AdminAccessToken>,
+    Path(ulid): Path<Ulid>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<GetCustomFieldResponse>> {
+    let database = database.lock().await;
+
+    if let Some(result) = database.get_custom_field_by_ulid(ulid).await? {
+        Ok(Json(result))
+    } else {
+        Err(GlobeliseError::NotFound)
+    }
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GetCustomFieldRequestForAdmin {
+    client_ulid: Option<Ulid>,
+    page: Option<u32>,
+    per_page: Option<u32>,
+}
+
+pub async fn admin_get_custom_fields(
+    _: Token<AdminAccessToken>,
+    Query(request): Query<GetCustomFieldRequestForAdmin>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<GetCustomFieldResponse>>> {
+    let database = database.lock().await;
+
+    let result = database
+        .get_custom_fields(request.client_ulid, request.page, request.per_page)
         .await?;
 
     Ok(Json(result))
@@ -144,8 +230,12 @@ impl Database {
     pub async fn create_custom_field(
         &self,
         client_ulid: Ulid,
+        field_name: String,
         field_type_ulid: Ulid,
-        request: PostCustomFieldRequest,
+        // Should be an enum in the future
+        field_format: String,
+        option_1: String,
+        option_2: String,
     ) -> GlobeliseResult<Ulid> {
         let ulid = Ulid::generate();
 
@@ -161,23 +251,45 @@ impl Database {
         sqlx::query(query)
             .bind(ulid_to_sql_uuid(ulid))
             .bind(ulid_to_sql_uuid(client_ulid))
-            .bind(request.field_name)
+            .bind(field_name)
             .bind(ulid_to_sql_uuid(field_type_ulid))
-            .bind(request.field_format)
-            .bind(request.option_1)
-            .bind(request.option_2)
+            .bind(field_format)
+            .bind(option_1)
+            .bind(option_2)
             .execute(&self.0)
             .await?;
 
         Ok(ulid)
     }
 
-    pub async fn get_custom_fields(
+    pub async fn get_custom_field_by_ulid(
         &self,
         client_ulid: Ulid,
-        request: GetCustomFieldRequest,
+    ) -> GlobeliseResult<Option<GetCustomFieldResponse>> {
+        let query = "
+            SELECT
+                ulid, client_ulid, field_name, field_detail_type, field_format,
+                field_option_1, field_option_2
+            FROM
+                entity_client_custom_fields_index
+            WHERE
+                ulid = $1";
+
+        let result = sqlx::query_as(query)
+            .bind(ulid_to_sql_uuid(client_ulid))
+            .fetch_optional(&self.0)
+            .await?;
+
+        Ok(result)
+    }
+
+    pub async fn get_custom_fields(
+        &self,
+        client_ulid: Option<Ulid>,
+        page: Option<u32>,
+        per_page: Option<u32>,
     ) -> GlobeliseResult<Vec<GetCustomFieldResponse>> {
-        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+        let (limit, offset) = calc_limit_and_offset(per_page, page);
 
         let query = "
             SELECT
@@ -186,14 +298,14 @@ impl Database {
             FROM
                 entity_client_custom_fields_index
             WHERE
-                client_ulid = $1
+                $1 IS NULL OR (client_ulid = $1)
             LIMIT 
                 $2 
             OFFSET 
                 $3";
 
         let result = sqlx::query_as(query)
-            .bind(ulid_to_sql_uuid(client_ulid))
+            .bind(client_ulid.map(ulid_to_sql_uuid))
             .bind(limit)
             .bind(offset)
             .fetch_all(&self.0)

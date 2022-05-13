@@ -204,6 +204,14 @@ async fn main() {
             get(department::eor_admin_get_departments).post(department::eor_admin_post_department),
         )
         .route(
+            "/eor-admin/custom-field",
+            get(custom_field::admin_get_custom_fields).post(custom_field::admin_post_custom_field),
+        )
+        .route(
+            "/eor-admin/custom-field/:ulid",
+            get(custom_field::admin_get_custom_field_by_ulid)
+        )
+        .route(
             "/eor-admin/client/branch/pay-items",
             get(eor_admin::pay_items::get_pay_items)
                 .post(eor_admin::pay_items::create_pay_item)
