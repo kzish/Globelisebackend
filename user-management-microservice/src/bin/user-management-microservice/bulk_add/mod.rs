@@ -196,7 +196,7 @@ impl<'r> FromRow<'r, PgRow> for PrefillIndividualContractorDetailsForBulkUpload 
     }
 }
 
-pub async fn eor_admin_post_prefilled_individual_contractors_details_for_bulk_upload(
+pub async fn post_one(
     // Only for validation
     _: Token<AdminAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
@@ -276,7 +276,7 @@ pub async fn eor_admin_post_prefilled_individual_contractors_details_for_bulk_up
     Ok(())
 }
 
-pub async fn eor_admin_get_prefilled_individual_contractors_details_for_bulk_upload(
+pub async fn get_one(
     // Only for validation
     _: Token<AdminAccessToken>,
     Query(request): Query<GetPrefillIndividualContractorDetailsForBulkUpload>,

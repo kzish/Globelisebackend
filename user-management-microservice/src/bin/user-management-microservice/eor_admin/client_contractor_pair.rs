@@ -29,7 +29,7 @@ impl FromRow<'_, PgRow> for ClientContractorPair {
     }
 }
 
-pub async fn eor_admin_create_client_contractor_pairs(
+pub async fn post_one(
     // Only for validation
     _: Token<AdminAccessToken>,
     Json(request): Json<ClientContractorPair>,
@@ -61,7 +61,7 @@ pub struct ClientContractorPairQueryRequest {
     pub contractor_ulid: Option<Ulid>,
 }
 
-pub async fn eor_admin_client_contractor_index(
+pub async fn get_many(
     _: Token<AdminAccessToken>,
     Query(query): Query<ClientContractorPairQueryRequest>,
     Extension(database): Extension<SharedDatabase>,

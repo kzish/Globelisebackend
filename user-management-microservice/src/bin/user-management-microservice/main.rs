@@ -148,7 +148,7 @@ async fn main() {
         )
         .route(
             "/client-contractors/search",
-            get(employee_contractors::search_employee_contractors::get_employee_contractors)
+            get(employee_contractors::search_employee_contractors::get_employee_contractors),
         )
         .route(
             "/onboard/fully_onboarded/:role",
@@ -162,19 +162,20 @@ async fn main() {
         .route("/eor-admin/users", get(eor_admin::eor_admin_user_index))
         .route(
             "/eor-admin/users/create_client_contractor_pairs",
-            get(eor_admin::client_contractor_pair::eor_admin_client_contractor_index)
-                .post(eor_admin::client_contractor_pair::eor_admin_create_client_contractor_pairs),
+            get(eor_admin::client_contractor_pair::get_many)
+                .post(eor_admin::client_contractor_pair::post_one),
         )
         .route(
             "/eor-admin/users/individual/contractor_branch_pairs",
-            get(eor_admin::individual_contractor_branch_pair::eor_admin_get_individual_contractor_branch_pairs)
-                .post(eor_admin::individual_contractor_branch_pair::eor_admin_post_individual_contractor_branch_pairs)
-                .delete(eor_admin::individual_contractor_branch_pair::eor_admin_delete_individual_contractor_branch_pairs),
-        ).route(
+            get(eor_admin::individual_contractor_branch_pair::get_many)
+                .post(eor_admin::individual_contractor_branch_pair::post_one)
+                .delete(eor_admin::individual_contractor_branch_pair::delete_one),
+        )
+        .route(
             "/eor-admin/users/entity/contractor_branch_pairs",
-            get(eor_admin::entity_contractor_branch_pair::eor_admin_get_entity_contractor_branch_pairs)
-                .post(eor_admin::entity_contractor_branch_pair::eor_admin_post_entity_contractor_branch_pairs)
-                .delete(eor_admin::entity_contractor_branch_pair::eor_admin_delete_entity_contractor_branch_pairs),
+            get(eor_admin::entity_contractor_branch_pair::get_many)
+                .post(eor_admin::entity_contractor_branch_pair::post_one)
+                .delete(eor_admin::entity_contractor_branch_pair::delete_one),
         )
         .route(
             "/eor-admin/users/add_individual_contractor",
@@ -182,8 +183,7 @@ async fn main() {
         )
         .route(
             "/eor-admin/users/add_bulk_employees",
-            get(bulk_add::eor_admin_get_prefilled_individual_contractors_details_for_bulk_upload).
-            post(bulk_add::eor_admin_post_prefilled_individual_contractors_details_for_bulk_upload),
+            get(bulk_add::get_one).post(bulk_add::post_one),
         )
         .route(
             "/eor-admin/users/onboard/prefill_individual_contractor_account_details",
@@ -219,7 +219,7 @@ async fn main() {
         )
         .route(
             "/eor-admin/custom-field/:ulid",
-            get(custom_field::admin_get_custom_field_by_ulid)
+            get(custom_field::admin_get_custom_field_by_ulid),
         )
         .route(
             "/eor-admin/client/branch/pay-items",
@@ -234,7 +234,7 @@ async fn main() {
         )
         .route(
             "/eor-admin/client-contractors/search",
-            get(eor_admin::search_employee_contractors::eor_admin_get_employee_contractors)
+            get(eor_admin::search_employee_contractors::eor_admin_get_employee_contractors),
         )
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
