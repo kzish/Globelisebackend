@@ -15,9 +15,10 @@ build:
   stage: build
   script:
     - cargo build
-  artifacts:
-    paths:
-      - ./target
+ # artifacts:
+  #  expire_in: 1 day
+  #  paths:
+  #    - ./target
 
 deploy globelise_backend:  
   stage: deploy
