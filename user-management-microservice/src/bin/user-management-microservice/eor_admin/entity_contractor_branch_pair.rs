@@ -27,7 +27,7 @@ impl FromRow<'_, PgRow> for EntityContractorBranchPair {
     }
 }
 
-pub async fn eor_admin_post_entity_contractor_branch_pairs(
+pub async fn post_one(
     // Only for validation
     _: Token<AdminAccessToken>,
     Json(request): Json<EntityContractorBranchPair>,
@@ -41,7 +41,7 @@ pub async fn eor_admin_post_entity_contractor_branch_pairs(
     Ok(())
 }
 
-pub async fn eor_admin_delete_entity_contractor_branch_pairs(
+pub async fn delete_one(
     // Only for validation
     _: Token<AdminAccessToken>,
     Json(request): Json<EntityContractorBranchPair>,
@@ -64,7 +64,7 @@ pub struct ClientContractorPairQuery {
     pub contractor_ulid: Option<Ulid>,
 }
 
-pub async fn eor_admin_get_entity_contractor_branch_pairs(
+pub async fn get_many(
     _: Token<AdminAccessToken>,
     Query(query): Query<ClientContractorPairQuery>,
     Extension(database): Extension<SharedDatabase>,
