@@ -12,11 +12,34 @@ use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 
 use crate::database::{Database, SharedDatabase};
 
+pub struct PostBranchBankDetailsInput {
+    pub ulid: Ulid,
+    pub currency: Currency,
+    pub bank_name: String,
+    pub bank_account_name: String,
+    pub bank_account_number: String,
+    pub swift_code: Option<String>,
+    pub bank_key: Option<String>,
+    pub iban: Option<String>,
+    pub bank_code: Option<String>,
+    pub branch_code: Option<String>,
+}
+
 impl Database {
     pub async fn post_branch_bank_details(
         &self,
-        ulid: Ulid,
-        details: BranchBankDetails,
+        PostBranchBankDetailsInput {
+            ulid,
+            currency,
+            bank_name,
+            bank_account_name,
+            bank_account_number,
+            swift_code,
+            bank_key,
+            iban,
+            bank_code,
+            branch_code,
+        }: PostBranchBankDetailsInput,
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "
@@ -31,15 +54,15 @@ impl Database {
                 swift_code = $6, bank_key = $7, iban = $8, bank_code = $9, branch_code = $10",
         )
         .bind(ulid_to_sql_uuid(ulid))
-        .bind(details.currency)
-        .bind(details.bank_name)
-        .bind(details.bank_account_name)
-        .bind(details.bank_account_number)
-        .bind(details.swift_code)
-        .bind(details.bank_key)
-        .bind(details.iban)
-        .bind(details.bank_code)
-        .bind(details.branch_code)
+        .bind(currency)
+        .bind(bank_name)
+        .bind(bank_account_name)
+        .bind(bank_account_number)
+        .bind(swift_code)
+        .bind(bank_key)
+        .bind(iban)
+        .bind(bank_code)
+        .bind(branch_code)
         .execute(&self.0)
         .await
         .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -50,7 +73,7 @@ impl Database {
     pub async fn get_one_branch_bank_details(
         &self,
         ulid: Ulid,
-    ) -> GlobeliseResult<BranchBankDetails> {
+    ) -> GlobeliseResult<Option<BranchBankDetails>> {
         let result = sqlx::query_as(
             "
             SELECT  
@@ -62,7 +85,7 @@ impl Database {
                 ulid = $1",
         )
         .bind(ulid_to_sql_uuid(ulid))
-        .fetch_one(&self.0)
+        .fetch_optional(&self.0)
         .await
         .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
@@ -72,7 +95,7 @@ impl Database {
 
 pub async fn post_branch_bank_details(
     claims: Token<UserAccessToken>,
-    ContentLengthLimit(Json(details)): ContentLengthLimit<
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<BranchBankDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
@@ -85,13 +108,24 @@ pub async fn post_branch_bank_details(
     let database = database.lock().await;
 
     database
-        .post_branch_bank_details(claims.payload.ulid, details)
+        .post_branch_bank_details(PostBranchBankDetailsInput {
+            ulid: claims.payload.ulid,
+            currency: body.currency,
+            bank_name: body.bank_name,
+            bank_account_name: body.bank_account_name,
+            bank_account_number: body.bank_account_number,
+            swift_code: body.swift_code,
+            bank_key: body.bank_key,
+            iban: body.iban,
+            bank_code: body.bank_code,
+            branch_code: body.branch_code,
+        })
         .await
 }
 
 pub async fn get_branch_bank_details(
     claims: Token<UserAccessToken>,
-    ContentLengthLimit(Json(request)): ContentLengthLimit<
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<BranchBankDetailsRequest>,
         FORM_DATA_LENGTH_LIMIT,
     >,
@@ -104,7 +138,7 @@ pub async fn get_branch_bank_details(
     let database = database.lock().await;
 
     if !database
-        .client_owns_branch(claims.payload.ulid, request.branch_ulid)
+        .client_owns_branch(claims.payload.ulid, body.branch_ulid)
         .await?
     {
         return Err(GlobeliseError::Forbidden);
@@ -112,8 +146,9 @@ pub async fn get_branch_bank_details(
 
     Ok(Json(
         database
-            .get_one_branch_bank_details(request.branch_ulid)
-            .await?,
+            .get_one_branch_bank_details(body.branch_ulid)
+            .await?
+            .ok_or(GlobeliseError::NotFound)?,
     ))
 }
 

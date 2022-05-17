@@ -1,4 +1,4 @@
-use axum::extract::{ContentLengthLimit, Extension, Json};
+use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
     custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
@@ -31,7 +31,7 @@ pub struct BranchPaymentDetailsRequest {
 
 pub async fn post_branch_payroll_details(
     claims: Token<UserAccessToken>,
-    ContentLengthLimit(Json(details)): ContentLengthLimit<
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<BranchPayrollDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
@@ -44,16 +44,13 @@ pub async fn post_branch_payroll_details(
     let database = database.lock().await;
 
     database
-        .post_branch_payroll_details(claims.payload.ulid, details)
+        .post_branch_payroll_details(claims.payload.ulid, body.payment_date, body.cutoff_date)
         .await
 }
 
 pub async fn get_branch_payroll_details(
     claims: Token<UserAccessToken>,
-    ContentLengthLimit(Json(request)): ContentLengthLimit<
-        Json<BranchPaymentDetailsRequest>,
-        FORM_DATA_LENGTH_LIMIT,
-    >,
+    Query(query): Query<BranchPaymentDetailsRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<BranchPayrollDetails>> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -63,7 +60,7 @@ pub async fn get_branch_payroll_details(
     let database = database.lock().await;
 
     if !database
-        .client_owns_branch(claims.payload.ulid, request.branch_ulid)
+        .client_owns_branch(claims.payload.ulid, query.branch_ulid)
         .await?
     {
         return Err(GlobeliseError::Forbidden);
@@ -71,8 +68,9 @@ pub async fn get_branch_payroll_details(
 
     Ok(Json(
         database
-            .get_one_branch_payroll_details(request.branch_ulid)
-            .await?,
+            .get_one_branch_payroll_details(query.branch_ulid)
+            .await?
+            .ok_or(GlobeliseError::NotFound)?,
     ))
 }
 
@@ -80,7 +78,8 @@ impl Database {
     pub async fn post_branch_payroll_details(
         &self,
         ulid: Ulid,
-        details: BranchPayrollDetails,
+        payment_date: sqlx::types::time::Date,
+        cutoff_date: sqlx::types::time::Date,
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "
@@ -93,8 +92,8 @@ impl Database {
         ",
         )
         .bind(ulid_to_sql_uuid(ulid))
-        .bind(details.payment_date)
-        .bind(details.cutoff_date)
+        .bind(payment_date)
+        .bind(cutoff_date)
         .execute(&self.0)
         .await
         .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -104,8 +103,8 @@ impl Database {
 
     pub async fn get_one_branch_payroll_details(
         &self,
-        ulid: Ulid,
-    ) -> GlobeliseResult<BranchPayrollDetails> {
+        branch_ulid: Ulid,
+    ) -> GlobeliseResult<Option<BranchPayrollDetails>> {
         let result = sqlx::query_as(
             "
         SELECT 
@@ -116,8 +115,8 @@ impl Database {
             ulid = $1
         ",
         )
-        .bind(ulid_to_sql_uuid(ulid))
-        .fetch_one(&self.0)
+        .bind(ulid_to_sql_uuid(branch_ulid))
+        .fetch_optional(&self.0)
         .await
         .map_err(|e| GlobeliseError::Database(e.to_string()))?;
 
