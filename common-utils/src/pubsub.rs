@@ -4,9 +4,13 @@ use axum::http::{HeaderMap, HeaderValue};
 use reqwest::{Client, StatusCode};
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, TryFromInto};
 use tokio::sync::Mutex;
 
-use crate::error::{GlobeliseError, GlobeliseResult};
+use crate::{
+    custom_serde::{Currency, DateWrapper},
+    error::{GlobeliseError, GlobeliseResult},
+};
 
 pub const GLOBELISE_PUBSUB_TOPIC_ID: &str = "globelise-pubsub";
 
@@ -81,6 +85,7 @@ impl PubSub {
             .json(&data)
             .send()
             .await?;
+
         match response.status() {
             StatusCode::OK | StatusCode::NO_CONTENT => Ok(()),
             _ => Err(GlobeliseError::internal(response.text().await?)),
@@ -94,6 +99,8 @@ pub enum TopicId {
     UpdateClientContractorPair,
     #[serde(rename = "update-user-name")]
     UpdateUserName,
+    #[serde(rename = "create-or-update-contracts")]
+    CreateOrUpdateContracts,
 }
 
 impl TopicId {
@@ -101,6 +108,7 @@ impl TopicId {
         match self {
             TopicId::UpdateClientContractorPair => "add-client-contractor-pair",
             TopicId::UpdateUserName => "update-user-name",
+            TopicId::CreateOrUpdateContracts => "create-or-update-contracts",
         }
     }
 }
@@ -123,11 +131,35 @@ pub enum UpdateUserName {
     Contractor(Ulid, String),
 }
 
-impl UpdateUserName {}
-
 impl PubSubData for UpdateUserName {
     fn as_topic_id() -> TopicId {
         TopicId::UpdateUserName
+    }
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateOrUpdateContracts {
+    pub ulid: Ulid,
+    pub client_ulid: Ulid,
+    pub contractor_ulid: Ulid,
+    pub contract_name: String,
+    pub contract_type: String,
+    pub contract_status: String,
+    pub contract_amount: sqlx::types::Decimal,
+    pub currency: Currency,
+    pub job_title: String,
+    pub seniority: String,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub begin_at: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub end_at: sqlx::types::time::Date,
+    pub branch_ulid: Ulid,
+}
+
+impl PubSubData for CreateOrUpdateContracts {
+    fn as_topic_id() -> TopicId {
+        TopicId::CreateOrUpdateContracts
     }
 }
 

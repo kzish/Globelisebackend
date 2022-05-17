@@ -9,7 +9,7 @@ use axum::{
 };
 use common_utils::{
     error::GlobeliseResult,
-    pubsub::{AddClientContractorPair, PubSubData, TopicSubscription, UpdateUserName},
+    pubsub::{AddClientContractorPair, PubSub, PubSubData, TopicSubscription, UpdateUserName},
     token::PublicKeys,
 };
 use database::Database;
@@ -36,14 +36,24 @@ static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_P
 async fn main() {
     dotenv::dotenv().ok();
 
+    let dapr_address: String = std::env::var("CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL")
+        .unwrap()
+        .parse()
+        .unwrap();
+
     let reqwest_client = Client::builder()
         .user_agent(APP_USER_AGENT)
         .build()
         .unwrap();
 
-    let database = Arc::new(Mutex::new(Database::new().await));
+    let shared_database = Arc::new(Mutex::new(Database::new().await));
 
     let public_keys = Arc::new(Mutex::new(PublicKeys::default()));
+
+    let shared_pubsub = Arc::new(Mutex::new(PubSub::new(
+        reqwest_client.clone(),
+        dapr_address,
+    )));
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
@@ -115,9 +125,10 @@ async fn main() {
                         .allow_credentials(true)
                         .allow_headers(Any),
                 )
-                .layer(Extension(database))
+                .layer(Extension(shared_database))
                 .layer(Extension(reqwest_client))
-                .layer(Extension(public_keys)),
+                .layer(Extension(public_keys))
+                .layer(Extension(shared_pubsub)),
         );
 
     axum::Server::bind(

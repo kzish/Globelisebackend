@@ -203,7 +203,7 @@ impl Database {
     pub async fn create_contract(
         &self,
         request: CreateContractRequestForEorAdmin,
-    ) -> GlobeliseResult<()> {
+    ) -> GlobeliseResult<Ulid> {
         let ulid = rusty_ulid::Ulid::generate();
 
         sqlx::query(
@@ -234,6 +234,6 @@ impl Database {
         .execute(&self.0)
         .await?;
 
-        Ok(())
+        Ok(ulid)
     }
 }
