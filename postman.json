@@ -2196,9 +2196,9 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "{{user-management-host}}/client/branch?page=1&per-page=100",
+                      "raw": "{{user-management-host}}/eor-admin/branch?page=1&per-page=100",
                       "host": ["{{user-management-host}}"],
-                      "path": ["client", "branch"],
+                      "path": ["eor-admin", "branch"],
                       "query": [
                         {
                           "key": "page",
@@ -2238,9 +2238,9 @@
                       }
                     },
                     "url": {
-                      "raw": "{{user-management-host}}/client/branch",
+                      "raw": "{{user-management-host}}/eor-admin/branch",
                       "host": ["{{user-management-host}}"],
-                      "path": ["client", "branch"]
+                      "path": ["eor-admin", "branch"]
                     }
                   },
                   "response": []
@@ -2322,6 +2322,113 @@
               ]
             },
             {
+              "name": "SAP",
+              "item": [
+                {
+                  "name": "Upload Payroll Journal to S4 Hana",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"client-ulid\" : \"01G2ZWABY5E03T0J710RDHQACJ\",\n    \"file\": \"test\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/sap/upload_payroll_to_s4hana",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["eor-admin", "sap", "upload_payroll_to_s4hana"]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Custom Fields",
+              "item": [
+                {
+                  "name": "Get Custom Fields",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/custom-field?page=1&per-page=2",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["eor-admin", "custom-field"],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "per-page",
+                          "value": "2"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Create Custom Fields",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"field-name\": \"Field Name\",\n    \"field-detail-type\": \"PERSONAL\",\n    \"field-format\": \"Field Format\",\n    \"option-1\": \"1\",\n    \"option-2\": \"2\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/custom-field",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["eor-admin", "custom-field"]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
               "name": "Users Index",
               "request": {
                 "auth": {
@@ -2384,7 +2491,7 @@
                   }
                 },
                 "url": {
-                  "raw": "{{user-management-host}}/eor-admin/onboarded-users?user-role=contractor",
+                  "raw": "{{user-management-host}}/eor-admin/onboarded-users?per-page=100&user-role=client",
                   "host": ["{{user-management-host}}"],
                   "path": ["eor-admin", "onboarded-users"],
                   "query": [
@@ -2395,12 +2502,11 @@
                     },
                     {
                       "key": "per-page",
-                      "value": "100",
-                      "disabled": true
+                      "value": "100"
                     },
                     {
                       "key": "user-role",
-                      "value": "contractor"
+                      "value": "client"
                     },
                     {
                       "key": "user-type",
