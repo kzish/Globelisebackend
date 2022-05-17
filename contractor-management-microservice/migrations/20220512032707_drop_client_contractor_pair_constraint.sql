@@ -1,0 +1,4 @@
+ALTER TABLE contracts DROP CONSTRAINT contracts_client_ulid_contractor_ulid_fkey;
+ALTER TABLE invoice_individual DROP CONSTRAINT invoice_individual_client_ulid_contractor_ulid_fkey;
+ALTER TABLE payslips DROP CONSTRAINT payslips_client_ulid_contractor_ulid_fkey;
+ALTER TABLE tax_reports DROP CONSTRAINT tax_reports_client_ulid_contractor_ulid_fkey;
