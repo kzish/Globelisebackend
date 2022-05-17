@@ -109,11 +109,14 @@ async fn main() {
         )
         .route(
             "/client/branch",
-            get(branch::get_branches)
-                .post(branch::post_branch)
-                .delete(branch::delete_branch),
+            get(branch::user_get_branches)
+                .post(branch::user_post_branch)
+                .delete(branch::user_delete_branch),
         )
-        .route("/client/branch/:branch_ulid", get(branch::get_one_branch))
+        .route(
+            "/client/branch/:branch_ulid",
+            get(branch::user_get_branch_by_ulid),
+        )
         .route(
             "/client/branch/branch-details",
             get(branch::account::get_branch_account_details)
@@ -231,6 +234,16 @@ async fn main() {
             "/eor-admin/client/branch/pay-items/:pay_item_ulid",
             get(eor_admin::pay_items::get_pay_item_by_id)
                 .delete(eor_admin::pay_items::delete_pay_item),
+        )
+        .route(
+            "/eor-admin/branch",
+            get(branch::admin_get_branches)
+                .post(branch::admin_post_branch)
+                .delete(branch::admin_delete_branch),
+        )
+        .route(
+            "/eor-admin/branch/:branch_ulid",
+            get(branch::admin_get_branch_by_ulid),
         )
         .route(
             "/eor-admin/client-contractors/search",
