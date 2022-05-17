@@ -22,6 +22,7 @@ build:
 
 deploy globelise_backend:  
   stage: deploy
+  retry: 2
   script:
     - apt update -y
     - apt-get install -y ssh
