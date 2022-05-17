@@ -16,6 +16,7 @@ default:
         - target/
   before_script:
     - rustup component add rustfmt # Required for Dapr build script
+    - apt update -y
     - apt install build-essential -y
 
 .cargo-tools:
