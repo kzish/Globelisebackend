@@ -1,7 +1,7 @@
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: user-management-microservice-pubsub
+  name: globelise-pubsub
 spec:
   type: pubsub.redis
   version: v1
