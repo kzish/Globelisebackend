@@ -8,13 +8,15 @@ use tokio::sync::Mutex;
 
 use crate::error::{GlobeliseError, GlobeliseResult};
 
+pub const GLOBELISE_PUBSUB_TOPIC_ID: &str = "globelise-pubsub";
+
 /// There should be its equivalent exposed in DAPR SDK themselves.
 /// Reference struct `TopicSubscription` from dapr/proto/runtime/v1/appcallback.proto)
 /// from the DAPR protobuf
 #[derive(Serialize, Deserialize)]
 pub struct TopicSubscription {
     #[serde(rename = "pubsubname")]
-    pub pubsub_name: String,
+    pub pubsub_name: &'static str,
     pub topic: String,
     pub route: String,
     pub metadata: HashMap<String, String>,
@@ -35,7 +37,7 @@ where
     pub content_type: String,
     pub id: String,
     #[serde(rename = "pubsubname")]
-    pub pubsub_name: PubSubId,
+    pub pubsub_name: String,
     pub source: String,
     #[serde(rename = "specversion")]
     pub spec_version: String,
@@ -68,7 +70,7 @@ impl PubSub {
             .post(format!(
                 "{}/v1.0/publish/{}/{}",
                 self.1,
-                T::as_pubsub_id().as_str(),
+                GLOBELISE_PUBSUB_TOPIC_ID,
                 T::as_topic_id().as_str()
             ))
             .headers({
@@ -82,20 +84,6 @@ impl PubSub {
         match response.status() {
             StatusCode::OK | StatusCode::NO_CONTENT => Ok(()),
             _ => Err(GlobeliseError::internal(response.text().await?)),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum PubSubId {
-    #[serde(rename = "user-management-microservice-pubsub")]
-    UserManagementMicroservice,
-}
-
-impl PubSubId {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            PubSubId::UserManagementMicroservice => "user-management-microservice-pubsub",
         }
     }
 }
@@ -124,10 +112,6 @@ pub struct AddClientContractorPair {
 }
 
 impl PubSubData for AddClientContractorPair {
-    fn as_pubsub_id() -> PubSubId {
-        PubSubId::UserManagementMicroservice
-    }
-
     fn as_topic_id() -> TopicId {
         TopicId::UpdateClientContractorPair
     }
@@ -142,10 +126,6 @@ pub enum UpdateUserName {
 impl UpdateUserName {}
 
 impl PubSubData for UpdateUserName {
-    fn as_pubsub_id() -> PubSubId {
-        PubSubId::UserManagementMicroservice
-    }
-
     fn as_topic_id() -> TopicId {
         TopicId::UpdateUserName
     }
@@ -157,14 +137,12 @@ pub trait PubSubData {
         S: Into<String>,
     {
         TopicSubscription {
-            pubsub_name: Self::as_pubsub_id().as_str().to_string(),
+            pubsub_name: GLOBELISE_PUBSUB_TOPIC_ID,
             topic: Self::as_topic_id().as_str().to_string(),
             route: route.into(),
             metadata: HashMap::default(),
         }
     }
-
-    fn as_pubsub_id() -> PubSubId;
 
     fn as_topic_id() -> TopicId;
 }
