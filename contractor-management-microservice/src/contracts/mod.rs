@@ -5,6 +5,7 @@ use axum::{
 use common_utils::{
     custom_serde::{Currency, DateWrapper},
     error::GlobeliseResult,
+    pubsub::{CreateOrUpdateContracts, SharedPubSub},
     token::{Token, TokenString},
     ulid_from_sql_uuid,
 };
@@ -130,12 +131,34 @@ pub async fn eor_admin_contracts_index(
 
 pub async fn eor_admin_create_contract(
     _: Token<AdminAccessToken>,
-    Json(request): Json<CreateContractRequestForEorAdmin>,
+    Json(body): Json<CreateContractRequestForEorAdmin>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<()> {
+    Extension(pubsub): Extension<SharedPubSub>,
+) -> GlobeliseResult<String> {
     let database = database.lock().await;
-    database.create_contract(request).await?;
-    Ok(())
+
+    let ulid = database.create_contract(body.clone()).await?;
+
+    let pubsub = pubsub.lock().await;
+    pubsub
+        .publish_event(CreateOrUpdateContracts {
+            ulid,
+            client_ulid: body.client_ulid,
+            contractor_ulid: body.contractor_ulid,
+            contract_name: body.contract_name,
+            contract_type: body.contract_type,
+            contract_status: body.contract_status,
+            contract_amount: body.contract_amount,
+            currency: body.currency,
+            job_title: body.job_title,
+            seniority: body.seniority,
+            begin_at: body.begin_at,
+            end_at: body.end_at,
+            branch_ulid: body.branch_ulid,
+        })
+        .await?;
+
+    Ok(ulid.to_string())
 }
 
 #[serde_as]
@@ -286,7 +309,7 @@ impl<'r> FromRow<'r, PgRow> for ContractsIndexForContractor {
 }
 
 #[serde_as]
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct CreateContractRequestForEorAdmin {
     client_ulid: Ulid,

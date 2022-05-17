@@ -5,9 +5,13 @@ use axum::{
     extract::Extension,
     http::{HeaderValue, Method, StatusCode},
     routing::{get, post},
-    BoxError, Router,
+    BoxError, Json, Router,
 };
-use common_utils::{pubsub::PubSub, token::PublicKeys};
+use common_utils::{
+    error::GlobeliseResult,
+    pubsub::{CreateOrUpdateContracts, PubSub, PubSubData, TopicSubscription},
+    token::PublicKeys,
+};
 use database::Database;
 use reqwest::Client;
 use tokio::sync::Mutex;
@@ -24,6 +28,7 @@ mod employee_contractors;
 mod env;
 mod eor_admin;
 mod onboard;
+mod pubsub;
 
 use crate::auth::token::KEYS;
 use env::{FRONTEND_URL, LISTENING_ADDRESS};
@@ -249,6 +254,12 @@ async fn main() {
             "/eor-admin/client-contractors/search",
             get(eor_admin::search_employee_contractors::eor_admin_get_employee_contractors),
         )
+        // ========== PUBSUB PAGES ==========
+        .route("/dapr/subscribe", get(dapr_subscription_list))
+        .route(
+            "/pubsub/create_or_update_contracts",
+            post(pubsub::create_or_update_contracts),
+        )
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
         .route("/healthz", get(handle_healthz))
@@ -314,4 +325,12 @@ async fn handle_error(error: BoxError) -> (StatusCode, &'static str) {
     } else {
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
     }
+}
+
+/// DAPR will invoke this endpoint to know which pubsub and topic names this app
+/// will listen to.
+pub async fn dapr_subscription_list() -> GlobeliseResult<Json<Vec<TopicSubscription>>> {
+    Ok(Json(vec![
+        CreateOrUpdateContracts::create_topic_subscription("pubsub/create_or_update_contracts"),
+    ]))
 }

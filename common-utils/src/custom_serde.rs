@@ -88,7 +88,7 @@ impl TryFrom<Vec<u8>> for ImageData {
     }
 }
 
-#[derive(Debug, sqlx::Type, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, sqlx::Type, Deserialize, Serialize)]
 #[sqlx(type_name = "currency")]
 #[allow(clippy::upper_case_acronyms)]
 pub enum Currency {
