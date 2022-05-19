@@ -5,7 +5,6 @@ use common_utils::{
 use email_address::EmailAddress;
 use rusty_ulid::Ulid;
 use sqlx::Row;
-use strum::IntoEnumIterator;
 use user_management_microservice_sdk::user::UserType;
 
 use crate::auth::user::User;
@@ -69,56 +68,65 @@ impl Database {
         ulid: Ulid,
         user_type: Option<UserType>,
     ) -> GlobeliseResult<Option<(User, UserType)>> {
-        let types_to_check = match user_type {
-            Some(t) => vec![t],
-            None => UserType::iter().collect(),
-        };
-
-        for t in types_to_check {
-            let user = sqlx::query(&format!(
-                "SELECT email, password, is_google, is_outlook
-                FROM {}
-                WHERE ulid = $1",
-                t.db_auth_name()
-            ))
-            .bind(ulid_to_sql_uuid(ulid))
-            .fetch_optional(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
-
-            if let Some(user) = user {
-                return Ok(Some((
-                    User {
-                        email: user.get::<String, _>("email").parse().map_err(|_| {
-                            GlobeliseError::Internal("Invalid email address from database".into())
-                        })?,
-                        password_hash: user.get("password"),
-                        google: user.get("is_google"),
-                        outlook: user.get("is_outlook"),
-                    },
-                    t,
-                )));
-            }
+        if let Some(row) = sqlx::query(
+            "
+            SELECT 
+                ulid, email, password, is_google, is_outlook, is_client,
+                is_contractor, user_type
+            FROM 
+                users_index
+            WHERE 
+                ulid = $1 AND
+                $2 IS NULL OR (user_type = $2)",
+        )
+        .bind(ulid_to_sql_uuid(ulid))
+        .bind(user_type.map(|v| v.as_str()))
+        .fetch_optional(&self.0)
+        .await
+        .map_err(|e| GlobeliseError::Database(e.to_string()))?
+        {
+            Ok(Some((
+                User {
+                    email: row.try_get::<String, _>("email")?.parse().map_err(|_| {
+                        GlobeliseError::internal("Invalid email address from database")
+                    })?,
+                    password_hash: row.try_get("password")?,
+                    google: row.try_get("is_google")?,
+                    outlook: row.try_get("is_outlook")?,
+                },
+                row.try_get::<String, _>("user_type")?
+                    .parse()
+                    .map_err(|_| GlobeliseError::internal("Invalid user_type from database"))?,
+            )))
+        } else {
+            Ok(None)
         }
-        Ok(None)
     }
 
     /// Gets a user's id and user type.
     pub async fn user_id(&self, email: &EmailAddress) -> GlobeliseResult<Option<(Ulid, UserType)>> {
-        for t in UserType::iter() {
-            let id = sqlx::query(&format!(
-                "SELECT ulid FROM {} WHERE email = $1",
-                t.db_auth_name()
-            ))
-            .bind(email.as_ref())
-            .fetch_optional(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
-
-            if let Some(id) = id {
-                return Ok(Some((ulid_from_sql_uuid(id.get("ulid")), t)));
-            }
+        if let Some(row) = sqlx::query(
+            "
+                SELECT 
+                    email, ulid, user_type
+                FROM 
+                    users_index
+                WHERE 
+                    email = $1",
+        )
+        .bind(email.as_ref())
+        .fetch_optional(&self.0)
+        .await
+        .map_err(|e| GlobeliseError::Database(e.to_string()))?
+        {
+            Ok(Some((
+                ulid_from_sql_uuid(row.get("ulid")),
+                row.try_get::<String, _>("user_type")?
+                    .parse()
+                    .map_err(|_| GlobeliseError::internal("Invalid user_type from database"))?,
+            )))
+        } else {
+            Ok(None)
         }
-        Ok(None)
     }
 }
