@@ -148,6 +148,7 @@ pub async fn access_token(
             ulid,
             email: email.to_string(),
             user_type,
+            user_roles: vec![],
         };
         let (access_token, _) = create_token(access_token, &KEYS.encoding)?;
         Ok(access_token)

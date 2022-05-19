@@ -24,6 +24,13 @@ impl UserType {
     pub fn db_onboard_details_prefix(&self, role: Role) -> String {
         UserTypeAndRole::from((*self, role)).to_string() + "s"
     }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            UserType::Individual => "individual",
+            UserType::Entity => "entity",
+        }
+    }
 }
 
 /// Type representing which role a user has.

@@ -3,6 +3,8 @@ use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use time::Duration;
 
+use crate::user::Role;
+
 use super::user::UserType;
 
 /// Claims for access tokens.
@@ -12,6 +14,7 @@ pub struct UserAccessToken {
     pub ulid: Ulid,
     pub email: String,
     pub user_type: UserType,
+    pub user_roles: Vec<Role>,
 }
 
 impl TokenLike for UserAccessToken {
