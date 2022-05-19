@@ -77,15 +77,15 @@ pub async fn send_email(
             <body>
                 <p>
                 If you requested to change your password, please follow this
-                <a href="{}/auth/password/reset/initiate/{}?token={}">link</a> to reset it.
+                <a href="{}?token={}&user_type={}">link</a> to reset it.
                 </p>
                 <p>Otherwise, please report this occurence.</p>
             </body>
             </html>
             "##,
             (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
+            one_time_token,
             user_type,
-            one_time_token
         ))
         .map_err(GlobeliseError::internal)?;
 
