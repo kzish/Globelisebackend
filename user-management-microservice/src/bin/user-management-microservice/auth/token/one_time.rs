@@ -59,6 +59,7 @@ where
     aud: String,
     iss: String,
     exp: usize,
+    #[serde(skip)]
     one_time_audience: PhantomData<T>,
 }
 
