@@ -41,6 +41,9 @@ impl Database {
     ) -> GlobeliseResult<Vec<OnboardedUserIndex>> {
         let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
 
+        let previous_day = query.created_at.map(|v| v.previous_day().next_day());
+        let next_day = query.created_at.map(|v| v.next_day());
+
         let result = sqlx::query_as(
             "
             SELECT 
@@ -55,19 +58,24 @@ impl Database {
             WHERE
                 ($1 IS NULL OR name ~* $1) AND
                 ($2 IS NULL OR user_role = $2) AND
-                ($3 IS NULL OR user_type = $3)
+                ($3 IS NULL OR user_type = $3) AND
+                ($4 IS NULL OR created_at >= $4) AND
+                ($5 IS NULL OR created_at < $5)
             LIMIT
-                $4
+                $6
             OFFSET
-                $5",
+                $7",
         )
         .bind(query.search_text)
         .bind(query.user_role.map(|s| s.to_string()))
         .bind(query.user_type.map(|s| s.to_string()))
+        .bind(previous_day)
+        .bind(next_day)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)
         .await?;
+
         Ok(result)
     }
 
