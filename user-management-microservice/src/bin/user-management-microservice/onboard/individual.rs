@@ -127,7 +127,7 @@ pub struct IndividualClientAccountDetails {
 
 impl FromRow<'_, PgRow> for IndividualClientAccountDetails {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        let meybe_profile_picture: Option<Vec<u8>> = row.try_get("logo")?;
+        let meybe_profile_picture: Option<Vec<u8>> = row.try_get("profile_picture")?;
         Ok(IndividualClientAccountDetails {
             first_name: row.try_get("first_name")?,
             last_name: row.try_get("last_name")?,
@@ -172,7 +172,7 @@ pub struct IndividualContractorAccountDetails {
 
 impl FromRow<'_, PgRow> for IndividualContractorAccountDetails {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        let meybe_profile_picture: Option<Vec<u8>> = row.try_get("logo")?;
+        let meybe_profile_picture: Option<Vec<u8>> = row.try_get("profile_picture")?;
         Ok(IndividualContractorAccountDetails {
             first_name: row.try_get("first_name")?,
             last_name: row.try_get("last_name")?,
