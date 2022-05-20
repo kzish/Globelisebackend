@@ -15,9 +15,12 @@ Microservice for the management of contractors
     - e.g. `postgres://postgres:<password>@localhost/globelise_eor_admin_management`
   - `FRONTEND_URL`: URL of frontend
     - e.g. `https://globelise.com`
-  - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the Dapr sidecar for user management microservice
-  - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the Dapr sidecar for contractor management microservice
-  - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: URL of the Dapr sidecar for EOR admin microservice
+  - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the user microservice
+  - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the contractor microservice
+  - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: URL of the admin microservice
+  - `USER_MANAGEMENT_MICROSERVICE_DAPR_URL`: URL of the Dapr sidecar for user microservice
+  - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DAPR_URL`: URL of the Dapr sidecar for contractor microservice
+  - `EOR_ADMIN_MICROSERVICE_DAPR_URL`: URL of the Dapr sidecar for admin microservice
 
 ## Build
 

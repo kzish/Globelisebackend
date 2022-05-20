@@ -13,8 +13,8 @@ use serde::Deserialize;
 use crate::{
     auth::token::one_time::create_one_time_token,
     env::{
-        EOR_ADMIN_MICROSERVICE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL,
-        PASSWORD_RESET_URL, SMTP_CREDENTIAL,
+        EOR_ADMIN_MICROSERVICE_DOMAIN_URL, FRONTEND_URL, GLOBELISE_SENDER_EMAIL,
+        GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
     },
 };
 
@@ -115,7 +115,13 @@ pub async fn initiate(
         .open_one_time_session::<ChangePasswordToken>(ulid)
         .await?;
 
-    let redirect_url = format!("{}?token={}", (*PASSWORD_RESET_URL), change_password_token);
+    let redirect_url = format!(
+        "{}/eor/reset-password?token={}",
+        FRONTEND_URL
+            .to_str()
+            .map_err(|_| GlobeliseError::internal("Invalid redirect URL"))?,
+        change_password_token
+    );
     Ok(Redirect::to(&redirect_url))
 }
 
