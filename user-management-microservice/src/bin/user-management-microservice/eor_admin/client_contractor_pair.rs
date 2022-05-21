@@ -105,8 +105,8 @@ impl Database {
             FROM
                 client_contractor_pairs
             WHERE
-                ($1 IS NULL OR (client_ulid = $1)) AND
-                ($2 IS NULL OR (contractor_ulid = $2))
+                ($1 IS NULL OR client_ulid = $1) AND
+                ($2 IS NULL OR contractor_ulid = $2)
             LIMIT
                 $3
             OFFSET

@@ -413,7 +413,7 @@ impl Database {
             FROM
                 entity_clients_branch_details
             WHERE
-                $1 IS NULL OR (client_ulid = $1)
+                ($1 IS NULL OR client_ulid = $1)
             LIMIT $2 OFFSET $3";
 
         let result = sqlx::query_as(query)
