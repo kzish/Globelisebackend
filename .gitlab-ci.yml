@@ -15,14 +15,16 @@ build:
   stage: build
   script:
     - cargo build
- # artifacts:
+  # artifacts:
   #  expire_in: 1 day
   #  paths:
   #    - ./target
 
-deploy globelise_backend:  
+deploy globelise_backend:
   stage: deploy
   retry: 2
+  rules:
+    - if: $CI_COMMIT_BRANCH == "development"
   script:
     - apt update -y
     - apt-get install -y ssh
@@ -34,17 +36,17 @@ deploy globelise_backend:
     - ls -lrth ~/.ssh/
     - touch ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
-    - ssh-keyscan -t rsa,dsa 54.255.80.105 2>&1 | sort -u - ~/.ssh/known_hosts > ~/.ssh/tmp_hosts 
+    - ssh-keyscan -t rsa,dsa 54.255.80.105 2>&1 | sort -u - ~/.ssh/known_hosts > ~/.ssh/tmp_hosts
     - mv ~/.ssh/tmp_hosts ~/.ssh/known_hosts
     - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/globelise-backend && exit"
     - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/globelise-backend && sudo systemctl start stopdaprapps.service && sleep 5  && exit"
     - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/globelise-backend && sudo chown -R ubuntu /opt/backend-cd/ && sudo rm -rf /opt/backend-cd/globelise-backend/user-management-microservice/user-management-microservice && sudo rm -rf /opt/backend-cd/globelise-backend/eor-admin-microservice/eor-admin-microservice && sudo rm -rf /opt/backend-cd/globelise-backend/contractor-management-microservice/contractor-management-microservice && exit"
-    
+
     - scp -C -i ~/.ssh/GlobeliseAppsKey.pem -r ./target/debug/user-management-microservice ubuntu@54.255.80.105:/opt/backend-cd/globelise-backend/user-management-microservice/
     - scp -C -i ~/.ssh/GlobeliseAppsKey.pem -r ./target/debug/eor-admin-microservice ubuntu@54.255.80.105:/opt/backend-cd/globelise-backend/eor-admin-microservice/
     - scp -C -i ~/.ssh/GlobeliseAppsKey.pem -r ./target/debug/contractor-management-microservice ubuntu@54.255.80.105:/opt/backend-cd/globelise-backend/contractor-management-microservice/
-    
-    - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/ && sudo chown -R root:root /opt/backend-cd/ && exit"    
+
+    - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/ && sudo chown -R root:root /opt/backend-cd/ && exit"
     - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/globelise-backend/ && nohup sudo /opt/startscripts/startuserdaprapp.sh && sleep 5 && exit"
     - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/globelise-backend/ && nohup sudo /opt/startscripts/starteordaprapp.sh && sleep 5 && exit"
     - ssh -tt -i ~/.ssh/GlobeliseAppsKey.pem ubuntu@54.255.80.105 "sudo ls -lrth /opt/backend-cd/globelise-backend/ && nohup sudo /opt/startscripts/startcontractorapp.sh && sleep 5 && exit"
