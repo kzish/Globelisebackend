@@ -131,8 +131,8 @@ impl Database {
             FROM
                 entity_contractor_branch_pairs
             WHERE
-                ($1 IS NULL OR (client = $1)) AND
-                ($2 IS NULL OR (contractor_ulid = $2))
+                ($1 IS NULL OR client = $1) AND
+                ($2 IS NULL OR contractor_ulid = $2)
             LIMIT
                 $3
             OFFSET

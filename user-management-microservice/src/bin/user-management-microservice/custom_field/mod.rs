@@ -298,7 +298,7 @@ impl Database {
             FROM
                 entity_client_custom_fields_index
             WHERE
-                $1 IS NULL OR (client_ulid = $1)
+                ($1 IS NULL OR client_ulid = $1)
             LIMIT 
                 $2 
             OFFSET 
