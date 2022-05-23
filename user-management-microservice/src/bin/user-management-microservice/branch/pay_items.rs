@@ -5,7 +5,7 @@ use std::num::NonZeroU32;
 use crate::database::{Database, SharedDatabase};
 use argon2::verify_encoded;
 use axum::extract::{Extension, Json, Path, Query};
-use common_utils::custom_serde::DateWrapper;
+use common_utils::custom_serde::OffsetDateWrapper;
 use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
@@ -409,28 +409,18 @@ pub struct PayItem {
     pub pay_item_method: PayItemMethod,
     pub employers_contribution: String,
     pub require_employee_id: bool,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub created_at: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub updated_at: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub updated_at: sqlx::types::time::OffsetDateTime,
 }
 
 impl<'r> FromRow<'r, PgRow> for PayItem {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         let _pay_item_type: String = row.try_get("pay_item_type")?;
         let _pay_item_method: String = row.try_get("pay_item_method")?;
-
-        let created_at_offset: sqlx::types::time::OffsetDateTime = row.try_get("created_at")?;
-        let (ca_year, ca_month) = created_at_offset.iso_year_week();
-        let ca_weekday = created_at_offset.weekday();
-        let _created_at = sqlx::types::time::Date::try_from_iso_ywd(ca_year, ca_month, ca_weekday)
-            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
-
-        let updated_at_offset: sqlx::types::time::OffsetDateTime = row.try_get("updated_at")?;
-        let (ua_year, ua_month) = updated_at_offset.iso_year_week();
-        let ua_weekday = updated_at_offset.weekday();
-        let _updated_at = sqlx::types::time::Date::try_from_iso_ywd(ua_year, ua_month, ua_weekday)
-            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+        let created_at = row.try_get("created_at")?;
+        let updated_at = row.try_get("updated_at")?;
 
         Ok(PayItem {
             ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
@@ -441,8 +431,8 @@ impl<'r> FromRow<'r, PgRow> for PayItem {
             pay_item_method: PayItemMethod::fr_str(_pay_item_method.as_str()).unwrap(),
             employers_contribution: row.try_get("employers_contribution")?,
             require_employee_id: row.try_get("require_employee_id")?,
-            created_at: _created_at,
-            updated_at: _updated_at,
+            created_at,
+            updated_at,
         })
     }
 }

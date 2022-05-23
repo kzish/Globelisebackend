@@ -3,6 +3,24 @@ use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct OffsetDateWrapper(String);
+
+impl TryFrom<OffsetDateWrapper> for sqlx::types::time::OffsetDateTime {
+    type Error = GlobeliseError;
+
+    fn try_from(date: OffsetDateWrapper) -> Result<Self, Self::Error> {
+        sqlx::types::time::OffsetDateTime::parse(date.0, time::Format::Rfc3339)
+            .map_err(GlobeliseError::bad_request)
+    }
+}
+
+impl From<sqlx::types::time::OffsetDateTime> for OffsetDateWrapper {
+    fn from(date: sqlx::types::time::OffsetDateTime) -> Self {
+        Self(date.format(time::Format::Rfc3339))
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct DateWrapper(String);
 
 impl TryFrom<DateWrapper> for sqlx::types::time::Date {
