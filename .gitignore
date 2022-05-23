@@ -19,3 +19,7 @@ target-coverage/
 .idea/
 *.sh
 *.bat
+*.log
+*.profraw
+*.yaml
+*.xlsx
