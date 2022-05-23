@@ -56,16 +56,16 @@ pub async fn get_onboard_contractor_bank_details(
 #[serde(rename_all = "kebab-case")]
 pub struct BankDetails {
     pub bank_name: String,
-    pub account_name: String,
-    pub account_number: String,
+    pub bank_account_name: String,
+    pub bank_account_number: String,
 }
 
 impl FromRow<'_, PgRow> for BankDetails {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
         Ok(BankDetails {
             bank_name: row.try_get("bank_name")?,
-            account_name: row.try_get("bank_account_name")?,
-            account_number: row.try_get("bank_account_number")?,
+            bank_account_name: row.try_get("bank_account_name")?,
+            bank_account_number: row.try_get("bank_account_number")?,
         })
     }
 }
@@ -88,8 +88,8 @@ impl Database {
         bank_name = $1, bank_account_name = $2, bank_account_number = $3",
                 )
                 .bind(details.bank_name)
-                .bind(details.account_name)
-                .bind(details.account_number)
+                .bind(details.bank_account_name)
+                .bind(details.bank_account_number)
                 .bind(ulid_to_sql_uuid(ulid))
                 .execute(&self.0)
                 .await
@@ -105,8 +105,8 @@ impl Database {
         bank_name = $1, bank_account_name = $2, bank_account_number = $3",
                 )
                 .bind(details.bank_name)
-                .bind(details.account_name)
-                .bind(details.account_number)
+                .bind(details.bank_account_name)
+                .bind(details.bank_account_number)
                 .bind(ulid_to_sql_uuid(ulid))
                 .execute(&self.0)
                 .await

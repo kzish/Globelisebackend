@@ -1,11 +1,10 @@
-use axum::extract::{Extension, Json};
+use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::{Currency, DateWrapper, EmailWrapper},
+    custom_serde::{Currency, DateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
     ulid_to_sql_uuid,
 };
-use email_address::EmailAddress;
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
@@ -19,32 +18,22 @@ use crate::database::{Database, SharedDatabase};
 
 pub async fn onboard_client_payment_details(
     claims: Token<UserAccessToken>,
-    Json(details): Json<PaymentDetails>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<OnboardClientPaymentDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
     database
-        .onboard_client_payment_details(claims.payload.ulid, claims.payload.user_type, details)
+        .onboard_client_payment_details(claims.payload.ulid, claims.payload.user_type, body)
         .await
 }
 
 #[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct PaymentDetails {
-    pub currency: Currency,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub payment_date: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub cutoff_date: sqlx::types::time::Date,
-}
-
-#[serde_as]
-#[derive(Debug, FromRow, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct PrefilledPaymentDetails {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+pub struct OnboardClientPaymentDetails {
     pub currency: Currency,
     #[serde_as(as = "TryFromInto<DateWrapper>")]
     pub payment_date: sqlx::types::time::Date,
@@ -57,7 +46,7 @@ impl Database {
         &self,
         ulid: Ulid,
         user_type: UserType,
-        details: PaymentDetails,
+        details: OnboardClientPaymentDetails,
     ) -> GlobeliseResult<()> {
         if self.user(ulid, Some(user_type)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
