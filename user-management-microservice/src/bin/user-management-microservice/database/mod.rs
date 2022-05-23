@@ -8,7 +8,6 @@ use user_management_microservice_sdk::user_index::{OnboardedUserIndex, UserIndex
 use crate::eor_admin::{OnboardedUserIndexQuery, UserIndexQuery};
 
 mod auth;
-mod prefill_onboard;
 
 /// Convenience wrapper around PostgreSQL.
 pub struct Database(pub Pool<Postgres>);

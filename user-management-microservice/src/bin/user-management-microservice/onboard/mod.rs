@@ -13,7 +13,6 @@ pub mod entity;
 pub mod individual;
 pub mod payment;
 pub mod pic;
-pub mod prefill;
 
 pub async fn fully_onboarded(
     claims: Token<UserAccessToken>,
