@@ -1,7 +1,9 @@
 use crate::database::Database;
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
-    custom_serde::{Currency, DateWrapper, EmailWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{
+        Currency, DateWrapper, EmailWrapper, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT,
+    },
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -17,6 +19,19 @@ use crate::database::SharedDatabase;
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+pub struct InsertOnePrefillEntityClientPaymentDetails {
+    #[serde_as(as = "TryFromInto<EmailWrapper>")]
+    pub email: EmailAddress,
+    pub currency: Currency,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub payment_date: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub cutoff_date: sqlx::types::time::Date,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct PrefillEntityClientPaymentDetails {
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
     pub email: EmailAddress,
@@ -25,10 +40,10 @@ pub struct PrefillEntityClientPaymentDetails {
     pub payment_date: sqlx::types::time::Date,
     #[serde_as(as = "TryFromInto<DateWrapper>")]
     pub cutoff_date: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub created_at: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub updated_at: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub updated_at: sqlx::types::time::OffsetDateTime,
 }
 
 impl FromRow<'_, PgRow> for PrefillEntityClientPaymentDetails {
@@ -50,7 +65,7 @@ impl FromRow<'_, PgRow> for PrefillEntityClientPaymentDetails {
 pub async fn entity_client_post_one(
     _: Token<AdminAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<PrefillEntityClientPaymentDetails>,
+        Json<InsertOnePrefillEntityClientPaymentDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
@@ -85,7 +100,7 @@ pub async fn entity_client_get_one(
 impl Database {
     pub async fn insert_one_prefill_entity_client_payment_details(
         &self,
-        details: PrefillEntityClientPaymentDetails,
+        details: InsertOnePrefillEntityClientPaymentDetails,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO prefilled_entity_clients_payment_details

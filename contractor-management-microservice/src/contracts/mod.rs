@@ -3,7 +3,7 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{Currency, DateWrapper},
+    custom_serde::{Currency, DateWrapper, OffsetDateWrapper},
     error::GlobeliseResult,
     pubsub::{CreateOrUpdateContracts, SharedPubSub},
     token::{Token, TokenString},
@@ -169,8 +169,8 @@ pub struct UserIndex {
     pub name: String,
     pub role: Role,
     pub contract_count: i64,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    pub created_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
     pub email: String,
 }
 

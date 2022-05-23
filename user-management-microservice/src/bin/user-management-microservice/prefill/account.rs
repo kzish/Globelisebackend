@@ -19,7 +19,7 @@ use crate::database::SharedDatabase;
 pub async fn individual_contractor_post_one(
     token: Token<UserAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<PrefillIndividualContractorAccountDetails>,
+        Json<InsertOnePrefillIndividualContractorAccountDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
@@ -57,6 +57,28 @@ pub async fn individual_contractor_get_one(
         )
         .await?;
     Ok(Json(result))
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct InsertOnePrefillIndividualContractorAccountDetails {
+    #[serde_as(as = "TryFromInto<EmailWrapper>")]
+    pub email: EmailAddress,
+    pub client_ulid: Option<Ulid>,
+    pub first_name: String,
+    pub last_name: String,
+    #[serde_as(as = "TryFromInto<DateWrapper>")]
+    pub dob: sqlx::types::time::Date,
+    pub dial_code: String,
+    pub phone_number: String,
+    pub country: String,
+    pub city: String,
+    pub address: String,
+    pub postal_code: String,
+    #[serde(default)]
+    pub tax_id: Option<String>,
+    pub time_zone: String,
 }
 
 #[serde_as]
@@ -116,7 +138,7 @@ impl Database {
     pub async fn insert_one_client_prefill_individual_contractor_account_details(
         &self,
         client_ulid: Ulid,
-        details: PrefillIndividualContractorAccountDetails,
+        details: InsertOnePrefillIndividualContractorAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO prefilled_individual_contractors_account_details (

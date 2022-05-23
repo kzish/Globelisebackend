@@ -19,6 +19,18 @@ use crate::database::SharedDatabase;
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+pub struct InsertOnePrefillIndividualContractorBankDetails {
+    #[serde_as(as = "TryFromInto<EmailWrapper>")]
+    pub email: EmailAddress,
+    pub client_ulid: Ulid,
+    pub bank_name: String,
+    pub bank_account_name: String,
+    pub bank_account_number: String,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualContractorBankDetails {
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
     pub email: EmailAddress,
@@ -55,7 +67,7 @@ impl FromRow<'_, PgRow> for PrefillIndividualContractorBankDetails {
 pub async fn individual_contractor_post_one(
     token: Token<UserAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<PrefillIndividualContractorBankDetails>,
+        Json<InsertOnePrefillIndividualContractorBankDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
@@ -100,7 +112,7 @@ impl Database {
     pub async fn insert_one_client_prefill_individual_contractor_bank_details(
         &self,
         client_ulid: Ulid,
-        details: PrefillIndividualContractorBankDetails,
+        details: InsertOnePrefillIndividualContractorBankDetails,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO prefilled_individual_contractors_bank_details (

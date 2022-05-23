@@ -1,5 +1,5 @@
 use common_utils::{
-    custom_serde::DateWrapper,
+    custom_serde::OffsetDateWrapper,
     error::{GlobeliseError, GlobeliseResult},
     ulid_from_sql_uuid, DaprAppId,
 };
@@ -63,8 +63,8 @@ pub struct OnboardedUserIndex {
     pub user_role: Role,
     pub user_type: UserType,
     pub email: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub created_at: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
 }
 
 impl<'r> FromRow<'r, PgRow> for OnboardedUserIndex {
@@ -78,11 +78,7 @@ impl<'r> FromRow<'r, PgRow> for OnboardedUserIndex {
         let user_type =
             UserType::try_from(type_str.as_str()).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
         let email = row.try_get("email")?;
-        let created_at_offset: sqlx::types::time::OffsetDateTime = row.try_get("created_at")?;
-        let (year, month) = created_at_offset.iso_year_week();
-        let weekday = created_at_offset.weekday();
-        let created_at = sqlx::types::time::Date::try_from_iso_ywd(year, month, weekday)
-            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+        let created_at = row.try_get("created_at")?;
         Ok(OnboardedUserIndex {
             ulid,
             name,
@@ -101,19 +97,15 @@ impl<'r> FromRow<'r, PgRow> for OnboardedUserIndex {
 pub struct UserIndex {
     pub ulid: Ulid,
     pub email: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub created_at: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
 }
 
 impl<'r> FromRow<'r, PgRow> for UserIndex {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         let ulid = ulid_from_sql_uuid(row.try_get("ulid")?);
         let email = row.try_get("email")?;
-        let created_at_offset: sqlx::types::time::OffsetDateTime = row.try_get("created_at")?;
-        let (year, month) = created_at_offset.iso_year_week();
-        let weekday = created_at_offset.weekday();
-        let created_at = sqlx::types::time::Date::try_from_iso_ywd(year, month, weekday)
-            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+        let created_at = row.try_get("created_at")?;
         Ok(UserIndex {
             ulid,
             email,
