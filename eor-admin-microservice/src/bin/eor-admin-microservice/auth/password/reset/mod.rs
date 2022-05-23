@@ -7,14 +7,14 @@ use common_utils::error::{GlobeliseError, GlobeliseResult};
 use email_address::EmailAddress;
 use lettre::{message::Mailbox, Message, SmtpTransport, Transport};
 use rand::Rng;
-use rusty_ulid::Ulid;
 use serde::Deserialize;
+use uuid::Uuid;
 
 use crate::{
     auth::token::one_time::create_one_time_token,
     env::{
-        EOR_ADMIN_MICROSERVICE_DOMAIN_URL, FRONTEND_URL, GLOBELISE_SENDER_EMAIL,
-        GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
+        EOR_ADMIN_MICROSERVICE_DOMAIN_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL,
+        PASSWORD_RESET_URL, SMTP_CREDENTIAL,
     },
 };
 
@@ -41,7 +41,7 @@ pub async fn send_email(
     let database = database.lock().await;
     let (admin_ulid, is_valid_attempt) = match database.admin_id(&email_address).await {
         Ok(Some(ulid)) => (ulid, true),
-        _ => (Ulid::generate(), false),
+        _ => (Uuid::new_v4(), false),
     };
 
     let mut shared_state = shared_state.lock().await;
@@ -108,20 +108,14 @@ pub async fn initiate(
     OneTimeTokenParam(claims): OneTimeTokenParam<OneTimeToken<LostPasswordToken>>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<Redirect> {
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid: Uuid = claims.sub.parse().unwrap();
 
     let mut shared_state = shared_state.lock().await;
     let change_password_token = shared_state
         .open_one_time_session::<ChangePasswordToken>(ulid)
         .await?;
 
-    let redirect_url = format!(
-        "{}/eor/reset-password?token={}",
-        FRONTEND_URL
-            .to_str()
-            .map_err(|_| GlobeliseError::internal("Invalid redirect URL"))?,
-        change_password_token
-    );
+    let redirect_url = format!("{}?token={}", (*PASSWORD_RESET_URL), change_password_token);
     Ok(Redirect::to(&redirect_url))
 }
 
@@ -132,7 +126,7 @@ pub async fn execute(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<()> {
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid: Uuid = claims.sub.parse().unwrap();
 
     if request.new_password != request.confirm_new_password {
         return Err(GlobeliseError::bad_request("Passwords do not match"));

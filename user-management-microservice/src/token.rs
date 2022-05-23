@@ -1,17 +1,19 @@
 use common_utils::{token::TokenLike, DaprAppId};
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 use time::Duration;
+use uuid::Uuid;
 
 use crate::user::Role;
 
 use super::user::UserType;
 
 /// Claims for access tokens.
+#[serde_as]
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct UserAccessToken {
-    pub ulid: Ulid,
+    pub ulid: Uuid,
     pub email: String,
     pub user_type: UserType,
     pub user_roles: Vec<Role>,

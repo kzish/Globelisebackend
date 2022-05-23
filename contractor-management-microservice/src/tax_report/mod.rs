@@ -6,14 +6,13 @@ use common_utils::{
     custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::GlobeliseResult,
     token::Token,
-    ulid_from_sql_uuid,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use user_management_microservice_sdk::{token::UserAccessToken, user::Role};
+use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::SharedDatabase};
 
@@ -80,10 +79,10 @@ impl TaxInterval {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize)]
+#[derive(Debug, FromRow, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TaxReportIndex {
-    tax_report_ulid: Ulid,
+    tax_report_ulid: Uuid,
     client_name: String,
     contractor_name: String,
     #[serde(default)]
@@ -95,23 +94,6 @@ pub struct TaxReportIndex {
     #[serde_as(as = "FromInto<DateWrapper>")]
     pub end_period: sqlx::types::time::Date,
     country: String,
-}
-
-impl<'r> FromRow<'r, PgRow> for TaxReportIndex {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        let other_fields = TaxReportIndexSqlHelper::from_row(row)?;
-        Ok(Self {
-            tax_report_ulid: ulid_from_sql_uuid(row.try_get("tax_report_ulid")?),
-            client_name: other_fields.client_name,
-            contractor_name: other_fields.contractor_name,
-            contract_name: other_fields.contract_name,
-            tax_interval: other_fields.tax_interval,
-            tax_name: other_fields.tax_name,
-            begin_period: other_fields.begin_period,
-            end_period: other_fields.end_period,
-            country: other_fields.country,
-        })
-    }
 }
 
 #[serde_as]
@@ -135,10 +117,10 @@ struct TaxReportIndexSqlHelper {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct CreateTaxReportIndex {
-    pub client_ulid: Ulid,
-    pub contractor_ulid: Ulid,
+    pub client_ulid: Uuid,
+    pub contractor_ulid: Uuid,
     #[serde(default)]
-    pub contract_ulid: Option<Ulid>,
+    pub contract_ulid: Option<Uuid>,
     pub tax_interval: TaxInterval,
     pub tax_name: String,
     #[serde_as(as = "TryFromInto<DateWrapper>")]

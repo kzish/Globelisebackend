@@ -1,11 +1,8 @@
-use common_utils::{
-    error::{GlobeliseError, GlobeliseResult},
-    ulid_from_sql_uuid, ulid_to_sql_uuid,
-};
+use common_utils::error::{GlobeliseError, GlobeliseResult};
 use email_address::EmailAddress;
-use rusty_ulid::Ulid;
 use sqlx::Row;
 use user_management_microservice_sdk::user::UserType;
+use uuid::Uuid;
 
 use crate::auth::user::User;
 
@@ -13,20 +10,20 @@ use super::Database;
 
 impl Database {
     /// Creates and stores a new user.
-    pub async fn create_user(&self, user: User, user_type: UserType) -> GlobeliseResult<Ulid> {
+    pub async fn create_user(&self, user: User, user_type: UserType) -> GlobeliseResult<Uuid> {
         // Avoid overwriting an existing user.
         if self.user_id(&user.email).await?.is_some() {
             return Err(GlobeliseError::UnavailableEmail);
         }
 
-        let ulid = Ulid::generate();
+        let ulid = Uuid::new_v4();
 
         sqlx::query(&format!(
             "INSERT INTO {} (ulid, email, password, is_google, is_outlook)
             VALUES ($1, $2, $3, $4, $5)",
             user_type.db_auth_name()
         ))
-        .bind(ulid_to_sql_uuid(ulid))
+        .bind(ulid)
         .bind(user.email.as_ref())
         .bind(user.password_hash)
         .bind(user.google)
@@ -41,7 +38,7 @@ impl Database {
     /// Updates a user's password.
     pub async fn update_password(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         user_type: UserType,
         // TODO: Create a newtype to ensure only hashed password are inserted
         new_password_hash: Option<String>,
@@ -51,7 +48,7 @@ impl Database {
             user_type.db_auth_name()
         ))
         .bind(new_password_hash)
-        .bind(ulid_to_sql_uuid(ulid))
+        .bind(ulid)
         .execute(&self.0)
         .await
         .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -65,7 +62,7 @@ impl Database {
     /// Otherwise, it searches all user tables.
     pub async fn user(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         user_type: Option<UserType>,
     ) -> GlobeliseResult<Option<(User, UserType)>> {
         if let Some(row) = sqlx::query(
@@ -77,9 +74,9 @@ impl Database {
                 users_index
             WHERE 
                 ulid = $1 AND
-                ($2 IS NULL OR user_type = $2)",
+                $2 IS NULL OR (user_type = $2)",
         )
-        .bind(ulid_to_sql_uuid(ulid))
+        .bind(ulid)
         .bind(user_type.map(|v| v.as_str()))
         .fetch_optional(&self.0)
         .await
@@ -94,9 +91,7 @@ impl Database {
                     google: row.try_get("is_google")?,
                     outlook: row.try_get("is_outlook")?,
                 },
-                row.try_get::<String, _>("user_type")?
-                    .parse()
-                    .map_err(|_| GlobeliseError::internal("Invalid user_type from database"))?,
+                row.try_get("user_type")?,
             )))
         } else {
             Ok(None)
@@ -104,7 +99,7 @@ impl Database {
     }
 
     /// Gets a user's id and user type.
-    pub async fn user_id(&self, email: &EmailAddress) -> GlobeliseResult<Option<(Ulid, UserType)>> {
+    pub async fn user_id(&self, email: &EmailAddress) -> GlobeliseResult<Option<(Uuid, UserType)>> {
         if let Some(row) = sqlx::query(
             "
                 SELECT 
@@ -119,12 +114,7 @@ impl Database {
         .await
         .map_err(|e| GlobeliseError::Database(e.to_string()))?
         {
-            Ok(Some((
-                ulid_from_sql_uuid(row.get("ulid")),
-                row.try_get::<String, _>("user_type")?
-                    .parse()
-                    .map_err(|_| GlobeliseError::internal("Invalid user_type from database"))?,
-            )))
+            Ok(Some((row.try_get("ulid")?, row.try_get("user_type")?)))
         } else {
             Ok(None)
         }

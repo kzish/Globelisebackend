@@ -1,5 +1,5 @@
-use common_utils::{error::GlobeliseResult, ulid_to_sql_uuid};
-use rusty_ulid::Ulid;
+use common_utils::error::GlobeliseResult;
+use uuid::Uuid;
 
 use crate::onboard::individual::IndividualDetails;
 
@@ -8,7 +8,7 @@ use super::Database;
 impl Database {
     pub async fn onboard_admin_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         details: IndividualDetails,
     ) -> GlobeliseResult<()> {
         let query = "
@@ -34,7 +34,7 @@ impl Database {
             .bind(details.tax_id)
             .bind(details.time_zone)
             .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .execute(&self.0)
             .await?;
 

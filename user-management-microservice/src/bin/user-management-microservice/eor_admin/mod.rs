@@ -1,6 +1,5 @@
 use axum::extract::{Extension, Json, Query};
 use common_utils::{
-    custom_serde::OptionDateWrapper,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -8,7 +7,6 @@ use email_address::EmailAddress;
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, TryFromInto};
 use user_management_microservice_sdk::{
     user::{Role, UserType},
     user_index::{OnboardedUserIndex, UserIndex},
@@ -29,7 +27,6 @@ pub mod pay_items;
 pub mod prefill;
 pub mod search_employee_contractors;
 
-#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct OnboardedUserIndexQuery {
@@ -38,9 +35,6 @@ pub struct OnboardedUserIndexQuery {
     pub search_text: Option<String>,
     pub user_type: Option<UserType>,
     pub user_role: Option<Role>,
-    #[serde(default)]
-    #[serde_as(as = "TryFromInto<OptionDateWrapper>")]
-    pub created_at: Option<sqlx::types::time::Date>,
 }
 
 pub async fn eor_admin_onboarded_user_index(

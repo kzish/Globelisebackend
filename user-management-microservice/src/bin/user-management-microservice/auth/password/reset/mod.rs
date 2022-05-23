@@ -7,15 +7,15 @@ use common_utils::error::{GlobeliseError, GlobeliseResult};
 use email_address::EmailAddress;
 use lettre::{Message, SmtpTransport, Transport};
 use rand::Rng;
-use rusty_ulid::Ulid;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 use user_management_microservice_sdk::user::UserType;
+use uuid::Uuid;
 
 use crate::{
     auth::token::one_time::create_one_time_token,
     env::{
-        FRONTEND_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
+        GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, PASSWORD_RESET_URL, SMTP_CREDENTIAL,
         USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
     },
 };
@@ -40,7 +40,7 @@ pub async fn send_email(
     let database = database.lock().await;
     let (user_ulid, user_type, is_valid_attempt) = match database.user_id(&email_address).await {
         Ok(Some((ulid, user_type))) => (ulid, user_type, true),
-        _ => (Ulid::generate(), UserType::Individual, false),
+        _ => (Uuid::new_v4(), UserType::Individual, false),
     };
 
     let mut shared_state = shared_state.lock().await;
@@ -77,7 +77,7 @@ pub async fn send_email(
             <body>
                 <p>
                 If you requested to change your password, please follow this
-                <a href="{}/auth/password/reset/initiate?token={}">link</a> to reset it.
+                <a href="{}?token={}&user_type={}">link</a> to reset it.
                 </p>
                 <p>Otherwise, please report this occurence.</p>
             </body>
@@ -85,6 +85,7 @@ pub async fn send_email(
             "##,
             (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
             one_time_token,
+            user_type,
         ))
         .map_err(GlobeliseError::internal)?;
 
@@ -108,7 +109,7 @@ pub async fn initiate(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<Redirect> {
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid: Uuid = claims.sub.parse().unwrap();
     let user_type: UserType = claims.user_type.parse().unwrap();
 
     let mut shared_state = shared_state.lock().await;
@@ -117,13 +118,7 @@ pub async fn initiate(
         .open_one_time_session::<ChangePasswordToken>(&database, ulid, user_type)
         .await?;
 
-    let redirect_url = format!(
-        "{}/reset-password?token={}",
-        FRONTEND_URL
-            .to_str()
-            .map_err(|_| GlobeliseError::internal("Invalid redirect URL"))?,
-        change_password_token
-    );
+    let redirect_url = format!("{}?token={}", (*PASSWORD_RESET_URL), change_password_token);
     Ok(Redirect::to(&redirect_url))
 }
 
@@ -134,7 +129,7 @@ pub async fn execute(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<()> {
-    let ulid: Ulid = claims.sub.parse().unwrap();
+    let ulid: Uuid = claims.sub.parse().unwrap();
     let user_type: UserType = claims.user_type.parse().unwrap();
 
     let new_password: String = request.new_password.nfc().collect();

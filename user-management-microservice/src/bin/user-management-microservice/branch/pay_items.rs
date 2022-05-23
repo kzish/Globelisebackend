@@ -2,21 +2,20 @@
 
 use std::num::NonZeroU32;
 
-use crate::database::{Database, SharedDatabase};
 use argon2::verify_encoded;
 use axum::extract::{Extension, Json, Path, Query};
 use common_utils::custom_serde::OffsetDateWrapper;
 use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
-    ulid_from_sql_uuid, ulid_to_sql_uuid,
 };
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
-use serde_with::TryFromInto;
+use serde_with::{serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use uuid::Uuid;
+
+use crate::database::{Database, SharedDatabase};
 
 pub async fn get_pay_items(
     claims: Token<UserAccessToken>,
@@ -88,7 +87,7 @@ pub async fn update_pay_item(
 //requires password to delete
 pub async fn delete_pay_item(
     claims: Token<UserAccessToken>,
-    Path(pay_item_ulid): Path<Ulid>,
+    Path(pay_item_ulid): Path<Uuid>,
     Json(request): Json<DeletePayItemRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
@@ -124,7 +123,7 @@ pub async fn delete_pay_item(
 
 pub async fn get_pay_item_by_id(
     claims: Token<UserAccessToken>,
-    Path(pay_item_ulid): Path<Ulid>,
+    Path(pay_item_ulid): Path<Uuid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<PayItem>> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -149,7 +148,7 @@ pub async fn get_pay_item_by_id(
 
 impl Database {
     //verify_password_for_delete_operation
-    pub async fn verify_password(&self, ulid: Ulid, password: String) -> GlobeliseResult<bool> {
+    pub async fn verify_password(&self, ulid: Uuid, password: String) -> GlobeliseResult<bool> {
         let query = "SELECT 
                     password 
                 FROM 
@@ -157,7 +156,7 @@ impl Database {
                 WHERE
                     ulid = $1";
         let password_hash: Option<String> = sqlx::query(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .map(|row| row.get("password"))
             .fetch_optional(&self.0)
             .await?;
@@ -167,8 +166,8 @@ impl Database {
         Ok(res)
     }
 
-    pub async fn create_pay_item(&self, pay_item: CreatePayItem) -> GlobeliseResult<Ulid> {
-        let ulid = Ulid::generate();
+    pub async fn create_pay_item(&self, pay_item: CreatePayItem) -> GlobeliseResult<Uuid> {
+        let ulid = Uuid::new_v4();
 
         let query = "
             INSERT INTO 
@@ -185,8 +184,8 @@ impl Database {
                 $1, $2, $3, $4, $5, $6, $7, $8
             )";
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(ulid))
-            .bind(ulid_to_sql_uuid(pay_item.branch_ulid))
+            .bind(ulid)
+            .bind(pay_item.branch_ulid)
             .bind(pay_item.pay_item_type.as_str())
             .bind(pay_item.pay_item_custom_name)
             .bind(pay_item.use_pay_item_type_name)
@@ -215,7 +214,7 @@ impl Database {
                 ulid = $1
             ";
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(pay_item.ulid))
+            .bind(pay_item.ulid)
             .bind(pay_item.pay_item_type.as_str())
             .bind(pay_item.pay_item_custom_name)
             .bind(pay_item.use_pay_item_type_name)
@@ -229,7 +228,7 @@ impl Database {
         Ok(())
     }
 
-    pub async fn delete_pay_item(&self, ulid: Ulid) -> GlobeliseResult<()> {
+    pub async fn delete_pay_item(&self, ulid: Uuid) -> GlobeliseResult<()> {
         let query = "
             DELETE FROM 
                 entity_clients_branch_pay_items 
@@ -237,7 +236,7 @@ impl Database {
                 ulid = $1
             ";
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .execute(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -245,14 +244,14 @@ impl Database {
         Ok(())
     }
 
-    pub async fn get_pay_item_by_id(&self, ulid: Ulid) -> GlobeliseResult<Option<PayItem>> {
+    pub async fn get_pay_item_by_id(&self, ulid: Uuid) -> GlobeliseResult<Option<PayItem>> {
         let query = "
             SELECT * FROM 
                 entity_clients_branch_pay_items 
             WHERE 
                 ulid = $1";
         let pay_item = sqlx::query_as(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .fetch_optional(&self.0)
             .await?;
 
@@ -282,7 +281,7 @@ impl Database {
             search_param
         );
         let pay_items = sqlx::query_as(&query)
-            .bind(ulid_to_sql_uuid(request.branch_ulid))
+            .bind(request.branch_ulid)
             .bind(request.per_page.get())
             .bind((request.page.get() - 1) * request.per_page.get())
             .fetch_all(&self.0)
@@ -299,10 +298,11 @@ pub struct DeletePayItemRequest {
     pub password: String,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PayItemsIndexQuery {
-    pub branch_ulid: Ulid,
+    pub branch_ulid: Uuid,
     pub page: NonZeroU32,
     pub per_page: NonZeroU32,
     pub search_param: Option<String>,
@@ -336,7 +336,7 @@ impl PayItemType {
         }
     }
 
-    pub fn fr_str(string: &str) -> Option<PayItemType> {
+    pub fn from_str(string: &str) -> Option<PayItemType> {
         match string {
             "tax" => Some(PayItemType::Tax),
             "statutory_fund" => Some(PayItemType::StatutoryFund),
@@ -388,7 +388,7 @@ impl PayItemMethod {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct CreatePayItem {
-    pub branch_ulid: Ulid,
+    pub branch_ulid: Uuid,
     pub pay_item_type: PayItemType,
     pub pay_item_custom_name: String,
     pub use_pay_item_type_name: bool,
@@ -401,8 +401,8 @@ pub struct CreatePayItem {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PayItem {
-    pub ulid: Ulid,
-    pub branch_ulid: Ulid,
+    pub ulid: Uuid,
+    pub branch_ulid: Uuid,
     pub pay_item_type: PayItemType,
     pub pay_item_custom_name: String,
     pub use_pay_item_type_name: bool,
@@ -419,20 +419,18 @@ impl<'r> FromRow<'r, PgRow> for PayItem {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         let _pay_item_type: String = row.try_get("pay_item_type")?;
         let _pay_item_method: String = row.try_get("pay_item_method")?;
-        let created_at = row.try_get("created_at")?;
-        let updated_at = row.try_get("updated_at")?;
 
         Ok(PayItem {
-            ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
-            branch_ulid: ulid_from_sql_uuid(row.try_get("branch_ulid")?),
-            pay_item_type: PayItemType::fr_str(_pay_item_type.as_str()).unwrap(),
+            ulid: row.try_get("ulid")?,
+            branch_ulid: row.try_get("branch_ulid")?,
+            pay_item_type: PayItemType::from_str(_pay_item_type.as_str()).unwrap(),
             pay_item_custom_name: row.try_get("pay_item_custom_name")?,
             use_pay_item_type_name: row.try_get("use_pay_item_type_name")?,
             pay_item_method: PayItemMethod::fr_str(_pay_item_method.as_str()).unwrap(),
             employers_contribution: row.try_get("employers_contribution")?,
             require_employee_id: row.try_get("require_employee_id")?,
-            created_at,
-            updated_at,
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
         })
     }
 }

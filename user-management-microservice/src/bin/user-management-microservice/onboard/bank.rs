@@ -2,12 +2,11 @@ use axum::extract::{Extension, Json};
 use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
-    ulid_to_sql_uuid,
 };
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
@@ -52,7 +51,7 @@ pub async fn get_onboard_contractor_bank_details(
     ))
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BankDetails {
     pub bank_name: String,
@@ -60,20 +59,10 @@ pub struct BankDetails {
     pub bank_account_number: String,
 }
 
-impl FromRow<'_, PgRow> for BankDetails {
-    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        Ok(BankDetails {
-            bank_name: row.try_get("bank_name")?,
-            bank_account_name: row.try_get("bank_account_name")?,
-            bank_account_number: row.try_get("bank_account_number")?,
-        })
-    }
-}
-
 impl Database {
     pub async fn onboard_contractor_bank_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         user_type: UserType,
         details: BankDetails,
     ) -> GlobeliseResult<()> {
@@ -90,7 +79,7 @@ impl Database {
                 .bind(details.bank_name)
                 .bind(details.bank_account_name)
                 .bind(details.bank_account_number)
-                .bind(ulid_to_sql_uuid(ulid))
+                .bind(ulid)
                 .execute(&self.0)
                 .await
                 .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -107,7 +96,7 @@ impl Database {
                 .bind(details.bank_name)
                 .bind(details.bank_account_name)
                 .bind(details.bank_account_number)
-                .bind(ulid_to_sql_uuid(ulid))
+                .bind(ulid)
                 .execute(&self.0)
                 .await
                 .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -118,7 +107,7 @@ impl Database {
 
     pub async fn get_onboard_contractor_bank_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         user_type: UserType,
     ) -> GlobeliseResult<BankDetails> {
         match user_type {
@@ -132,7 +121,7 @@ impl Database {
                 WHERE
                     ulid = $1",
                 )
-                .bind(ulid_to_sql_uuid(ulid))
+                .bind(ulid)
                 .fetch_one(&self.0)
                 .await
                 .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -148,7 +137,7 @@ impl Database {
                 WHERE
                     ulid = $1",
                 )
-                .bind(ulid_to_sql_uuid(ulid))
+                .bind(ulid)
                 .fetch_one(&self.0)
                 .await
                 .map_err(|e| GlobeliseError::Database(e.to_string()))?;

@@ -1,10 +1,10 @@
 use axum::{extract::Path, Extension, Json};
-use common_utils::{error::GlobeliseResult, token::Token, ulid_to_sql_uuid};
-use rusty_ulid::Ulid;
+use common_utils::{error::GlobeliseResult, token::Token};
 use user_management_microservice_sdk::{
     token::UserAccessToken,
     user::{Role, UserType},
 };
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
@@ -30,7 +30,7 @@ pub async fn fully_onboarded(
 impl Database {
     pub async fn get_is_user_fully_onboarded(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         user_type: UserType,
         user_role: Role,
     ) -> GlobeliseResult<bool> {
@@ -50,7 +50,7 @@ impl Database {
                 ulid = $1",
         );
         let result = sqlx::query(&query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .fetch_optional(&self.0)
             .await?
             .is_some(); // This will also return false if there's an Err

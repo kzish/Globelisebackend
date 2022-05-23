@@ -6,14 +6,13 @@ use common_utils::{
     custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::GlobeliseResult,
     token::Token,
-    ulid_from_sql_uuid,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use user_management_microservice_sdk::{token::UserAccessToken, user::Role};
+use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::SharedDatabase};
 
@@ -63,10 +62,10 @@ pub async fn eor_admin_create_payslip(
 }
 
 #[serde_as]
-#[derive(Debug, Serialize)]
+#[derive(Debug, FromRow, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PayslipsIndex {
-    payslip_ulid: Ulid,
+    payslip_ulid: Uuid,
     client_name: String,
     contractor_name: String,
     #[serde(default)]
@@ -78,22 +77,6 @@ pub struct PayslipsIndex {
     begin_period: sqlx::types::time::Date,
     #[serde_as(as = "FromInto<DateWrapper>")]
     end_period: sqlx::types::time::Date,
-}
-
-impl<'r> FromRow<'r, PgRow> for PayslipsIndex {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        let other_fields = PayslipsIndexSqlHelper::from_row(row)?;
-        Ok(Self {
-            payslip_ulid: ulid_from_sql_uuid(row.try_get("payslip_ulid")?),
-            client_name: other_fields.client_name,
-            contractor_name: other_fields.contractor_name,
-            contract_name: other_fields.contract_name,
-            payslip_title: other_fields.payslip_title,
-            payment_date: other_fields.payment_date,
-            begin_period: other_fields.begin_period,
-            end_period: other_fields.end_period,
-        })
-    }
 }
 
 #[serde_as]
@@ -117,10 +100,10 @@ struct PayslipsIndexSqlHelper {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct CreatePayslipsIndex {
-    pub client_ulid: Ulid,
-    pub contractor_ulid: Ulid,
+    pub client_ulid: Uuid,
+    pub contractor_ulid: Uuid,
     #[serde(default)]
-    pub contract_ulid: Option<Ulid>,
+    pub contract_ulid: Option<Uuid>,
     pub payslip_title: String,
     #[serde_as(as = "TryFromInto<DateWrapper>")]
     pub payment_date: sqlx::types::time::Date,

@@ -4,13 +4,12 @@ use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     pubsub::{SharedPubSub, UpdateUserName},
     token::Token,
-    ulid_to_sql_uuid,
 };
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
@@ -230,7 +229,7 @@ pub struct EntityClientDetails {
 impl Database {
     pub async fn post_onboard_entity_client_account_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         details: EntityClientAccountDetails,
     ) -> GlobeliseResult<()> {
         if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
@@ -247,7 +246,7 @@ impl Database {
             tax_id = $6, company_address = $7, city = $8, postal_code = $9, time_zone = $10,
             logo = $11";
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .bind(details.company_name)
             .bind(details.country)
             .bind(details.entity_type)
@@ -267,7 +266,7 @@ impl Database {
 
     pub async fn get_onboard_entity_client_account_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
     ) -> GlobeliseResult<EntityClientAccountDetails> {
         if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
@@ -282,7 +281,7 @@ impl Database {
             WHERE
                 ulid = $1";
         let result = sqlx::query_as(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .fetch_one(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -292,7 +291,7 @@ impl Database {
 
     pub async fn post_onboard_entity_contractor_account_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         details: EntityContractorAccountDetails,
     ) -> GlobeliseResult<()> {
         if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
@@ -309,7 +308,7 @@ impl Database {
             tax_id = $6, company_address = $7, city = $8, postal_code = $9, time_zone = $10,
             logo = $11, company_profile = $12";
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .bind(details.company_name)
             .bind(details.country)
             .bind(details.entity_type)
@@ -330,7 +329,7 @@ impl Database {
 
     pub async fn get_onboard_entity_contractor_account_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
     ) -> GlobeliseResult<EntityContractorAccountDetails> {
         if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
@@ -345,7 +344,7 @@ impl Database {
             WHERE
                 ulid = $1";
         let result = sqlx::query_as(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .fetch_one(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;

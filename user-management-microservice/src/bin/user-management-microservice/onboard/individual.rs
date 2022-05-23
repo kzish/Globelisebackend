@@ -4,19 +4,18 @@ use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     pubsub::{SharedPubSub, UpdateUserName},
     token::Token,
-    ulid_to_sql_uuid,
 };
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
 pub async fn post_onboard_individual_client_account_details(
     claims: Token<UserAccessToken>,
-    ContentLengthLimit(Json(request)): ContentLengthLimit<
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<IndividualClientAccountDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
@@ -27,11 +26,11 @@ pub async fn post_onboard_individual_client_account_details(
         return Err(GlobeliseError::Forbidden);
     }
     let ulid = claims.payload.ulid;
-    let full_name = format!("{} {}", request.first_name, request.last_name);
+    let full_name = format!("{} {}", body.first_name, body.last_name);
 
     let database = database.lock().await;
     database
-        .post_onboard_individual_client_account_details(ulid, request)
+        .post_onboard_individual_client_account_details(ulid, body)
         .await?;
 
     let pubsub = pubsub.lock().await;
@@ -127,7 +126,7 @@ pub struct IndividualClientAccountDetails {
 
 impl FromRow<'_, PgRow> for IndividualClientAccountDetails {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        let meybe_profile_picture: Option<Vec<u8>> = row.try_get("profile_picture")?;
+        let meybe_profile_picture: Option<Vec<u8>> = row.try_get("logo")?;
         Ok(IndividualClientAccountDetails {
             first_name: row.try_get("first_name")?,
             last_name: row.try_get("last_name")?,
@@ -172,7 +171,7 @@ pub struct IndividualContractorAccountDetails {
 
 impl FromRow<'_, PgRow> for IndividualContractorAccountDetails {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        let meybe_profile_picture: Option<Vec<u8>> = row.try_get("profile_picture")?;
+        let meybe_profile_picture: Option<Vec<u8>> = row.try_get("logo")?;
         Ok(IndividualContractorAccountDetails {
             first_name: row.try_get("first_name")?,
             last_name: row.try_get("last_name")?,
@@ -194,7 +193,7 @@ impl FromRow<'_, PgRow> for IndividualContractorAccountDetails {
 impl Database {
     pub async fn post_onboard_individual_client_account_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         details: IndividualClientAccountDetails,
     ) -> GlobeliseResult<()> {
         if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
@@ -211,7 +210,7 @@ impl Database {
             country = $7, city = $8, address = $9, postal_code = $10, tax_id = $11,
             time_zone = $12, profile_picture = $13";
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .bind(details.first_name)
             .bind(details.last_name)
             .bind(details.dob)
@@ -233,7 +232,7 @@ impl Database {
 
     pub async fn get_onboard_individual_client_account_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
     ) -> GlobeliseResult<IndividualClientAccountDetails> {
         if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
@@ -249,7 +248,7 @@ impl Database {
                 ulid = $1";
 
         let result = sqlx::query_as(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .fetch_one(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -259,7 +258,7 @@ impl Database {
 
     pub async fn post_onboard_individual_contractor_account_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         details: IndividualContractorAccountDetails,
     ) -> GlobeliseResult<()> {
         if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
@@ -277,7 +276,7 @@ impl Database {
             time_zone = $12, profile_picture = $13, cv = $14";
 
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .bind(details.first_name)
             .bind(details.last_name)
             .bind(details.dob)
@@ -300,7 +299,7 @@ impl Database {
 
     pub async fn get_onboard_individual_contractor_account_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
     ) -> GlobeliseResult<IndividualContractorAccountDetails> {
         if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
@@ -316,7 +315,7 @@ impl Database {
                 ulid = $1";
 
         let result = sqlx::query_as(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .fetch_one(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;

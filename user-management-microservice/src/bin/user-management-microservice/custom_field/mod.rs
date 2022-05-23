@@ -7,14 +7,16 @@ use common_utils::{
     custom_serde::FORM_DATA_LENGTH_LIMIT,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
-    ulid_from_sql_uuid, ulid_to_sql_uuid,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::{
+    postgres::{PgTypeInfo, PgValueRef},
+    FromRow, Row,
+};
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
@@ -48,34 +50,31 @@ impl FieldDetailType {
     }
 }
 
+impl sqlx::Type<sqlx::Postgres> for FieldDetailType {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("text")
+    }
+}
+
+impl<'r> sqlx::Decode<'r, sqlx::Postgres> for FieldDetailType {
+    fn decode(value: PgValueRef<'r>) -> Result<Self, sqlx::error::BoxDynError> {
+        let value: &'r str = sqlx::decode::Decode::decode(value)?;
+        Ok(FieldDetailType::from_str(value).ok_or("Invalid field_detail_type")?)
+    }
+}
+
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GetCustomFieldResponse {
-    ulid: Ulid,
-    client_ulid: Ulid,
+    ulid: Uuid,
+    client_ulid: Uuid,
     field_name: String,
     field_detail_type: FieldDetailType,
     // Should be an enum in the future
     field_format: String,
-    option_1: String,
-    option_2: String,
-}
-
-impl<'r> FromRow<'r, PgRow> for GetCustomFieldResponse {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        let field_detail_type = FieldDetailType::from_str(row.try_get("field_detail_type")?)
-            .expect("There is something wrong with the tabl `user_detail_types`");
-        Ok(Self {
-            ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
-            client_ulid: ulid_from_sql_uuid(row.try_get("client_ulid")?),
-            field_name: row.try_get("field_name")?,
-            field_detail_type,
-            field_format: row.try_get("field_format")?,
-            option_1: row.try_get("field_option_1")?,
-            option_2: row.try_get("field_option_2")?,
-        })
-    }
+    field_option_1: String,
+    field_option_2: String,
 }
 
 #[serde_as]
@@ -86,8 +85,8 @@ pub struct PostCustomFieldRequestForClient {
     field_detail_type: FieldDetailType,
     // Should be an enum in the future
     field_format: String,
-    option_1: String,
-    option_2: String,
+    field_option_1: String,
+    field_option_2: String,
 }
 
 pub async fn user_post_custom_field(
@@ -114,8 +113,8 @@ pub async fn user_post_custom_field(
             request.field_name,
             field_type_ulid,
             request.field_format,
-            request.option_1,
-            request.option_2,
+            request.field_option_1,
+            request.field_option_2,
         )
         .await?;
 
@@ -152,13 +151,13 @@ pub async fn user_get_custom_fields(
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PostCustomFieldRequestForAdmin {
-    client_ulid: Ulid,
+    client_ulid: Uuid,
     field_name: String,
     field_detail_type: FieldDetailType,
     // Should be an enum in the future
     field_format: String,
-    option_1: String,
-    option_2: String,
+    field_option_1: String,
+    field_option_2: String,
 }
 
 pub async fn admin_post_custom_field(
@@ -181,8 +180,8 @@ pub async fn admin_post_custom_field(
             request.field_name,
             field_type_ulid,
             request.field_format,
-            request.option_1,
-            request.option_2,
+            request.field_option_1,
+            request.field_option_2,
         )
         .await?;
 
@@ -191,7 +190,7 @@ pub async fn admin_post_custom_field(
 
 pub async fn admin_get_custom_field_by_ulid(
     _: Token<AdminAccessToken>,
-    Path(ulid): Path<Ulid>,
+    Path(ulid): Path<Uuid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<GetCustomFieldResponse>> {
     let database = database.lock().await;
@@ -207,7 +206,7 @@ pub async fn admin_get_custom_field_by_ulid(
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GetCustomFieldRequestForAdmin {
-    client_ulid: Option<Ulid>,
+    client_ulid: Option<Uuid>,
     page: Option<u32>,
     per_page: Option<u32>,
 }
@@ -229,15 +228,15 @@ pub async fn admin_get_custom_fields(
 impl Database {
     pub async fn create_custom_field(
         &self,
-        client_ulid: Ulid,
+        client_ulid: Uuid,
         field_name: String,
-        field_type_ulid: Ulid,
+        field_type_ulid: Uuid,
         // Should be an enum in the future
         field_format: String,
-        option_1: String,
-        option_2: String,
-    ) -> GlobeliseResult<Ulid> {
-        let ulid = Ulid::generate();
+        field_option_1: String,
+        field_option_2: String,
+    ) -> GlobeliseResult<Uuid> {
+        let ulid = Uuid::new_v4();
 
         let query = "
             INSERT INTO entity_client_custom_fields (
@@ -249,13 +248,13 @@ impl Database {
             )";
 
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(ulid))
-            .bind(ulid_to_sql_uuid(client_ulid))
+            .bind(ulid)
+            .bind(client_ulid)
             .bind(field_name)
-            .bind(ulid_to_sql_uuid(field_type_ulid))
+            .bind(field_type_ulid)
             .bind(field_format)
-            .bind(option_1)
-            .bind(option_2)
+            .bind(field_option_1)
+            .bind(field_option_2)
             .execute(&self.0)
             .await?;
 
@@ -264,7 +263,7 @@ impl Database {
 
     pub async fn get_custom_field_by_ulid(
         &self,
-        client_ulid: Ulid,
+        client_ulid: Uuid,
     ) -> GlobeliseResult<Option<GetCustomFieldResponse>> {
         let query = "
             SELECT
@@ -276,7 +275,7 @@ impl Database {
                 ulid = $1";
 
         let result = sqlx::query_as(query)
-            .bind(ulid_to_sql_uuid(client_ulid))
+            .bind(client_ulid)
             .fetch_optional(&self.0)
             .await?;
 
@@ -285,7 +284,7 @@ impl Database {
 
     pub async fn get_custom_fields(
         &self,
-        client_ulid: Option<Ulid>,
+        client_ulid: Option<Uuid>,
         page: Option<u32>,
         per_page: Option<u32>,
     ) -> GlobeliseResult<Vec<GetCustomFieldResponse>> {
@@ -298,14 +297,14 @@ impl Database {
             FROM
                 entity_client_custom_fields_index
             WHERE
-                ($1 IS NULL OR client_ulid = $1)
+                $1 IS NULL OR (client_ulid = $1)
             LIMIT 
                 $2 
             OFFSET 
                 $3";
 
         let result = sqlx::query_as(query)
-            .bind(client_ulid.map(ulid_to_sql_uuid))
+            .bind(client_ulid)
             .bind(limit)
             .bind(offset)
             .fetch_all(&self.0)
@@ -317,7 +316,7 @@ impl Database {
     pub async fn get_ulid_custom_field_type(
         &self,
         field_type: FieldDetailType,
-    ) -> GlobeliseResult<Ulid> {
+    ) -> GlobeliseResult<Uuid> {
         let query = "
             SELECT
                 ulid
@@ -332,7 +331,7 @@ impl Database {
             .bind(field_type.as_str())
             .fetch_one(&self.0)
             .await
-            .map(|v| v.try_get("ulid").map(ulid_from_sql_uuid))??;
+            .map(|v| v.try_get("ulid"))??;
 
         Ok(result)
     }

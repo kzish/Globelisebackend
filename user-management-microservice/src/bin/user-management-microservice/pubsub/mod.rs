@@ -2,7 +2,6 @@ use axum::{Extension, Json};
 use common_utils::{
     error::GlobeliseResult,
     pubsub::{CreateOrUpdateContracts, TopicSubscriberEvent},
-    ulid_to_sql_uuid,
 };
 
 use crate::database::{Database, SharedDatabase};
@@ -55,9 +54,9 @@ impl Database {
             begin_at = $11, end_at = $12, branch_ulid = $13
         ",
         )
-        .bind(ulid_to_sql_uuid(ulid))
-        .bind(ulid_to_sql_uuid(client_ulid))
-        .bind(ulid_to_sql_uuid(contractor_ulid))
+        .bind(ulid)
+        .bind(client_ulid)
+        .bind(contractor_ulid)
         .bind(contract_name)
         .bind(contract_type)
         .bind(contract_status)
@@ -67,7 +66,7 @@ impl Database {
         .bind(seniority)
         .bind(begin_at)
         .bind(end_at)
-        .bind(ulid_to_sql_uuid(branch_ulid))
+        .bind(branch_ulid)
         .execute(&self.0)
         .await?;
 

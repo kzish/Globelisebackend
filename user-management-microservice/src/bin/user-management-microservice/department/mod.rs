@@ -7,14 +7,13 @@ use common_utils::{
     custom_serde::{Currency, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
-    ulid_from_sql_uuid, ulid_to_sql_uuid,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
@@ -23,7 +22,7 @@ use crate::database::{Database, SharedDatabase};
 #[serde(rename_all = "kebab-case")]
 pub struct PostDepartmentRequest {
     department_name: String,
-    branch_ulid: Ulid,
+    branch_ulid: Uuid,
     country: String,
     classification: String,
     currency: Currency,
@@ -35,36 +34,22 @@ pub struct PostDepartmentRequest {
 pub struct GetDepartmentRequest {
     page: Option<u32>,
     per_page: Option<u32>,
-    client_ulid: Option<Ulid>,
+
+    client_ulid: Option<Uuid>,
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GetDepartmentResponse {
-    ulid: Ulid,
+    ulid: Uuid,
     branch_name: String,
     department_name: String,
     country: String,
     classification: String,
     currency: Currency,
     total_member: i64,
-    client_ulid: Ulid,
-}
-
-impl<'r> FromRow<'r, PgRow> for GetDepartmentResponse {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Self {
-            ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
-            branch_name: row.try_get("branch_name")?,
-            department_name: row.try_get("department_name")?,
-            country: row.try_get("country")?,
-            classification: row.try_get("classification")?,
-            currency: row.try_get("currency")?,
-            total_member: row.try_get("total_member")?,
-            client_ulid: ulid_from_sql_uuid(row.try_get("client_ulid")?),
-        })
-    }
+    client_ulid: Uuid,
 }
 
 pub async fn eor_admin_post_department(
@@ -139,8 +124,8 @@ pub async fn user_get_departments(
 }
 
 impl Database {
-    pub async fn create_department(&self, request: PostDepartmentRequest) -> GlobeliseResult<Ulid> {
-        let ulid = Ulid::generate();
+    pub async fn create_department(&self, request: PostDepartmentRequest) -> GlobeliseResult<Uuid> {
+        let ulid = Uuid::new_v4();
 
         let query = "
             INSERT INTO entity_client_branch_departments (
@@ -149,8 +134,8 @@ impl Database {
                 $1, $2, $3, $4, $5, $6
             )";
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(ulid))
-            .bind(ulid_to_sql_uuid(request.branch_ulid))
+            .bind(ulid)
+            .bind(request.branch_ulid)
             .bind(request.department_name)
             .bind(request.country)
             .bind(request.classification)
@@ -182,7 +167,7 @@ impl Database {
                 $3";
 
         let result = sqlx::query_as(query)
-            .bind(request.client_ulid.map(ulid_to_sql_uuid))
+            .bind(request.client_ulid)
             .bind(limit)
             .bind(offset)
             .fetch_all(&self.0)
