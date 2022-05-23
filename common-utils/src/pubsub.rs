@@ -2,10 +2,10 @@ use std::{collections::HashMap, sync::Arc};
 
 use axum::http::{HeaderMap, HeaderValue};
 use reqwest::{Client, StatusCode};
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 use tokio::sync::Mutex;
+use uuid::Uuid;
 
 use crate::{
     custom_serde::{Currency, DateWrapper},
@@ -113,10 +113,11 @@ impl TopicId {
     }
 }
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AddClientContractorPair {
-    pub client_ulid: Ulid,
-    pub contractor_ulid: Ulid,
+    pub client_ulid: Uuid,
+    pub contractor_ulid: Uuid,
 }
 
 impl PubSubData for AddClientContractorPair {
@@ -125,10 +126,11 @@ impl PubSubData for AddClientContractorPair {
     }
 }
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum UpdateUserName {
-    Client(Ulid, String),
-    Contractor(Ulid, String),
+    Client(Uuid, String),
+    Contractor(Uuid, String),
 }
 
 impl PubSubData for UpdateUserName {
@@ -140,9 +142,10 @@ impl PubSubData for UpdateUserName {
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateOrUpdateContracts {
-    pub ulid: Ulid,
-    pub client_ulid: Ulid,
-    pub contractor_ulid: Ulid,
+    pub ulid: Uuid,
+    pub client_ulid: Uuid,
+    pub branch_ulid: Uuid,
+    pub contractor_ulid: Uuid,
     pub contract_name: String,
     pub contract_type: String,
     pub contract_status: String,
@@ -154,7 +157,6 @@ pub struct CreateOrUpdateContracts {
     pub begin_at: sqlx::types::time::Date,
     #[serde_as(as = "TryFromInto<DateWrapper>")]
     pub end_at: sqlx::types::time::Date,
-    pub branch_ulid: Ulid,
 }
 
 impl PubSubData for CreateOrUpdateContracts {

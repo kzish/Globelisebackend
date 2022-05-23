@@ -3,13 +3,12 @@ use common_utils::{
     custom_serde::{ImageData, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
-    ulid_to_sql_uuid,
 };
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
@@ -32,6 +31,26 @@ pub struct BranchAccountDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub logo: Option<ImageData>,
+}
+
+impl<'r> FromRow<'r, PgRow> for BranchAccountDetails {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        let maybe_logo: Option<Vec<u8>> = row.try_get("logo")?;
+        Ok(BranchAccountDetails {
+            company_name: row.try_get("company_name")?,
+            country: row.try_get("country")?,
+            entity_type: row.try_get("entity_type")?,
+            registration_number: row.try_get("registration_number")?,
+            tax_id: row.try_get("tax_id")?,
+            statutory_contribution_submission_number: row
+                .try_get("statutory_contribution_submission_number")?,
+            company_address: row.try_get("company_address")?,
+            city: row.try_get("city")?,
+            postal_code: row.try_get("postal_code")?,
+            time_zone: row.try_get("time_zone")?,
+            logo: maybe_logo.map(ImageData),
+        })
+    }
 }
 
 pub async fn post_branch_account_details(
@@ -99,7 +118,7 @@ pub async fn get_branch_account_details(
 }
 
 pub struct PostBranchAccountDetailsInput {
-    pub ulid: Ulid,
+    pub ulid: Uuid,
     pub company_name: String,
     pub country: String,
     pub entity_type: String,
@@ -147,7 +166,7 @@ impl Database {
             ";
 
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .bind(company_name)
             .bind(country)
             .bind(entity_type)
@@ -168,7 +187,7 @@ impl Database {
 
     pub async fn get_one_branch_account_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
     ) -> GlobeliseResult<Option<BranchAccountDetails>> {
         let query = "
             SELECT
@@ -180,7 +199,7 @@ impl Database {
                 ulid = $1";
 
         let result = sqlx::query_as(query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .fetch_optional(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -189,28 +208,9 @@ impl Database {
     }
 }
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchAccountDetailsRequest {
-    branch_ulid: Ulid,
-}
-
-impl<'r> FromRow<'r, PgRow> for BranchAccountDetails {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        let maybe_logo: Option<Vec<u8>> = row.try_get("logo")?;
-        Ok(BranchAccountDetails {
-            company_name: row.try_get("company_name")?,
-            country: row.try_get("country")?,
-            entity_type: row.try_get("entity_type")?,
-            registration_number: row.try_get("registration_number")?,
-            tax_id: row.try_get("tax_id")?,
-            statutory_contribution_submission_number: row
-                .try_get("statutory_contribution_submission_number")?,
-            company_address: row.try_get("company_address")?,
-            city: row.try_get("city")?,
-            postal_code: row.try_get("postal_code")?,
-            time_zone: row.try_get("time_zone")?,
-            logo: maybe_logo.map(ImageData),
-        })
-    }
+    branch_ulid: Uuid,
 }

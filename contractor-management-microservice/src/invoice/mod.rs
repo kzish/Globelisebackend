@@ -2,16 +2,14 @@ use axum::{
     extract::{Extension, Path, Query},
     Json,
 };
-use common_utils::{
-    custom_serde::DateWrapper, error::GlobeliseResult, token::Token, ulid_from_sql_uuid,
-};
+use common_utils::{custom_serde::DateWrapper, error::GlobeliseResult, token::Token};
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use itertools::izip;
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, FromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{token::UserAccessToken, user::Role};
+use uuid::Uuid;
 
 use crate::database::SharedDatabase;
 
@@ -71,47 +69,32 @@ pub async fn eor_admin_invoice_group_index(
     Ok(Json(database.invoice_group_index(query).await?))
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct InvoiceIndividualIndexQuery {
-    pub invoice_group_ulid: Ulid,
+    pub invoice_group_ulid: Uuid,
     pub invoice_status: Option<String>,
     pub page: Option<u32>,
     pub per_page: Option<u32>,
     pub query: Option<String>,
-    pub contractor_ulid: Option<Ulid>,
-    pub client_ulid: Option<Ulid>,
+    pub contractor_ulid: Option<Uuid>,
+    pub client_ulid: Option<Uuid>,
 }
 
 #[serde_as]
-#[derive(Debug, Serialize)]
+#[derive(Debug, FromRow, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct InvoiceIndividualIndex {
-    ulid: Ulid,
-    invoice_group_ulid: Ulid,
-    client_ulid: Ulid,
-    contractor_ulid: Ulid,
+    ulid: Uuid,
+    invoice_group_ulid: Uuid,
+    client_ulid: Uuid,
+    contractor_ulid: Uuid,
     invoice_id: i64,
     #[serde_as(as = "FromInto<DateWrapper>")]
     invoice_due: sqlx::types::time::Date,
     invoice_status: String,
     invoice_amount: sqlx::types::Decimal,
-}
-
-impl<'r> FromRow<'r, PgRow> for InvoiceIndividualIndex {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        let other_fields = InvoiceIndividualIndexSqlHelper::from_row(row)?;
-        Ok(Self {
-            ulid: ulid_from_sql_uuid(row.try_get("ulid")?),
-            invoice_group_ulid: ulid_from_sql_uuid(row.try_get("invoice_group_ulid")?),
-            client_ulid: ulid_from_sql_uuid(row.try_get("client_ulid")?),
-            contractor_ulid: ulid_from_sql_uuid(row.try_get("contractor_ulid")?),
-            invoice_id: other_fields.invoice_id,
-            invoice_due: other_fields.invoice_due,
-            invoice_status: other_fields.invoice_status,
-            invoice_amount: other_fields.invoice_amount,
-        })
-    }
 }
 
 #[serde_as]
@@ -125,6 +108,7 @@ pub struct InvoiceIndividualIndexSqlHelper {
     invoice_amount: sqlx::types::Decimal,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct InvoiceGroupIndexQuery {
@@ -132,8 +116,8 @@ pub struct InvoiceGroupIndexQuery {
     pub page: Option<u32>,
     pub per_page: Option<u32>,
     pub query: Option<String>,
-    pub contractor_ulid: Option<Ulid>,
-    pub client_ulid: Option<Ulid>,
+    pub contractor_ulid: Option<Uuid>,
+    pub client_ulid: Option<Uuid>,
 }
 
 #[derive(Debug, Serialize)]
@@ -191,31 +175,25 @@ impl<'r> FromRow<'r, PgRow> for InvoiceGroupIndex {
 
 #[derive(Debug)]
 struct InvoiceGroupIndexInternal {
-    ulid: Vec<Ulid>,
-    invoice_group_ulid: Ulid,
-    client_ulid: Vec<Ulid>,
-    contractor_ulid: Vec<Ulid>,
+    ulid: Vec<Uuid>,
+    invoice_group_ulid: Uuid,
+    client_ulid: Vec<Uuid>,
+    contractor_ulid: Vec<Uuid>,
     other_fields: InvoiceGroupIndexInternalSqlHelper,
 }
 
-impl<'r> FromRow<'r, PgRow> for InvoiceGroupIndexInternal {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+impl FromRow<'_, PgRow> for InvoiceGroupIndexInternal {
+    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
-            ulid: row
-                .try_get::<Vec<sqlx::types::Uuid>, _>("ulid")?
-                .into_iter()
-                .map(ulid_from_sql_uuid)
-                .collect(),
-            invoice_group_ulid: ulid_from_sql_uuid(row.try_get("invoice_group_ulid")?),
+            ulid: row.try_get::<Vec<Uuid>, _>("ulid")?.into_iter().collect(),
+            invoice_group_ulid: row.try_get("invoice_group_ulid")?,
             client_ulid: row
-                .try_get::<Vec<sqlx::types::Uuid>, _>("client_ulid")?
+                .try_get::<Vec<Uuid>, _>("client_ulid")?
                 .into_iter()
-                .map(ulid_from_sql_uuid)
                 .collect(),
             contractor_ulid: row
-                .try_get::<Vec<sqlx::types::Uuid>, _>("contractor_ulid")?
+                .try_get::<Vec<Uuid>, _>("contractor_ulid")?
                 .into_iter()
-                .map(ulid_from_sql_uuid)
                 .collect(),
             other_fields: InvoiceGroupIndexInternalSqlHelper::from_row(row)?,
         })

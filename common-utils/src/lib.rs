@@ -1,7 +1,6 @@
 //! Functions and types for handling authorization tokens.
 
 use error::GlobeliseResult;
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
@@ -39,14 +38,6 @@ impl DaprAppId {
             }
         })?)
     }
-}
-
-pub fn ulid_to_sql_uuid(ulid: Ulid) -> sqlx::types::Uuid {
-    sqlx::types::Uuid::from_bytes(ulid.into())
-}
-
-pub fn ulid_from_sql_uuid(uuid: sqlx::types::Uuid) -> Ulid {
-    Ulid::from(*uuid.as_bytes())
 }
 
 pub fn calc_limit_and_offset(

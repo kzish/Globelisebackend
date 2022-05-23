@@ -3,9 +3,7 @@ use common_utils::{
     custom_serde::{Currency, DateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
-    ulid_to_sql_uuid,
 };
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 use sqlx::FromRow;
@@ -13,6 +11,7 @@ use user_management_microservice_sdk::{
     token::UserAccessToken,
     user::{Role, UserType},
 };
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
@@ -44,7 +43,7 @@ pub struct OnboardClientPaymentDetails {
 impl Database {
     pub async fn onboard_client_payment_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         user_type: UserType,
         details: OnboardClientPaymentDetails,
     ) -> GlobeliseResult<()> {
@@ -62,7 +61,7 @@ impl Database {
             currency = $2, payment_date = $3, cutoff_date = $4",
         );
         sqlx::query(&query)
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .bind(details.currency)
             .bind(details.payment_date)
             .bind(details.cutoff_date)

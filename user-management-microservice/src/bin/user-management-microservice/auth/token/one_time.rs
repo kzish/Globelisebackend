@@ -10,17 +10,17 @@ use common_utils::{
     token::ISSUER,
 };
 use jsonwebtoken::{decode, encode, Algorithm, Header, TokenData, Validation};
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 use user_management_microservice_sdk::user::UserType;
+use uuid::Uuid;
 
 use crate::auth::{SharedDatabase, SharedState};
 
 use super::KEYS;
 
 /// Creates a one-time token.
-pub fn create_one_time_token<T>(ulid: Ulid, user_type: UserType) -> GlobeliseResult<(String, i64)>
+pub fn create_one_time_token<T>(ulid: Uuid, user_type: UserType) -> GlobeliseResult<(String, i64)>
 where
     T: OneTimeTokenAudience,
 {
@@ -59,7 +59,6 @@ where
     aud: String,
     iss: String,
     exp: usize,
-    #[serde(skip)]
     one_time_audience: PhantomData<T>,
 }
 
@@ -122,7 +121,7 @@ where
             .ok_or_else(|| GlobeliseError::unauthorized("No one-time token provided"))?;
 
         let claims = OneTimeToken::<T>::decode(token)?;
-        let ulid: Ulid = claims.sub.parse().map_err(GlobeliseError::unauthorized)?;
+        let ulid: Uuid = claims.sub.parse().map_err(GlobeliseError::unauthorized)?;
         let user_type: UserType = claims
             .user_type
             .parse()
@@ -188,7 +187,7 @@ where
             .await
             .map_err(GlobeliseError::internal)?;
         let claims = OneTimeToken::<T>::decode(bearer.token())?;
-        let ulid: Ulid = claims.sub.parse().map_err(GlobeliseError::internal)?;
+        let ulid: Uuid = claims.sub.parse().map_err(GlobeliseError::internal)?;
         let user_type: UserType = claims.user_type.parse().map_err(GlobeliseError::internal)?;
 
         // Make sure the user actually exists.

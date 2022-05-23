@@ -3,9 +3,7 @@ use common_utils::{
     custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
-    ulid_to_sql_uuid,
 };
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
@@ -13,6 +11,7 @@ use user_management_microservice_sdk::{
     token::UserAccessToken,
     user::{Role, UserType},
 };
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
@@ -85,7 +84,7 @@ impl FromRow<'_, PgRow> for EntityPicDetails {
 impl Database {
     pub async fn post_onboard_entity_pic_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         role: Role,
         details: EntityPicDetails,
     ) -> GlobeliseResult<()> {
@@ -111,7 +110,7 @@ impl Database {
             .bind(details.dial_code)
             .bind(details.phone_number)
             .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
-            .bind(ulid_to_sql_uuid(ulid))
+            .bind(ulid)
             .execute(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -121,7 +120,7 @@ impl Database {
 
     pub async fn get_onboard_entity_pic_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         role: Role,
     ) -> GlobeliseResult<EntityPicDetails> {
         if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
@@ -140,7 +139,7 @@ impl Database {
                         ulid = $1";
 
                 sqlx::query_as(query)
-                    .bind(ulid_to_sql_uuid(ulid))
+                    .bind(ulid)
                     .fetch_one(&self.0)
                     .await
                     .map_err(|e| GlobeliseError::Database(e.to_string()))?
@@ -156,7 +155,7 @@ impl Database {
                         ulid = $1";
 
                 sqlx::query_as(query)
-                    .bind(ulid_to_sql_uuid(ulid))
+                    .bind(ulid)
                     .fetch_one(&self.0)
                     .await
                     .map_err(|e| GlobeliseError::Database(e.to_string()))?

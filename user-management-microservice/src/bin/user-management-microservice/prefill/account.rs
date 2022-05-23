@@ -1,20 +1,17 @@
-use crate::database::Database;
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
     custom_serde::{DateWrapper, EmailWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
-    ulid_to_sql_uuid,
 };
-
 use email_address::EmailAddress;
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use uuid::Uuid;
 
-use crate::database::SharedDatabase;
+use crate::database::{Database, SharedDatabase};
 
 pub async fn individual_contractor_post_one(
     token: Token<UserAccessToken>,
@@ -65,7 +62,7 @@ pub async fn individual_contractor_get_one(
 pub struct InsertOnePrefillIndividualContractorAccountDetails {
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
     pub email: EmailAddress,
-    pub client_ulid: Option<Ulid>,
+    pub client_ulid: Option<Uuid>,
     pub first_name: String,
     pub last_name: String,
     #[serde_as(as = "TryFromInto<DateWrapper>")]
@@ -87,7 +84,7 @@ pub struct InsertOnePrefillIndividualContractorAccountDetails {
 pub struct PrefillIndividualContractorAccountDetails {
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
     pub email: EmailAddress,
-    pub client_ulid: Option<Ulid>,
+    pub client_ulid: Option<Uuid>,
     pub first_name: String,
     pub last_name: String,
     #[serde_as(as = "TryFromInto<DateWrapper>")]
@@ -114,9 +111,7 @@ impl FromRow<'_, PgRow> for PrefillIndividualContractorAccountDetails {
                 .try_get::<'_, String, &'static str>("email")?
                 .parse()
                 .unwrap(),
-            client_ulid: row
-                .try_get::<'_, Option<String>, &'static str>("client_ulid")?
-                .map(|v| v.parse().unwrap()),
+            client_ulid: row.try_get("client_ulid")?,
             first_name: row.try_get("first_name")?,
             last_name: row.try_get("last_name")?,
             dob: row.try_get("dob")?,
@@ -137,7 +132,7 @@ impl FromRow<'_, PgRow> for PrefillIndividualContractorAccountDetails {
 impl Database {
     pub async fn insert_one_client_prefill_individual_contractor_account_details(
         &self,
-        client_ulid: Ulid,
+        client_ulid: Uuid,
         details: InsertOnePrefillIndividualContractorAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
@@ -156,7 +151,7 @@ impl Database {
 
         sqlx::query(query)
             .bind(details.email.to_string())
-            .bind(ulid_to_sql_uuid(client_ulid))
+            .bind(client_ulid)
             .bind(details.first_name)
             .bind(details.last_name)
             .bind(details.dob)
@@ -178,7 +173,7 @@ impl Database {
     pub async fn select_one_client_prefill_individual_contractor_account_details(
         &self,
         email: EmailAddress,
-        client_ulid: Ulid,
+        client_ulid: Uuid,
     ) -> GlobeliseResult<Option<PrefillIndividualContractorAccountDetails>> {
         let query = "
             SELECT
@@ -193,7 +188,7 @@ impl Database {
 
         let result = sqlx::query_as(query)
             .bind(email.to_string())
-            .bind(ulid_to_sql_uuid(client_ulid))
+            .bind(client_ulid)
             .fetch_optional(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;

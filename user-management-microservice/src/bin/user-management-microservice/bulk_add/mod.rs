@@ -5,16 +5,15 @@ use common_utils::{
     },
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
-    ulid_from_sql_uuid, ulid_to_sql_uuid,
 };
 use csv::{ReaderBuilder, StringRecord};
 use email_address::EmailAddress;
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
+use uuid::Uuid;
 
 use crate::{
     database::{Database, SharedDatabase},
@@ -30,7 +29,7 @@ use crate::{
 pub struct PostPrefillIndividualContractorDetailsForBulkUpload {
     #[serde_as(as = "Base64")]
     pub uploaded_file: Vec<u8>,
-    pub client_ulid: Ulid,
+    pub client_ulid: Uuid,
     pub debug: Option<bool>,
 }
 
@@ -46,11 +45,12 @@ pub struct GetPrefillIndividualContractorDetailsForBulkUpload {
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Client")]
-    pub client_ulid: Ulid,
+    pub client_ulid: Uuid,
     #[serde(rename = "Sub Entity")]
-    pub branch_ulid: Ulid,
+    pub branch_ulid: Uuid,
     #[serde(rename = "Cost Centre")]
-    pub department_ulid: Option<Ulid>,
+    #[serde(default)]
+    pub department_ulid: Option<Uuid>,
     #[serde(rename = "First Name")]
     pub first_name: String,
     #[serde(rename = "Last Name")]
@@ -144,11 +144,9 @@ pub struct PrefillIndividualContractorDetailsForBulkUpload {
 impl<'r> FromRow<'r, PgRow> for PrefillIndividualContractorDetailsForBulkUpload {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
-            client_ulid: ulid_from_sql_uuid(row.try_get("client_ulid")?),
-            branch_ulid: ulid_from_sql_uuid(row.try_get("branch_ulid")?),
-            department_ulid: row
-                .try_get::<'r, Option<sqlx::types::uuid::Uuid>, &'static str>("department_ulid")?
-                .map(ulid_from_sql_uuid),
+            client_ulid: row.try_get("client_ulid")?,
+            branch_ulid: row.try_get("branch_ulid")?,
+            department_ulid: row.try_get("department_ulid")?,
             first_name: row.try_get("first_name")?,
             last_name: row.try_get("last_name")?,
             gender: row.try_get("gender")?,
@@ -328,9 +326,9 @@ impl Database {
                 currency = $36, basic_salary = $37, additional_item_1 = $38, additional_item_2 = $39, deduction_1 = $40, 
                 deduction_2 = $41, other_pay_item_1 = $42, other_pay_item_2 = $43";
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(details.client_ulid))
-            .bind(ulid_to_sql_uuid(details.branch_ulid))
-            .bind(details.department_ulid.map(ulid_to_sql_uuid))
+            .bind(details.client_ulid)
+            .bind(details.branch_ulid)
+            .bind(details.department_ulid)
             .bind(details.first_name)
             .bind(details.last_name)
             .bind(details.gender)

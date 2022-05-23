@@ -7,17 +7,19 @@ use common_utils::{
     DaprAppId,
 };
 use once_cell::sync::Lazy;
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 use time::Duration;
+use uuid::Uuid;
 
 pub mod one_time;
 
 /// Claims for refresh tokens.
+#[serde_as]
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct RefreshToken {
-    pub ulid: Ulid,
+    pub ulid: Uuid,
 }
 
 impl TokenLike for RefreshToken {

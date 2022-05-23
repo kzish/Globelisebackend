@@ -1,9 +1,9 @@
 use std::{sync::Arc, time::Duration};
 
-use common_utils::{error::GlobeliseResult, ulid_to_sql_uuid};
-use rusty_ulid::Ulid;
+use common_utils::error::GlobeliseResult;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
+use uuid::Uuid;
 
 pub type SharedDatabase = Arc<Mutex<Database>>;
 
@@ -30,8 +30,8 @@ impl Database {
     /// This does not require users to be fully onboarded.
     pub async fn update_client_contractor_pair(
         &self,
-        client_ulid: Ulid,
-        contractor_ulid: Ulid,
+        client_ulid: Uuid,
+        contractor_ulid: Uuid,
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "
@@ -43,15 +43,15 @@ impl Database {
                 (client_ulid, contractor_ulid)
             DO NOTHING",
         )
-        .bind(ulid_to_sql_uuid(client_ulid))
-        .bind(ulid_to_sql_uuid(contractor_ulid))
+        .bind(client_ulid)
+        .bind(contractor_ulid)
         .execute(&self.0)
         .await?;
         Ok(())
     }
 
     /// Update a client's name
-    pub async fn update_client_name(&self, ulid: Ulid, name: String) -> GlobeliseResult<()> {
+    pub async fn update_client_name(&self, ulid: Uuid, name: String) -> GlobeliseResult<()> {
         sqlx::query(
             "
             INSERT INTO client_names
@@ -62,7 +62,7 @@ impl Database {
             DO UPDATE SET
                 name = $2",
         )
-        .bind(ulid_to_sql_uuid(ulid))
+        .bind(ulid)
         .bind(name)
         .execute(&self.0)
         .await?;
@@ -70,7 +70,7 @@ impl Database {
     }
 
     /// Update a contractor's name
-    pub async fn update_contractor_name(&self, ulid: Ulid, name: String) -> GlobeliseResult<()> {
+    pub async fn update_contractor_name(&self, ulid: Uuid, name: String) -> GlobeliseResult<()> {
         sqlx::query(
             "
             INSERT INTO contractor_names 
@@ -81,7 +81,7 @@ impl Database {
             DO UPDATE SET
                 name = $2",
         )
-        .bind(ulid_to_sql_uuid(ulid))
+        .bind(ulid)
         .bind(name)
         .execute(&self.0)
         .await?;

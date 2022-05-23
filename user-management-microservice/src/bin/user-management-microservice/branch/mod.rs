@@ -4,14 +4,13 @@ use common_utils::{
     custom_serde::FORM_DATA_LENGTH_LIMIT,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
-    ulid_from_sql_uuid, ulid_to_sql_uuid,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
@@ -30,8 +29,8 @@ pub mod payroll;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchDetails {
-    pub ulid: Ulid,
-    pub client_ulid: Ulid,
+    pub ulid: Uuid,
+    pub client_ulid: Uuid,
     pub account: BranchAccountDetails,
     pub bank: BranchBankDetails,
     pub payroll: BranchPayrollDetails,
@@ -39,8 +38,8 @@ pub struct BranchDetails {
 
 impl FromRow<'_, PgRow> for BranchDetails {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        let ulid = ulid_from_sql_uuid(row.try_get("ulid")?);
-        let client_ulid = ulid_from_sql_uuid(row.try_get("client_ulid")?);
+        let ulid = row.try_get("ulid")?;
+        let client_ulid = row.try_get("client_ulid")?;
         let account = BranchAccountDetails::from_row(row)?;
         let bank = BranchBankDetails::from_row(row)?;
         let payroll = BranchPayrollDetails::from_row(row)?;
@@ -147,7 +146,7 @@ pub async fn user_get_branches(
 
 pub async fn user_get_branch_by_ulid(
     claims: Token<UserAccessToken>,
-    Path(branch_ulid): Path<Ulid>,
+    Path(branch_ulid): Path<Uuid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<BranchDetails>> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -175,7 +174,7 @@ pub async fn user_get_branch_by_ulid(
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct DeleteBranchRequest {
-    pub branch_ulid: Ulid,
+    pub branch_ulid: Uuid,
 }
 
 pub async fn user_delete_branch(
@@ -209,7 +208,7 @@ pub async fn user_delete_branch(
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PostBranchDetailsRequestForAdmin {
-    pub client_ulid: Ulid,
+    pub client_ulid: Uuid,
     pub account: BranchAccountDetails,
     pub bank: BranchBankDetails,
     pub payroll: BranchPayrollDetails,
@@ -268,10 +267,11 @@ pub async fn admin_post_branch(
     Ok(ulid.to_string())
 }
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GetBranchDetailsRequestForAdmin {
-    pub client_ulid: Option<Ulid>,
+    pub client_ulid: Option<Uuid>,
     pub page: Option<u32>,
     pub per_page: Option<u32>,
 }
@@ -292,7 +292,7 @@ pub async fn admin_get_branches(
 
 pub async fn admin_get_branch_by_ulid(
     _: Token<AdminAccessToken>,
-    Path(branch_ulid): Path<Ulid>,
+    Path(branch_ulid): Path<Uuid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<BranchDetails>> {
     let database = database.lock().await;
@@ -309,8 +309,8 @@ pub async fn admin_get_branch_by_ulid(
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct DeleteBranchRequestForAdmin {
-    pub client_ulid: Ulid,
-    pub branch_ulid: Ulid,
+    pub client_ulid: Uuid,
+    pub branch_ulid: Uuid,
 }
 
 pub async fn admin_delete_branch(
@@ -328,8 +328,8 @@ pub async fn admin_delete_branch(
 }
 
 impl Database {
-    pub async fn create_branch(&self, client_ulid: Ulid) -> GlobeliseResult<Ulid> {
-        let ulid = Ulid::generate();
+    pub async fn create_branch(&self, client_ulid: Uuid) -> GlobeliseResult<Uuid> {
+        let ulid = Uuid::new_v4();
 
         let query = "
             INSERT INTO entity_client_branches (
@@ -339,8 +339,8 @@ impl Database {
             )";
 
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(ulid))
-            .bind(ulid_to_sql_uuid(client_ulid))
+            .bind(ulid)
+            .bind(client_ulid)
             .execute(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -350,8 +350,8 @@ impl Database {
 
     pub async fn client_owns_branch(
         &self,
-        client_ulid: Ulid,
-        branch_ulid: Ulid,
+        client_ulid: Uuid,
+        branch_ulid: Uuid,
     ) -> GlobeliseResult<bool> {
         let query = "
             SELECT
@@ -363,8 +363,8 @@ impl Database {
                 client_ulid = $2";
 
         let result = sqlx::query(query)
-            .bind(ulid_to_sql_uuid(branch_ulid))
-            .bind(ulid_to_sql_uuid(client_ulid))
+            .bind(branch_ulid)
+            .bind(client_ulid)
             .fetch_optional(&self.0)
             .await?
             .is_some();
@@ -372,7 +372,7 @@ impl Database {
         Ok(result)
     }
 
-    pub async fn delete_branch(&self, client_ulid: Ulid, branch_ulid: Ulid) -> GlobeliseResult<()> {
+    pub async fn delete_branch(&self, client_ulid: Uuid, branch_ulid: Uuid) -> GlobeliseResult<()> {
         let query = "
             DELETE FROM
                 entity_client_branches 
@@ -380,8 +380,8 @@ impl Database {
                 ulid = $1";
 
         sqlx::query(query)
-            .bind(ulid_to_sql_uuid(branch_ulid))
-            .bind(ulid_to_sql_uuid(client_ulid))
+            .bind(branch_ulid)
+            .bind(client_ulid)
             .execute(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
@@ -391,7 +391,7 @@ impl Database {
 
     pub async fn get_entity_clients_branch_details(
         &self,
-        client_ulid: Option<Ulid>,
+        client_ulid: Option<Uuid>,
         page: Option<u32>,
         per_page: Option<u32>,
     ) -> GlobeliseResult<Vec<BranchDetails>> {
@@ -413,11 +413,11 @@ impl Database {
             FROM
                 entity_clients_branch_details
             WHERE
-                ($1 IS NULL OR client_ulid = $1)
+                $1 IS NULL OR (client_ulid = $1)
             LIMIT $2 OFFSET $3";
 
         let result = sqlx::query_as(query)
-            .bind(client_ulid.map(ulid_to_sql_uuid))
+            .bind(client_ulid)
             .bind(limit)
             .bind(offset)
             .fetch_all(&self.0)
@@ -429,7 +429,7 @@ impl Database {
 
     pub async fn get_one_entity_clients_branch_details(
         &self,
-        branch_ulid: Ulid,
+        branch_ulid: Uuid,
     ) -> GlobeliseResult<Option<BranchDetails>> {
         let query = "
             SELECT
@@ -450,7 +450,7 @@ impl Database {
                 ulid = $1";
 
         let result = sqlx::query_as(query)
-            .bind(ulid_to_sql_uuid(branch_ulid))
+            .bind(branch_ulid)
             .fetch_optional(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;

@@ -1,6 +1,9 @@
 //! Types for user data.
 
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
+use sqlx::postgres::{PgTypeInfo, PgValueRef};
 use strum::{Display, EnumIter, EnumString};
 
 #[derive(
@@ -33,6 +36,19 @@ impl UserType {
     }
 }
 
+impl sqlx::Type<sqlx::Postgres> for UserType {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("text")
+    }
+}
+
+impl<'r> sqlx::Decode<'r, sqlx::Postgres> for UserType {
+    fn decode(value: PgValueRef<'r>) -> Result<Self, sqlx::error::BoxDynError> {
+        let value: &'r str = sqlx::decode::Decode::decode(value)?;
+        Ok(UserType::from_str(value)?)
+    }
+}
+
 /// Type representing which role a user has.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, EnumIter, EnumString, Display, Deserialize, Serialize,
@@ -42,6 +58,19 @@ impl UserType {
 pub enum Role {
     Client,
     Contractor,
+}
+
+impl sqlx::Type<sqlx::Postgres> for Role {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("text")
+    }
+}
+
+impl<'r> sqlx::Decode<'r, sqlx::Postgres> for Role {
+    fn decode(value: PgValueRef<'r>) -> Result<Self, sqlx::error::BoxDynError> {
+        let value: &'r str = sqlx::decode::Decode::decode(value)?;
+        Ok(Role::from_str(value)?)
+    }
 }
 
 /// Possible user type and role combinations.

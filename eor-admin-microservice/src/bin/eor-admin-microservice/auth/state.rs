@@ -8,13 +8,12 @@ use common_utils::{
     token::create_token,
 };
 use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
-
 use rand::Rng;
-use rusty_ulid::Ulid;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use time::OffsetDateTime;
 use tokio::sync::Mutex;
 use tonic::transport::Channel;
+use uuid::Uuid;
 
 use crate::database::Database;
 
@@ -56,7 +55,7 @@ impl State {
     pub async fn open_session(
         &mut self,
         database: &Database,
-        ulid: Ulid,
+        ulid: Uuid,
     ) -> GlobeliseResult<String> {
         // Validate that the admin exists
         if database.admin(ulid).await?.is_none() {
@@ -76,7 +75,7 @@ impl State {
     }
 
     /// Revoke all sessions for a admin.
-    pub async fn revoke_all_sessions(&mut self, ulid: Ulid) -> GlobeliseResult<()> {
+    pub async fn revoke_all_sessions(&mut self, ulid: Uuid) -> GlobeliseResult<()> {
         if let Some(mut sessions) = self.sessions(ulid).await? {
             sessions.revoke_all();
             self.serialize(Self::SESSION_CATEGORY, &ulid.to_string(), sessions)
@@ -87,7 +86,7 @@ impl State {
     }
 
     /// Clears expired sessions for a admin.
-    pub async fn clear_expired_sessions(&mut self, ulid: Ulid) -> GlobeliseResult<()> {
+    pub async fn clear_expired_sessions(&mut self, ulid: Uuid) -> GlobeliseResult<()> {
         if let Some(mut sessions) = self.sessions(ulid).await? {
             sessions.clear_expired();
             self.serialize(Self::SESSION_CATEGORY, &ulid.to_string(), sessions)
@@ -98,13 +97,13 @@ impl State {
     }
 
     /// Gets existing sessions for a admin.
-    pub async fn sessions(&mut self, ulid: Ulid) -> GlobeliseResult<Option<Sessions>> {
+    pub async fn sessions(&mut self, ulid: Uuid) -> GlobeliseResult<Option<Sessions>> {
         self.deserialize(Self::SESSION_CATEGORY, &ulid.to_string())
             .await
     }
 
     /// Opens a new one-time session for a admin.
-    pub async fn open_one_time_session<T>(&mut self, ulid: Ulid) -> GlobeliseResult<String>
+    pub async fn open_one_time_session<T>(&mut self, ulid: Uuid) -> GlobeliseResult<String>
     where
         T: OneTimeTokenAudience,
     {
@@ -125,7 +124,7 @@ impl State {
     /// Checks if a one-time token is valid.
     pub async fn check_one_time_token_valid<T>(
         &mut self,
-        ulid: Ulid,
+        ulid: Uuid,
         token: &[u8],
     ) -> GlobeliseResult<bool>
     where
@@ -249,7 +248,7 @@ impl OneTimeSessions {
     /// Opens a new session.
     ///
     /// Returns the refresh token for the session.
-    fn open<T>(&mut self, ulid: Ulid) -> GlobeliseResult<String>
+    fn open<T>(&mut self, ulid: Uuid) -> GlobeliseResult<String>
     where
         T: OneTimeTokenAudience,
     {

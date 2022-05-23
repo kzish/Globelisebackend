@@ -521,7 +521,6 @@ dependencies = [
  "once_cell",
  "reqwest",
  "reqwest-middleware",
- "rusty_ulid",
  "serde",
  "serde_json",
  "serde_with",
@@ -529,6 +528,7 @@ dependencies = [
  "strum",
  "time 0.2.27",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -565,7 +565,6 @@ dependencies = [
  "jsonwebtoken",
  "once_cell",
  "reqwest",
- "rusty_ulid",
  "serde",
  "serde_json",
  "serde_with",
@@ -576,6 +575,7 @@ dependencies = [
  "tower",
  "tower-http 0.2.5",
  "user-management-microservice",
+ "uuid",
 ]
 
 [[package]]
@@ -918,7 +918,6 @@ dependencies = [
  "rand",
  "reqwest",
  "rust-argon2",
- "rusty_ulid",
  "serde",
  "serde_json",
  "serde_with",
@@ -929,6 +928,7 @@ dependencies = [
  "tower",
  "tower-http 0.2.5",
  "unicode-normalization",
+ "uuid",
 ]
 
 [[package]]
@@ -2549,17 +2549,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2cc38e8fa666e2de3c4aba7edeb5ffc5246c1c2ed0e3d17e560aeeba736b23f"
 
 [[package]]
-name = "rusty_ulid"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf6169f464e79b379a190df5d09d59fe0b581b1b0f788ce9de63953c31897aa0"
-dependencies = [
- "rand",
- "serde",
- "time 0.3.9",
-]
-
-[[package]]
 name = "ryu"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3620,7 +3609,6 @@ dependencies = [
  "rand",
  "reqwest",
  "rust-argon2",
- "rusty_ulid",
  "serde",
  "serde_json",
  "serde_with",
@@ -3632,6 +3620,7 @@ dependencies = [
  "tower",
  "tower-http 0.2.5",
  "unicode-normalization",
+ "uuid",
 ]
 
 [[package]]
@@ -3641,6 +3630,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 dependencies = [
  "getrandom",
+ "serde",
 ]
 
 [[package]]

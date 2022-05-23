@@ -1,4 +1,4 @@
-use common_utils::{calc_limit_and_offset, error::GlobeliseResult, ulid_to_sql_uuid};
+use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
 
 use crate::database::Database;
 
@@ -28,10 +28,10 @@ impl Database {
                     ($4 IS NULL OR (client_ulid = $4))
                 LIMIT $5 OFFSET $6",
         )
-        .bind(ulid_to_sql_uuid(query.invoice_group_ulid))
+        .bind(query.invoice_group_ulid)
         .bind(query.query)
-        .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
-        .bind(query.client_ulid.map(ulid_to_sql_uuid))
+        .bind(query.contractor_ulid)
+        .bind(query.client_ulid)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)
@@ -64,8 +64,8 @@ impl Database {
                     $5",
         )
         .bind(query.query)
-        .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
-        .bind(query.client_ulid.map(ulid_to_sql_uuid))
+        .bind(query.contractor_ulid)
+        .bind(query.client_ulid)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)

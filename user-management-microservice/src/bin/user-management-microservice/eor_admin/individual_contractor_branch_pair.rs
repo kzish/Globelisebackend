@@ -1,29 +1,19 @@
 use axum::{extract::Query, Extension, Json};
-use common_utils::{
-    calc_limit_and_offset, error::GlobeliseResult, token::Token, ulid_from_sql_uuid,
-    ulid_to_sql_uuid,
-};
+use common_utils::{calc_limit_and_offset, error::GlobeliseResult, token::Token};
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use serde_with::serde_as;
+use sqlx::FromRow;
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct IndividualContractorBranchPair {
-    pub contractor_ulid: Ulid,
-    pub branch_ulid: Ulid,
-}
-
-impl FromRow<'_, PgRow> for IndividualContractorBranchPair {
-    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        Ok(IndividualContractorBranchPair {
-            contractor_ulid: ulid_from_sql_uuid(row.try_get("contractor_ulid")?),
-            branch_ulid: ulid_from_sql_uuid(row.try_get("branch_ulid")?),
-        })
-    }
+    pub contractor_ulid: Uuid,
+    pub branch_ulid: Uuid,
 }
 
 pub async fn post_one(
@@ -54,13 +44,16 @@ pub async fn delete_one(
     Ok(())
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ClientContractorPairQuery {
     pub page: Option<u32>,
     pub per_page: Option<u32>,
-    pub client_ulid: Option<Ulid>,
-    pub contractor_ulid: Option<Ulid>,
+    #[serde(default)]
+    pub client_ulid: Option<Uuid>,
+    #[serde(default)]
+    pub contractor_ulid: Option<Uuid>,
 }
 
 pub async fn get_many(
@@ -80,8 +73,8 @@ impl Database {
     /// Create a individual contractor and branch pair
     pub async fn post_individual_contractor_branch_pairs(
         &self,
-        contractor_ulid: Ulid,
-        branch_ulid: Ulid,
+        contractor_ulid: Uuid,
+        branch_ulid: Uuid,
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "
@@ -90,8 +83,8 @@ impl Database {
             VALUES
                 ($1, $2)",
         )
-        .bind(ulid_to_sql_uuid(contractor_ulid))
-        .bind(ulid_to_sql_uuid(branch_ulid))
+        .bind(contractor_ulid)
+        .bind(branch_ulid)
         .execute(&self.0)
         .await?;
         Ok(())
@@ -100,8 +93,8 @@ impl Database {
     /// Create a individual contractor and branch pair
     pub async fn delete_individual_contractor_branch_pairs(
         &self,
-        contractor_ulid: Ulid,
-        branch_ulid: Ulid,
+        contractor_ulid: Uuid,
+        branch_ulid: Uuid,
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "
@@ -111,8 +104,8 @@ impl Database {
                 contractor_ulid = $1 AND
                 branch_ulid =$2",
         )
-        .bind(ulid_to_sql_uuid(contractor_ulid))
-        .bind(ulid_to_sql_uuid(branch_ulid))
+        .bind(contractor_ulid)
+        .bind(branch_ulid)
         .execute(&self.0)
         .await?;
         Ok(())
@@ -132,15 +125,15 @@ impl Database {
             FROM
                 individual_contractor_branch_pairs
             WHERE
-                ($1 IS NULL OR client = $1) AND
-                ($2 IS NULL OR contractor_ulid = $2)
+                ($1 IS NULL OR (client = $1)) AND
+                ($2 IS NULL OR (contractor_ulid = $2))
             LIMIT
                 $3
             OFFSET
                 $4",
         )
-        .bind(query.client_ulid.map(ulid_to_sql_uuid))
-        .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
+        .bind(query.client_ulid)
+        .bind(query.contractor_ulid)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)

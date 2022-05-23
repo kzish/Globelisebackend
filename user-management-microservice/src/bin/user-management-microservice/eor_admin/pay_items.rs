@@ -1,14 +1,13 @@
 //! this module performs the same functions as branch/pay_items.rs from eor-admin
 
-use crate::branch::pay_items::{CreatePayItem, PayItem, PayItemsIndexQuery};
-use crate::database::SharedDatabase;
-
 use axum::extract::{Extension, Json, Path, Query};
-
 use common_utils::error::GlobeliseError;
 use common_utils::{error::GlobeliseResult, token::Token};
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use rusty_ulid::Ulid;
+use uuid::Uuid;
+
+use crate::branch::pay_items::{CreatePayItem, PayItem, PayItemsIndexQuery};
+use crate::database::SharedDatabase;
 
 pub async fn get_pay_items(
     // Only for validation
@@ -52,7 +51,7 @@ pub async fn update_pay_item(
 pub async fn delete_pay_item(
     // Only for validation
     _: Token<AdminAccessToken>,
-    Path(pay_item_ulid): Path<Ulid>,
+    Path(pay_item_ulid): Path<Uuid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
@@ -65,7 +64,7 @@ pub async fn delete_pay_item(
 pub async fn get_pay_item_by_id(
     // Only for validation
     _: Token<AdminAccessToken>,
-    Path(pay_item_ulid): Path<Ulid>,
+    Path(pay_item_ulid): Path<Uuid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<PayItem>> {
     let database = database.lock().await;

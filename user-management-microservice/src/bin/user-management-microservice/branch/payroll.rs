@@ -3,13 +3,12 @@ use common_utils::{
     custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
-    ulid_to_sql_uuid,
 };
-use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 use sqlx::FromRow;
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
@@ -23,10 +22,11 @@ pub struct BranchPayrollDetails {
     pub cutoff_date: sqlx::types::time::Date,
 }
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchPaymentDetailsRequest {
-    pub branch_ulid: Ulid,
+    pub branch_ulid: Uuid,
 }
 
 pub async fn post_branch_payroll_details(
@@ -77,7 +77,7 @@ pub async fn get_branch_payroll_details(
 impl Database {
     pub async fn post_branch_payroll_details(
         &self,
-        ulid: Ulid,
+        ulid: Uuid,
         payment_date: sqlx::types::time::Date,
         cutoff_date: sqlx::types::time::Date,
     ) -> GlobeliseResult<()> {
@@ -91,7 +91,7 @@ impl Database {
             cutoff_date = $2, payment_date = $3
         ",
         )
-        .bind(ulid_to_sql_uuid(ulid))
+        .bind(ulid)
         .bind(payment_date)
         .bind(cutoff_date)
         .execute(&self.0)
@@ -103,7 +103,7 @@ impl Database {
 
     pub async fn get_one_branch_payroll_details(
         &self,
-        branch_ulid: Ulid,
+        branch_ulid: Uuid,
     ) -> GlobeliseResult<Option<BranchPayrollDetails>> {
         let result = sqlx::query_as(
             "
@@ -115,7 +115,7 @@ impl Database {
             ulid = $1
         ",
         )
-        .bind(ulid_to_sql_uuid(branch_ulid))
+        .bind(branch_ulid)
         .fetch_optional(&self.0)
         .await
         .map_err(|e| GlobeliseError::Database(e.to_string()))?;

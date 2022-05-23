@@ -1,6 +1,5 @@
-use common_utils::{calc_limit_and_offset, error::GlobeliseResult, ulid_to_sql_uuid};
-
-use rusty_ulid::Ulid;
+use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
+use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::Database};
 
@@ -27,8 +26,8 @@ impl Database {
                 ($3 IS NULL OR (client_name ~* $3 OR contractor_name ~* $3))
             LIMIT $4 OFFSET $5",
         )
-        .bind(query.client_ulid.map(ulid_to_sql_uuid))
-        .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
+        .bind(query.client_ulid)
+        .bind(query.contractor_ulid)
         .bind(query.query)
         .bind(limit)
         .bind(offset)
@@ -39,7 +38,9 @@ impl Database {
     }
 
     /// Create tax report
-    pub async fn create_payslip(&self, query: CreatePayslipsIndex) -> GlobeliseResult<()> {
+    pub async fn create_payslip(&self, query: CreatePayslipsIndex) -> GlobeliseResult<Uuid> {
+        let ulid = Uuid::new_v4();
+
         sqlx::query(
             "
             INSERT INTO payslips
@@ -48,10 +49,10 @@ impl Database {
             VALUES
             ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
-        .bind(ulid_to_sql_uuid(Ulid::generate()))
-        .bind(ulid_to_sql_uuid(query.client_ulid))
-        .bind(ulid_to_sql_uuid(query.contractor_ulid))
-        .bind(query.contract_ulid.map(ulid_to_sql_uuid))
+        .bind(ulid)
+        .bind(query.client_ulid)
+        .bind(query.contractor_ulid)
+        .bind(query.contract_ulid)
         .bind(query.payslip_title)
         .bind(query.payment_date)
         .bind(query.begin_period)
@@ -60,6 +61,6 @@ impl Database {
         .execute(&self.0)
         .await?;
 
-        Ok(())
+        Ok(ulid)
     }
 }

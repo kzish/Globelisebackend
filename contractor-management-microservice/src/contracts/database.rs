@@ -1,6 +1,6 @@
-use common_utils::{calc_limit_and_offset, error::GlobeliseResult, ulid_to_sql_uuid};
-use rusty_ulid::Ulid;
+use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
 use user_management_microservice_sdk::user::Role;
+use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::Database};
 
@@ -11,14 +11,14 @@ use super::{
 
 impl Database {
     /// Counts the number of contracts.
-    pub async fn count_number_of_contracts(&self, ulid: Ulid, role: Role) -> GlobeliseResult<i64> {
+    pub async fn count_number_of_contracts(&self, ulid: Uuid, role: Role) -> GlobeliseResult<i64> {
         let client_ulid = match role {
-            Role::Client => Some(ulid_to_sql_uuid(ulid)),
+            Role::Client => Some(ulid),
             Role::Contractor => None,
         };
         let contractor_ulid = match role {
             Role::Client => None,
-            Role::Contractor => Some(ulid_to_sql_uuid(ulid)),
+            Role::Contractor => Some(ulid),
         };
 
         let result = sqlx::query_scalar(
@@ -42,7 +42,7 @@ impl Database {
     /// Indexes clients that a contractor works for.
     pub async fn clients_index(
         &self,
-        contractor_ulid: Ulid,
+        contractor_ulid: Uuid,
         query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ClientsIndex>> {
         let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
@@ -58,7 +58,7 @@ impl Database {
                 ($2 IS NULL OR (client_name ~* $2))
             LIMIT $3 OFFSET $4",
         )
-        .bind(ulid_to_sql_uuid(contractor_ulid))
+        .bind(contractor_ulid)
         .bind(query.query)
         .bind(limit)
         .bind(offset)
@@ -71,7 +71,7 @@ impl Database {
     /// Indexes contracts working for a client.
     pub async fn contractors_index(
         &self,
-        client_ulid: Ulid,
+        client_ulid: Uuid,
         query: PaginatedQuery,
     ) -> GlobeliseResult<Vec<ContractorsIndex>> {
         let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
@@ -88,7 +88,7 @@ impl Database {
                 ($2 IS NULL OR (contractor_name ~* $2))
             LIMIT $3 OFFSET $4",
         )
-        .bind(ulid_to_sql_uuid(client_ulid))
+        .bind(client_ulid)
         .bind(query.query)
         .bind(limit)
         .bind(offset)
@@ -101,7 +101,7 @@ impl Database {
     /// Index contract of a given contractor
     pub async fn contracts_index_for_client(
         &self,
-        client_ulid: Ulid,
+        client_ulid: Uuid,
         query: GetContractsRequest,
     ) -> GlobeliseResult<Vec<ContractsIndexForClient>> {
         let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
@@ -121,10 +121,10 @@ impl Database {
                 ($4 IS NULL OR branch_ulid = $4)
             LIMIT $5 OFFSET $6",
         )
-        .bind(ulid_to_sql_uuid(client_ulid))
-        .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
+        .bind(client_ulid)
+        .bind(query.contractor_ulid)
         .bind(query.query)
-        .bind(query.branch_ulid.map(ulid_to_sql_uuid))
+        .bind(query.branch_ulid)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)
@@ -136,7 +136,7 @@ impl Database {
     /// Index contract of a given contractor
     pub async fn contracts_index_for_contractor(
         &self,
-        contractor_ulid: Ulid,
+        contractor_ulid: Uuid,
         query: GetContractsRequest,
     ) -> GlobeliseResult<Vec<ContractsIndexForContractor>> {
         let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
@@ -156,10 +156,10 @@ impl Database {
                 ($4 IS NULL OR branch_ulid = $4)
             LIMIT $5 OFFSET $6",
         )
-        .bind(ulid_to_sql_uuid(contractor_ulid))
-        .bind(query.client_ulid.map(ulid_to_sql_uuid))
+        .bind(contractor_ulid)
+        .bind(query.client_ulid)
         .bind(query.query)
-        .bind(query.branch_ulid.map(ulid_to_sql_uuid))
+        .bind(query.branch_ulid)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)
@@ -188,8 +188,8 @@ impl Database {
                 ($3 IS NULL OR (contract_name ~* $3 OR client_name ~* $3))
             LIMIT $4 OFFSET $5",
         )
-        .bind(query.client_ulid.map(ulid_to_sql_uuid))
-        .bind(query.contractor_ulid.map(ulid_to_sql_uuid))
+        .bind(query.client_ulid)
+        .bind(query.contractor_ulid)
         .bind(query.query)
         .bind(limit)
         .bind(offset)
@@ -203,8 +203,8 @@ impl Database {
     pub async fn create_contract(
         &self,
         request: CreateContractRequestForEorAdmin,
-    ) -> GlobeliseResult<Ulid> {
-        let ulid = rusty_ulid::Ulid::generate();
+    ) -> GlobeliseResult<Uuid> {
+        let ulid = Uuid::new_v4();
 
         sqlx::query(
             "
@@ -218,9 +218,9 @@ impl Database {
                 $11, $12, $13
                     )",
         )
-        .bind(ulid_to_sql_uuid(ulid))
-        .bind(ulid_to_sql_uuid(request.client_ulid))
-        .bind(ulid_to_sql_uuid(request.contractor_ulid))
+        .bind(ulid)
+        .bind(request.client_ulid)
+        .bind(request.contractor_ulid)
         .bind(request.contract_name)
         .bind(request.contract_type)
         .bind(request.contract_status)
@@ -230,7 +230,7 @@ impl Database {
         .bind(request.seniority)
         .bind(request.begin_at)
         .bind(request.end_at)
-        .bind(ulid_to_sql_uuid(request.branch_ulid))
+        .bind(request.branch_ulid)
         .execute(&self.0)
         .await?;
 
