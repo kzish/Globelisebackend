@@ -111,7 +111,8 @@ async fn main() {
         )
         .route(
             "/onboard/payment-details",
-            post(onboard::payment::onboard_client_payment_details),
+            get(onboard::payment::get_onboard_client_payment_details)
+                .post(onboard::payment::post_onboard_client_payment_details),
         )
         .route(
             "/client/branch",
