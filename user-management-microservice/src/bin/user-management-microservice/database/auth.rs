@@ -74,7 +74,7 @@ impl Database {
                 users_index
             WHERE 
                 ulid = $1 AND
-                $2 IS NULL OR (user_type = $2)",
+                ($2 IS NULL OR user_type = $2)",
         )
         .bind(ulid)
         .bind(user_type.map(|v| v.as_str()))
