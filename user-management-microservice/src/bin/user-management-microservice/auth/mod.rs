@@ -14,7 +14,10 @@ use once_cell::sync::Lazy;
 use rand::Rng;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
-use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use user_management_microservice_sdk::{
+    token::UserAccessToken,
+    user::{Role, UserType},
+};
 
 use crate::database::SharedDatabase;
 
@@ -144,11 +147,24 @@ pub async fn access_token(
 
     let database = database.lock().await;
     if let Some((User { email, .. }, _)) = database.user(ulid, Some(user_type)).await? {
+        let mut user_roles = vec![];
+        if database
+            .get_is_user_fully_onboarded(ulid, user_type, Role::Client)
+            .await?
+        {
+            user_roles.push(Role::Client);
+        };
+        if database
+            .get_is_user_fully_onboarded(ulid, user_type, Role::Contractor)
+            .await?
+        {
+            user_roles.push(Role::Contractor);
+        };
         let access_token = UserAccessToken {
             ulid,
             email: email.to_string(),
             user_type,
-            user_roles: vec![],
+            user_roles,
         };
         let (access_token, _) = create_token(access_token, &KEYS.encoding)?;
         Ok(access_token)

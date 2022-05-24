@@ -15,6 +15,7 @@ build:
   stage: build
   script:
     - export GIT_HASH=$(git rev-parse HEAD)
+    - echo $GIT_HASH
     - cargo build
   # artifacts:
   #  expire_in: 1 day
