@@ -1,7 +1,7 @@
 use crate::database::Database;
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
-    custom_serde::{DateWrapper, EmailWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{EmailWrapper, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -37,10 +37,10 @@ pub struct PrefillIndividualContractorBankDetails {
     pub bank_name: String,
     pub bank_account_name: String,
     pub bank_account_number: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub created_at: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub updated_at: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub updated_at: sqlx::types::time::OffsetDateTime,
 }
 
 impl FromRow<'_, PgRow> for PrefillIndividualContractorBankDetails {

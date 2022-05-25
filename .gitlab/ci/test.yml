@@ -83,7 +83,7 @@ lint:
   script:
     - rustup component add clippy
     - cargo clippy -- -D warnings
-    
+
 format:
   stage: test
   cache: []

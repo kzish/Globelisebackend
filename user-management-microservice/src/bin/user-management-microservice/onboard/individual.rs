@@ -31,12 +31,24 @@ pub async fn post_onboard_individual_client_account_details(
     let database = database.lock().await;
     database
         .post_onboard_individual_client_account_details(ulid, body)
-        .await?;
+        .await
+        .map_err(|e| {
+            GlobeliseError::internal(format!(
+                "Cannot insert individual client onboard data into the database because \n{}",
+                e
+            ))
+        })?;
 
     let pubsub = pubsub.lock().await;
     pubsub
         .publish_event(UpdateUserName::Client(ulid, full_name))
-        .await?;
+        .await
+        .map_err(|e| {
+            GlobeliseError::internal(format!(
+                "Cannot publish individual client user name change event to DAPR because \n{}",
+                e
+            ))
+        })?;
 
     Ok(())
 }

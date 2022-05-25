@@ -66,7 +66,8 @@ async fn main() {
                 .layer(
                     CorsLayer::new()
                         .allow_origin(Origin::predicate(|origin: &HeaderValue, _| {
-                            let mut is_valid = origin == *FRONTEND_URL;
+                            let mut is_valid =
+                                origin == HeaderValue::from_str(&*FRONTEND_URL).unwrap();
 
                             #[cfg(debug_assertions)]
                             {

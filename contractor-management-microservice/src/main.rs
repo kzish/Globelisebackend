@@ -28,18 +28,13 @@ mod payslips;
 mod pubsub;
 mod tax_report;
 
-use env::{FRONTEND_URL, LISTENING_ADDRESS};
+use env::{DAPR_ADDRESS, FRONTEND_URL, LISTENING_ADDRESS};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
-
-    let dapr_address: String = std::env::var("CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL")
-        .unwrap()
-        .parse()
-        .unwrap();
 
     let reqwest_client = Client::builder()
         .user_agent(APP_USER_AGENT)
@@ -52,7 +47,7 @@ async fn main() {
 
     let shared_pubsub = Arc::new(Mutex::new(PubSub::new(
         reqwest_client.clone(),
-        dapr_address,
+        DAPR_ADDRESS.clone(),
     )));
 
     let app = Router::new()
@@ -112,7 +107,8 @@ async fn main() {
                 .layer(
                     CorsLayer::new()
                         .allow_origin(Origin::predicate(|origin: &HeaderValue, _| {
-                            let mut is_valid = origin == *FRONTEND_URL;
+                            let mut is_valid =
+                                origin == HeaderValue::from_str(&*FRONTEND_URL).unwrap();
 
                             #[cfg(debug_assertions)]
                             {

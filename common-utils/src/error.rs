@@ -16,7 +16,7 @@ pub enum GlobeliseError {
     BadRequest(String),
     Unauthorized(String),
     Forbidden,
-    #[allow(dead_code)]
+    NotFoundString(String),
     NotFound,
     PayloadTooLarge(String),
     Internal(String),
@@ -56,6 +56,13 @@ impl GlobeliseError {
         S: ToString,
     {
         GlobeliseError::Dapr(s.to_string())
+    }
+
+    pub fn not_found<S>(s: S) -> GlobeliseError
+    where
+        S: ToString,
+    {
+        GlobeliseError::NotFoundString(s.to_string())
     }
 }
 
@@ -117,6 +124,12 @@ impl IntoResponse for GlobeliseError {
             GlobeliseError::NotFound => {
                 #[cfg(debug_assertions)]
                 return StatusCode::NOT_FOUND.into_response();
+                #[cfg(not(debug_assertions))]
+                return StatusCode::NOT_FOUND.into_response();
+            }
+            GlobeliseError::NotFoundString(message) => {
+                #[cfg(debug_assertions)]
+                return (StatusCode::NOT_FOUND, message).into_response();
                 #[cfg(not(debug_assertions))]
                 return StatusCode::NOT_FOUND.into_response();
             }

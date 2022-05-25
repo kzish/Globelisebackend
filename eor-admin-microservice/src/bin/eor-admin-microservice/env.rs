@@ -1,4 +1,3 @@
-use axum::http::HeaderValue;
 use lettre::{message::Mailbox, transport::smtp::authentication::Credentials as SmtpCredentials};
 use once_cell::sync::Lazy;
 
@@ -14,14 +13,7 @@ macro_rules! init_global_static {
 init_global_static!(LISTENING_ADDRESS);
 init_global_static!(EOR_ADMIN_MICROSERVICE_DOMAIN_URL);
 init_global_static!(GLOBELISE_SMTP_URL);
-init_global_static!(PASSWORD_RESET_URL);
-
-pub static FRONTEND_URL: Lazy<HeaderValue> = Lazy::new(|| {
-    std::env::var("FRONTEND_URL")
-        .expect("FRONTEND_URL not set")
-        .parse()
-        .expect("FRONTEND_URL not set properly")
-});
+init_global_static!(FRONTEND_URL);
 
 pub static GLOBELISE_SENDER_EMAIL: Lazy<Mailbox> = Lazy::new(|| {
     std::env::var("GLOBELISE_SENDER_EMAIL")

@@ -15,7 +15,7 @@ use uuid::Uuid;
 use crate::{
     auth::token::one_time::create_one_time_token,
     env::{
-        GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, PASSWORD_RESET_URL, SMTP_CREDENTIAL,
+        FRONTEND_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
         USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
     },
 };
@@ -77,7 +77,7 @@ pub async fn send_email(
             <body>
                 <p>
                 If you requested to change your password, please follow this
-                <a href="{}?token={}&user_type={}">link</a> to reset it.
+                <a href="{}/auth/password/reset/initiate?token={}">link</a> to reset it.
                 </p>
                 <p>Otherwise, please report this occurence.</p>
             </body>
@@ -85,7 +85,6 @@ pub async fn send_email(
             "##,
             (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
             one_time_token,
-            user_type,
         ))
         .map_err(GlobeliseError::internal)?;
 
@@ -118,7 +117,11 @@ pub async fn initiate(
         .open_one_time_session::<ChangePasswordToken>(&database, ulid, user_type)
         .await?;
 
-    let redirect_url = format!("{}?token={}", (*PASSWORD_RESET_URL), change_password_token);
+    let redirect_url = format!(
+        "{}/reset-password?token={}",
+        (*FRONTEND_URL),
+        change_password_token
+    );
     Ok(Redirect::to(&redirect_url))
 }
 

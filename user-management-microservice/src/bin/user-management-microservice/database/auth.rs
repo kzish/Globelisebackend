@@ -79,8 +79,7 @@ impl Database {
         .bind(ulid)
         .bind(user_type.map(|v| v.as_str()))
         .fetch_optional(&self.0)
-        .await
-        .map_err(|e| GlobeliseError::Database(e.to_string()))?
+        .await?
         {
             Ok(Some((
                 User {
@@ -111,8 +110,7 @@ impl Database {
         )
         .bind(email.as_ref())
         .fetch_optional(&self.0)
-        .await
-        .map_err(|e| GlobeliseError::Database(e.to_string()))?
+        .await?
         {
             Ok(Some((row.try_get("ulid")?, row.try_get("user_type")?)))
         } else {

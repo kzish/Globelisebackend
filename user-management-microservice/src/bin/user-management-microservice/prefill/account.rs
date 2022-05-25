@@ -1,6 +1,6 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
-    custom_serde::{DateWrapper, EmailWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{DateWrapper, EmailWrapper, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -98,10 +98,10 @@ pub struct PrefillIndividualContractorAccountDetails {
     #[serde(default)]
     pub tax_id: Option<String>,
     pub time_zone: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub created_at: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub updated_at: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub updated_at: sqlx::types::time::OffsetDateTime,
 }
 
 impl FromRow<'_, PgRow> for PrefillIndividualContractorAccountDetails {
