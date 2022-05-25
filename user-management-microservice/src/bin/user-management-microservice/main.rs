@@ -53,7 +53,7 @@ async fn main() {
         .unwrap();
 
     let shared_pubsub = Arc::new(Mutex::new(PubSub::new(
-        shared_reqwest_client,
+        shared_reqwest_client.clone(),
         DAPR_ADDRESS.clone(),
     )));
 
@@ -290,6 +290,10 @@ async fn main() {
             "/eor-admin/client-contractors/search",
             get(eor_admin::search_employee_contractors::eor_admin_get_employee_contractors),
         )
+        .route(
+            "/eor-admin/sap/upload_payroll_to_s4hana",
+            post(eor_admin::sap::s4_hana::post_one),
+        )
         // ========== PUBSUB PAGES ==========
         .route("/dapr/subscribe", get(dapr_subscription_list))
         .route(
@@ -326,7 +330,8 @@ async fn main() {
                 .layer(Extension(shared_state))
                 .layer(Extension(KEYS.decoding.clone()))
                 .layer(Extension(public_keys))
-                .layer(Extension(shared_pubsub)),
+                .layer(Extension(shared_pubsub))
+                .layer(Extension(shared_reqwest_client)),
         );
 
     axum::Server::bind(

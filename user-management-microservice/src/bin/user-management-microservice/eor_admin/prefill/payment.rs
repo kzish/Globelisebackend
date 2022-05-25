@@ -89,11 +89,12 @@ pub async fn entity_client_get_one(
     _: Token<AdminAccessToken>,
     Query(query): Query<PrefillEntityClientPaymentDetailsQueryForAdmin>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Option<PrefillEntityClientPaymentDetails>>> {
+) -> GlobeliseResult<Json<PrefillEntityClientPaymentDetails>> {
     let database = database.lock().await;
     let result = database
         .select_one_prefill_entity_client_payment_details(query.email)
-        .await?;
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
     Ok(Json(result))
 }
 

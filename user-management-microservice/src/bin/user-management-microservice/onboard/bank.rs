@@ -47,7 +47,8 @@ pub async fn get_onboard_contractor_bank_details(
     Ok(Json(
         database
             .get_onboard_contractor_bank_details(claims.payload.ulid, claims.payload.user_type)
-            .await?,
+            .await?
+            .ok_or(GlobeliseError::NotFound)?,
     ))
 }
 
@@ -109,7 +110,7 @@ impl Database {
         &self,
         ulid: Uuid,
         user_type: UserType,
-    ) -> GlobeliseResult<BankDetails> {
+    ) -> GlobeliseResult<Option<BankDetails>> {
         match user_type {
             UserType::Individual => {
                 let result = sqlx::query_as(
@@ -122,9 +123,8 @@ impl Database {
                     ulid = $1",
                 )
                 .bind(ulid)
-                .fetch_one(&self.0)
-                .await
-                .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+                .fetch_optional(&self.0)
+                .await?;
                 Ok(result)
             }
             UserType::Entity => {
@@ -138,9 +138,8 @@ impl Database {
                     ulid = $1",
                 )
                 .bind(ulid)
-                .fetch_one(&self.0)
-                .await
-                .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+                .fetch_optional(&self.0)
+                .await?;
                 Ok(result)
             }
         }

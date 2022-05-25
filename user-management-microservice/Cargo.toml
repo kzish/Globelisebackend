@@ -13,6 +13,7 @@ path = "src/lib.rs"
 common-utils = { path = "../common-utils" }
 eor-admin-microservice = { path = "../eor-admin-microservice" }
 google_auth = { path = "../google_auth" }
+calamine = { git = "https://github.com/hbina/calamine.git", branch = "hbina-fork" }
 
 # Remote crates
 axum = { version = "0.5.1", features = ["headers"] }
@@ -38,3 +39,5 @@ tower = { version = "0.4.12", features = ["timeout", "load-shed", "limit"] }
 tower-http = { version = "0.2.5", features = ["cors"] }
 unicode-normalization = "0.1.19"
 uuid = { version = "0.8", features = ["serde", "v4"] }
+lexical = "6.1.1"
+itertools = "0.10.3"

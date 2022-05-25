@@ -34,7 +34,7 @@ pub async fn post_onboard_individual_client_account_details(
         .await
         .map_err(|e| {
             GlobeliseError::internal(format!(
-                "Cannot insert individual client onboard data into the database because \n{}",
+                "Cannot insert individual client onboard data into the database because \n{:#?}",
                 e
             ))
         })?;
@@ -45,7 +45,7 @@ pub async fn post_onboard_individual_client_account_details(
         .await
         .map_err(|e| {
             GlobeliseError::internal(format!(
-                "Cannot publish individual client user name change event to DAPR because \n{}",
+                "Cannot publish individual client user name change event to DAPR because \n{:#?}",
                 e
             ))
         })?;
@@ -65,7 +65,8 @@ pub async fn get_onboard_individual_client_account_details(
     Ok(Json(
         database
             .get_onboard_individual_client_account_details(claims.payload.ulid)
-            .await?,
+            .await?
+            .ok_or(GlobeliseError::NotFound)?,
     ))
 }
 
@@ -110,7 +111,8 @@ pub async fn get_onboard_individual_contractor_account_details(
     Ok(Json(
         database
             .get_onboard_individual_contractor_account_details(claims.payload.ulid)
-            .await?,
+            .await?
+            .ok_or(GlobeliseError::NotFound)?,
     ))
 }
 
@@ -236,8 +238,7 @@ impl Database {
             .bind(details.time_zone)
             .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
@@ -245,7 +246,7 @@ impl Database {
     pub async fn get_onboard_individual_client_account_details(
         &self,
         ulid: Uuid,
-    ) -> GlobeliseResult<IndividualClientAccountDetails> {
+    ) -> GlobeliseResult<Option<IndividualClientAccountDetails>> {
         if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
         }
@@ -261,9 +262,8 @@ impl Database {
 
         let result = sqlx::query_as(query)
             .bind(ulid)
-            .fetch_one(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .fetch_optional(&self.0)
+            .await?;
 
         Ok(result)
     }
@@ -303,8 +303,7 @@ impl Database {
             .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
             .bind(details.cv)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
@@ -312,7 +311,7 @@ impl Database {
     pub async fn get_onboard_individual_contractor_account_details(
         &self,
         ulid: Uuid,
-    ) -> GlobeliseResult<IndividualContractorAccountDetails> {
+    ) -> GlobeliseResult<Option<IndividualContractorAccountDetails>> {
         if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
         }
@@ -328,9 +327,8 @@ impl Database {
 
         let result = sqlx::query_as(query)
             .bind(ulid)
-            .fetch_one(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .fetch_optional(&self.0)
+            .await?;
 
         Ok(result)
     }
