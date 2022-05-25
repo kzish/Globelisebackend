@@ -49,7 +49,8 @@ pub async fn get_onboard_entity_pic_details(
     Ok(Json(
         database
             .get_onboard_entity_pic_details(claims.payload.ulid, role)
-            .await?,
+            .await?
+            .ok_or(GlobeliseError::NotFound)?,
     ))
 }
 
@@ -112,8 +113,7 @@ impl Database {
             .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
             .bind(ulid)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
@@ -122,7 +122,7 @@ impl Database {
         &self,
         ulid: Uuid,
         role: Role,
-    ) -> GlobeliseResult<EntityPicDetails> {
+    ) -> GlobeliseResult<Option<EntityPicDetails>> {
         if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
         }
@@ -140,9 +140,8 @@ impl Database {
 
                 sqlx::query_as(query)
                     .bind(ulid)
-                    .fetch_one(&self.0)
-                    .await
-                    .map_err(|e| GlobeliseError::Database(e.to_string()))?
+                    .fetch_optional(&self.0)
+                    .await?
             }
             Role::Contractor => {
                 let query = "
@@ -156,9 +155,8 @@ impl Database {
 
                 sqlx::query_as(query)
                     .bind(ulid)
-                    .fetch_one(&self.0)
-                    .await
-                    .map_err(|e| GlobeliseError::Database(e.to_string()))?
+                    .fetch_optional(&self.0)
+                    .await?
             }
         };
 

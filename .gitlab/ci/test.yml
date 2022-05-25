@@ -17,7 +17,7 @@ default:
   before_script:
     - rustup component add rustfmt # Required for Dapr build script
     - apt update -y
-    - apt install build-essential -y
+    - apt install build-essential libssl-dev -y
 
 .cargo-tools:
   - &cargo_tools
@@ -70,6 +70,8 @@ coverage:
       paths:
         - target-coverage/
   script:
+    - rustup component add llvm-tools-preview
+    - export RUSTFLAGS="-Cinstrument-coverage"
     - cargo tarpaulin --verbose --ignore-tests --skip-clean --target-dir target-coverage/
   coverage: '/^\d+.\d+% coverage/'
 

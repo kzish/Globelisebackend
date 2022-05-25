@@ -88,11 +88,12 @@ pub async fn individual_contractor_get_one(
     _: Token<AdminAccessToken>,
     Query(query): Query<PrefillIndividualContractorBankDetailsQueryForAdmin>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Option<PrefillIndividualContractorBankDetails>>> {
+) -> GlobeliseResult<Json<PrefillIndividualContractorBankDetails>> {
     let database = database.lock().await;
     let result = database
         .select_one_prefill_individual_contractor_bank_details(query.email, query.client_ulid)
-        .await?;
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
     Ok(Json(result))
 }
 

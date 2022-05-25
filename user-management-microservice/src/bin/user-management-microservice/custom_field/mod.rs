@@ -105,7 +105,8 @@ pub async fn user_post_custom_field(
 
     let field_type_ulid = database
         .get_ulid_custom_field_type(request.field_detail_type)
-        .await?;
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
 
     let ulid = database
         .create_custom_field(
@@ -172,7 +173,8 @@ pub async fn admin_post_custom_field(
 
     let field_type_ulid = database
         .get_ulid_custom_field_type(request.field_detail_type)
-        .await?;
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
 
     let ulid = database
         .create_custom_field(
@@ -316,7 +318,7 @@ impl Database {
     pub async fn get_ulid_custom_field_type(
         &self,
         field_type: FieldDetailType,
-    ) -> GlobeliseResult<Uuid> {
+    ) -> GlobeliseResult<Option<Uuid>> {
         let query = "
             SELECT
                 ulid
@@ -329,9 +331,10 @@ impl Database {
 
         let result = sqlx::query(query)
             .bind(field_type.as_str())
-            .fetch_one(&self.0)
-            .await
-            .map(|v| v.try_get("ulid"))??;
+            .fetch_optional(&self.0)
+            .await?
+            .map(|v| v.try_get("ulid"))
+            .transpose()?;
 
         Ok(result)
     }

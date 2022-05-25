@@ -90,7 +90,7 @@ pub async fn individual_contractor_get_one(
     token: Token<UserAccessToken>,
     Query(query): Query<PrefillIndividualContractorBankDetails>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Option<PrefillIndividualContractorBankDetails>>> {
+) -> GlobeliseResult<Json<PrefillIndividualContractorBankDetails>> {
     if !matches!(token.payload.user_type, UserType::Entity) {
         return Err(GlobeliseError::Forbidden);
     }
@@ -100,7 +100,8 @@ pub async fn individual_contractor_get_one(
             token.payload.ulid,
             query.email,
         )
-        .await?;
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
     Ok(Json(result))
 }
 

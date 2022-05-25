@@ -33,7 +33,7 @@ pub async fn post_onboard_entity_client_account_details(
         .await
         .map_err(|e| {
             GlobeliseError::internal(format!(
-                "Cannot insert entity client onboard data into the database because \n{}",
+                "Cannot insert entity client onboard data into the database because \n{:#?}",
                 e
             ))
         })?;
@@ -44,7 +44,7 @@ pub async fn post_onboard_entity_client_account_details(
         .await
         .map_err(|e| {
             GlobeliseError::internal(format!(
-                "Cannot publish entity client user name change event to DAPR because \n{}",
+                "Cannot publish entity client user name change event to DAPR because \n{:#?}",
                 e
             ))
         })?;
@@ -86,12 +86,24 @@ pub async fn post_onboard_entity_contractor_account_details(
     let database = database.lock().await;
     database
         .post_onboard_entity_contractor_account_details(claims.payload.ulid, request)
-        .await?;
+        .await
+        .map_err(|e| {
+            GlobeliseError::internal(format!(
+                "Cannot insert entity client onboard data into the database because \n{:#?}",
+                e
+            ))
+        })?;
 
     let pubsub = pubsub.lock().await;
     pubsub
         .publish_event(UpdateUserName::Contractor(claims.payload.ulid, full_name))
-        .await?;
+        .await
+        .map_err(|e| {
+            GlobeliseError::internal(format!(
+                "Cannot publish entity client user name change event to DAPR because \n{:#?}",
+                e
+            ))
+        })?;
 
     Ok(())
 }
@@ -109,7 +121,8 @@ pub async fn get_onboard_entity_contractor_account_details(
     Ok(Json(
         database
             .get_onboard_entity_contractor_account_details(claims.payload.ulid)
-            .await?,
+            .await?
+            .ok_or(GlobeliseError::NotFound)?,
     ))
 }
 
@@ -292,11 +305,12 @@ impl Database {
                 entity_clients_account_details 
             WHERE
                 ulid = $1";
+
         let result = sqlx::query_as(query)
             .bind(ulid)
-            .fetch_one(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .fetch_optional(&self.0)
+            .await?
+            .ok_or(GlobeliseError::NotFound)?;
 
         Ok(result)
     }
@@ -342,7 +356,7 @@ impl Database {
     pub async fn get_onboard_entity_contractor_account_details(
         &self,
         ulid: Uuid,
-    ) -> GlobeliseResult<EntityContractorAccountDetails> {
+    ) -> GlobeliseResult<Option<EntityContractorAccountDetails>> {
         if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
         }
@@ -357,9 +371,8 @@ impl Database {
                 ulid = $1";
         let result = sqlx::query_as(query)
             .bind(ulid)
-            .fetch_one(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .fetch_optional(&self.0)
+            .await?;
 
         Ok(result)
     }

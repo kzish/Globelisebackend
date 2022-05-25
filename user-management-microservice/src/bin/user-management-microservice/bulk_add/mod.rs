@@ -285,7 +285,8 @@ pub async fn get_one(
     Ok(Json(
         database
             .get_prefilll_individual_contractor_details_for_bulk_upload(request.email)
-            .await?,
+            .await?
+            .ok_or(GlobeliseError::NotFound)?,
     ))
 }
 
@@ -378,7 +379,7 @@ impl Database {
     pub async fn get_prefilll_individual_contractor_details_for_bulk_upload(
         &self,
         email: EmailAddress,
-    ) -> GlobeliseResult<PrefillIndividualContractorDetailsForBulkUpload> {
+    ) -> GlobeliseResult<Option<PrefillIndividualContractorDetailsForBulkUpload>> {
         let query = "
             SELECT
                 client_ulid, branch_ulid, department_ulid, first_name, last_name, 
@@ -396,7 +397,7 @@ impl Database {
                 email = $1";
         let result = sqlx::query_as(query)
             .bind(email.to_string())
-            .fetch_one(&self.0)
+            .fetch_optional(&self.0)
             .await
             .map_err(|e| GlobeliseError::Database(e.to_string()))?;
         Ok(result)

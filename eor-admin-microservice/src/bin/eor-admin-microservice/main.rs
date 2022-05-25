@@ -100,10 +100,10 @@ async fn main() {
 async fn handle_healthz() -> String {
     if let Some(v) = option_env!("GIT_HASH") {
         v.to_string()
-    } else if let Ok(v) = std::env::var("GIT_HASH") {
-        v
+    } else if let Some(v) = option_env!("CI_COMMIT_SHA") {
+        v.to_string()
     } else {
-        env!("CARGO_PKG_VERSION").to_string()
+        "Healthy".to_string()
     }
 }
 

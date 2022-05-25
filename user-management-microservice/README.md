@@ -35,6 +35,12 @@ See [API](API.md).
   - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the user microservice
   - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the contractor microservice
   - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: URL of the admin microservice
+<<<<<<< HEAD
+  - `MULESOFT_API_URL`: URL to Mulesoft integration website
+  - `MULESOFT_CLIENT_ID`: Mulesoft client ID
+  - `MULESOFT_CLIENT_SECRET`: Mulesoft client secret
+=======
+>>>>>>> 8b6204abb3b6f44ed7084b36215c7e14eabae567
 
 ## Build
 

@@ -33,11 +33,12 @@ pub struct OnboardClientPaymentDetails {
 pub async fn get_onboard_client_payment_details(
     claims: Token<UserAccessToken>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Option<OnboardClientPaymentDetails>>> {
+) -> GlobeliseResult<Json<OnboardClientPaymentDetails>> {
     let database = database.lock().await;
     let result = database
         .select_one_onboard_client_payment_details(claims.payload.ulid, claims.payload.user_type)
-        .await?;
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
     Ok(Json(result))
 }
 

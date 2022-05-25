@@ -96,11 +96,12 @@ pub async fn entity_client_get_one(
     _: Token<AdminAccessToken>,
     Query(query): Query<EntityClientGetOneQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Option<PrefillEntityClientAccountDetails>>> {
+) -> GlobeliseResult<Json<PrefillEntityClientAccountDetails>> {
     let database = database.lock().await;
     let result = database
         .select_one_prefill_entity_client_account_details(query.email)
-        .await?;
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
     Ok(Json(result))
 }
 
@@ -206,11 +207,12 @@ pub async fn individual_contractor_get_one(
     _: Token<AdminAccessToken>,
     Query(query): Query<IndividualContractorGetOneQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Option<PrefillIndividualContractorAccountDetails>>> {
+) -> GlobeliseResult<Json<PrefillIndividualContractorAccountDetails>> {
     let database = database.lock().await;
     let result = database
         .select_one_prefill_individual_contractor_account_details(query.email, query.client_ulid)
-        .await?;
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
     Ok(Json(result))
 }
 

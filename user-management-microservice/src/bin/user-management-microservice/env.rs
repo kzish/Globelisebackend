@@ -14,6 +14,9 @@ init_global_static!(LISTENING_ADDRESS);
 init_global_static!(DAPR_ADDRESS);
 init_global_static!(USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL);
 init_global_static!(GLOBELISE_SMTP_URL);
+init_global_static!(MULESOFT_API_URL);
+init_global_static!(MULESOFT_CLIENT_ID);
+init_global_static!(MULESOFT_CLIENT_SECRET);
 init_global_static!(FRONTEND_URL);
 
 pub static GLOBELISE_SENDER_EMAIL: Lazy<Mailbox> = Lazy::new(|| {
