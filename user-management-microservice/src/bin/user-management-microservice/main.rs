@@ -32,18 +32,13 @@ mod prefill;
 mod pubsub;
 
 use crate::auth::token::KEYS;
-use env::{FRONTEND_URL, LISTENING_ADDRESS};
+use env::{DAPR_ADDRESS, FRONTEND_URL, LISTENING_ADDRESS};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
-
-    let dapr_address: String = std::env::var("USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL")
-        .unwrap()
-        .parse()
-        .unwrap();
 
     let shared_state = auth::State::new().await.expect("Could not connect to Dapr");
     let shared_state = Arc::new(Mutex::new(shared_state));
@@ -57,7 +52,10 @@ async fn main() {
         .build()
         .unwrap();
 
-    let shared_pubsub = Arc::new(Mutex::new(PubSub::new(shared_reqwest_client, dapr_address)));
+    let shared_pubsub = Arc::new(Mutex::new(PubSub::new(
+        shared_reqwest_client,
+        DAPR_ADDRESS.clone(),
+    )));
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
@@ -90,12 +88,32 @@ async fn main() {
                 .post(onboard::individual::post_onboard_individual_contractor_account_details),
         )
         .route(
+            "/onboard/individual-detail/client",
+            get(onboard::individual::get_onboard_individual_client_account_details)
+                .post(onboard::individual::post_onboard_individual_client_account_details),
+        )
+        .route(
+            "/onboard/individual-detail/contractor",
+            get(onboard::individual::get_onboard_individual_contractor_account_details)
+                .post(onboard::individual::post_onboard_individual_contractor_account_details),
+        )
+        .route(
             "/onboard/entity-details/client",
             get(onboard::entity::get_onboard_entity_client_account_details)
                 .post(onboard::entity::post_onboard_entity_client_account_details),
         )
         .route(
             "/onboard/entity-details/contractor",
+            get(onboard::entity::get_onboard_entity_contractor_account_details)
+                .post(onboard::entity::post_onboard_entity_contractor_account_details),
+        )
+        .route(
+            "/onboard/entity-detail/client",
+            get(onboard::entity::get_onboard_entity_client_account_details)
+                .post(onboard::entity::post_onboard_entity_client_account_details),
+        )
+        .route(
+            "/onboard/entity-detail/contractor",
             get(onboard::entity::get_onboard_entity_contractor_account_details)
                 .post(onboard::entity::post_onboard_entity_contractor_account_details),
         )
@@ -290,7 +308,8 @@ async fn main() {
                 .layer(
                     CorsLayer::new()
                         .allow_origin(Origin::predicate(|origin: &HeaderValue, _| {
-                            let mut is_valid = origin == *FRONTEND_URL;
+                            let mut is_valid =
+                                origin == HeaderValue::from_str(&*FRONTEND_URL).unwrap();
 
                             #[cfg(debug_assertions)]
                             {
@@ -324,10 +343,10 @@ async fn main() {
 async fn handle_healthz() -> String {
     if let Some(v) = option_env!("GIT_HASH") {
         v.to_string()
-    } else if let Ok(v) = std::env::var("GIT_HASH") {
-        v
+    } else if let Some(v) = option_env!("CI_COMMIT_SHA") {
+        v.to_string()
     } else {
-        env!("CARGO_PKG_VERSION").to_string()
+        "Healthy".to_string()
     }
 }
 

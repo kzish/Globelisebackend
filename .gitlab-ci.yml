@@ -3,24 +3,29 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
         && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production|devops01)$/'
 
+variables:
+  CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
+
+default:
+  image: rust:latest
+  cache:
+    paths:
+      - ${CI_PROJECT_DIR}/.cargo/registry/index/
+      - ${CI_PROJECT_DIR}/.cargo/registry/cache/
+      - ${CI_PROJECT_DIR}/.cargo/git/db/
+      - ${CI_PROJECT_DIR}/target/
+
 stages:
   - build
-  - install-test-tools
-  - test
   - deploy
-
-include: .gitlab/ci/test.yml
 
 build:
   stage: build
   script:
-    - export GIT_HASH=$(git rev-parse HEAD)
-    - echo $GIT_HASH
+    - rustup component add rustfmt llvm-tools-preview
+    - export RUSTFLAGS="-Cinstrument-coverage"
     - cargo build
-  # artifacts:
-  #  expire_in: 1 day
-  #  paths:
-  #    - ./target
+    - ls $CI_PROJECT_DIR/target/debug
 
 deploy globelise_backend:
   stage: deploy

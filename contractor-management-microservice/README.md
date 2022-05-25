@@ -11,6 +11,8 @@ Microservice for the management of contractors
   - `LISTENING_ADDRESS`: IP address and port that the server will listen on
     - e.g. `localhost:4001`
     - All occurences of `localhost` will be replaced by `127.0.0.1`
+  - `DAPR_ADDRESS`: IP address and port that the DAPR sidecar is listening to
+    - e.g. `localhost:3502`
   - `DATABASE_URL`: URL for connecting to the PostgreSQL database
     - e.g. `postgres://postgres:<password>@localhost/globelise_eor_admin_management`
   - `FRONTEND_URL`: URL of frontend
@@ -18,9 +20,6 @@ Microservice for the management of contractors
   - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the user microservice
   - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the contractor microservice
   - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: URL of the admin microservice
-  - `USER_MANAGEMENT_MICROSERVICE_DAPR_URL`: URL of the Dapr sidecar for user microservice
-  - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DAPR_URL`: URL of the Dapr sidecar for contractor microservice
-  - `EOR_ADMIN_MICROSERVICE_DAPR_URL`: URL of the Dapr sidecar for admin microservice
 
 ## Build
 

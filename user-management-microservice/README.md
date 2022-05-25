@@ -21,6 +21,8 @@ See [API](API.md).
   - `LISTENING_ADDRESS`: IP address and port that the server will listen on
     - e.g. `localhost:4000`
     - All occurences of `localhost` will be replaced by `127.0.0.1`
+  - `DAPR_ADDRESS`: IP address and port that the DAPR sidecar is listening to
+    - e.g. `localhost:3500`
   - `DATABASE_URL`: URL for connecting to the PostgreSQL database
     - e.g. `postgres://postgres:<password>@localhost/globelise_user_management`
   - `GOOGLE_CLIENT_ID`: Google client ID
@@ -30,14 +32,9 @@ See [API](API.md).
   - `GLOBELISE_SMTP_URL`: SMTP server URL
   - `FRONTEND_URL`: URL of frontend
     - e.g. `https://globelise.com`
-  - `PASSWORD_RESET_URL`: URL of frontend password reset page
-    - e.g. `https://globelise.com/resetpassword`
   - `USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the user microservice
   - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DOMAIN_URL`: URL of the contractor microservice
   - `EOR_ADMIN_MICROSERVICE_DOMAIN_URL`: URL of the admin microservice
-  - `USER_MANAGEMENT_MICROSERVICE_DAPR_URL`: URL of the Dapr sidecar for user microservice
-  - `CONTRACTOR_MANAGEMENT_MICROSERVICE_DAPR_URL`: URL of the Dapr sidecar for contractor microservice
-  - `EOR_ADMIN_MICROSERVICE_DAPR_URL`: URL of the Dapr sidecar for admin microservice
 
 ## Build
 

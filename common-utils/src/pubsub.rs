@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use axum::http::{HeaderMap, HeaderValue};
+use axum::http::HeaderValue;
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
@@ -77,11 +77,7 @@ impl PubSub {
                 GLOBELISE_PUBSUB_TOPIC_ID,
                 T::as_topic_id().as_str()
             ))
-            .headers({
-                let mut headers = HeaderMap::new();
-                headers.insert("Content-Type", HeaderValue::from_static("application/json"));
-                headers
-            })
+            .header("Content-Type", HeaderValue::from_static("application/json"))
             .json(&data)
             .send()
             .await?;

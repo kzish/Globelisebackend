@@ -30,12 +30,24 @@ pub async fn post_onboard_entity_client_account_details(
     let database = database.lock().await;
     database
         .post_onboard_entity_client_account_details(claims.payload.ulid, request)
-        .await?;
+        .await
+        .map_err(|e| {
+            GlobeliseError::internal(format!(
+                "Cannot insert entity client onboard data into the database because \n{}",
+                e
+            ))
+        })?;
 
     let pubsub = pubsub.lock().await;
     pubsub
         .publish_event(UpdateUserName::Client(claims.payload.ulid, full_name))
-        .await?;
+        .await
+        .map_err(|e| {
+            GlobeliseError::internal(format!(
+                "Cannot publish entity client user name change event to DAPR because \n{}",
+                e
+            ))
+        })?;
 
     Ok(())
 }

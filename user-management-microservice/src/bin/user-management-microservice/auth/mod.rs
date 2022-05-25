@@ -108,12 +108,20 @@ pub async fn login(
                 let refresh_token = shared_state
                     .open_session(&database, ulid, user_type)
                     .await?;
-                return Ok(refresh_token);
+                Ok(refresh_token)
+            } else {
+                Err(GlobeliseError::unauthorized(
+                    "Entered the wrong the password",
+                ))
             }
+        } else {
+            Err(GlobeliseError::not_found("Cannot find user with that ulid"))
         }
+    } else {
+        Err(GlobeliseError::not_found(
+            "Cannot find user with that email",
+        ))
     }
-
-    Err(GlobeliseError::unauthorized("Email login failed"))
 }
 
 /// Gets a new access token.
