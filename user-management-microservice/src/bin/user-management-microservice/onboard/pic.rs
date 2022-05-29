@@ -1,6 +1,6 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Path};
 use common_utils::{
-    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{ImageData, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -60,8 +60,8 @@ pub async fn get_onboard_entity_pic_details(
 pub struct EntityPicDetails {
     pub first_name: String,
     pub last_name: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub dob: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub dob: sqlx::types::time::OffsetDateTime,
     pub dial_code: String,
     pub phone_number: String,
     #[serde_as(as = "Option<Base64>")]
@@ -89,7 +89,11 @@ impl Database {
         role: Role,
         details: EntityPicDetails,
     ) -> GlobeliseResult<()> {
-        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+        if self
+            .find_one_user(ulid, Some(UserType::Entity))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::Forbidden);
         }
 
@@ -123,7 +127,11 @@ impl Database {
         ulid: Uuid,
         role: Role,
     ) -> GlobeliseResult<Option<EntityPicDetails>> {
-        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+        if self
+            .find_one_user(ulid, Some(UserType::Entity))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::Forbidden);
         }
 

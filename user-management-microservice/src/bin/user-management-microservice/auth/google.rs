@@ -25,11 +25,15 @@ pub async fn signup(
     let user = User {
         email,
         password_hash: None,
-        google: true,
-        outlook: false,
+        is_google: true,
+        is_outlook: false,
+        is_entity: user_type == UserType::Entity,
+        is_individual: user_type == UserType::Individual,
+        is_client: false,
+        is_contractor: false,
     };
     let database = database.lock().await;
-    let ulid = database.create_user(user, user_type).await?;
+    let ulid = database.create_user(user).await?;
 
     let mut shared_state = shared_state.lock().await;
     let refresh_token = shared_state
@@ -53,7 +57,10 @@ pub async fn login(
     let database = database.lock().await;
     let mut shared_state = shared_state.lock().await;
     if let Some((ulid, user_type)) = database.user_id(&email).await? {
-        if let Some((User { google: true, .. }, _)) = database.user(ulid, Some(user_type)).await? {
+        if let Some(User {
+            is_google: true, ..
+        }) = database.find_one_user(ulid, Some(user_type)).await?
+        {
             let refresh_token = shared_state
                 .open_session(&database, ulid, user_type)
                 .await?;

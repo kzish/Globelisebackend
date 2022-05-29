@@ -8,6 +8,10 @@ use serde::{Deserialize, Serialize};
 pub struct User {
     pub email: EmailAddress,
     pub password_hash: Option<String>,
-    pub google: bool,
-    pub outlook: bool,
+    pub is_google: bool,
+    pub is_outlook: bool,
+    pub is_entity: bool,
+    pub is_individual: bool,
+    pub is_client: bool,
+    pub is_contractor: bool,
 }

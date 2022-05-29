@@ -1,6 +1,6 @@
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::{Currency, DateWrapper, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{Currency, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -20,10 +20,10 @@ use crate::database::{Database, SharedDatabase};
 #[serde(rename_all = "kebab-case")]
 pub struct OnboardClientPaymentDetails {
     pub currency: Currency,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub payment_date: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub cutoff_date: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub payment_date: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub cutoff_date: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub created_at: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
@@ -47,10 +47,10 @@ pub async fn get_onboard_client_payment_details(
 #[serde(rename_all = "kebab-case")]
 pub struct InsertOneOnboardClientPaymentDetails {
     pub currency: Currency,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub payment_date: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub cutoff_date: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub payment_date: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub cutoff_date: sqlx::types::time::OffsetDateTime,
 }
 
 pub async fn post_onboard_client_payment_details(
@@ -78,7 +78,7 @@ impl Database {
         user_type: UserType,
         details: InsertOneOnboardClientPaymentDetails,
     ) -> GlobeliseResult<()> {
-        if self.user(ulid, Some(user_type)).await?.is_none() {
+        if self.find_one_user(ulid, Some(user_type)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
         }
 
@@ -109,7 +109,7 @@ impl Database {
         ulid: Uuid,
         user_type: UserType,
     ) -> GlobeliseResult<Option<OnboardClientPaymentDetails>> {
-        if self.user(ulid, Some(user_type)).await?.is_none() {
+        if self.find_one_user(ulid, Some(user_type)).await?.is_none() {
             return Err(GlobeliseError::Forbidden);
         }
 

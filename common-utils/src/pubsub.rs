@@ -1,16 +1,15 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unreachable_code)]
+
 use std::{collections::HashMap, sync::Arc};
 
 use axum::http::HeaderValue;
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, TryFromInto};
 use tokio::sync::Mutex;
-use uuid::Uuid;
 
-use crate::{
-    custom_serde::{Currency, DateWrapper},
-    error::{GlobeliseError, GlobeliseResult},
-};
+use crate::error::{GlobeliseError, GlobeliseResult};
 
 pub const GLOBELISE_PUBSUB_TOPIC_ID: &str = "globelise-pubsub";
 
@@ -90,74 +89,11 @@ impl PubSub {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum TopicId {
-    #[serde(rename = "add-client-contractor-pair")]
-    UpdateClientContractorPair,
-    #[serde(rename = "update-user-name")]
-    UpdateUserName,
-    #[serde(rename = "create-or-update-contracts")]
-    CreateOrUpdateContracts,
-}
+pub enum TopicId {}
 
 impl TopicId {
     pub fn as_str(&self) -> &'static str {
-        match self {
-            TopicId::UpdateClientContractorPair => "add-client-contractor-pair",
-            TopicId::UpdateUserName => "update-user-name",
-            TopicId::CreateOrUpdateContracts => "create-or-update-contracts",
-        }
-    }
-}
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AddClientContractorPair {
-    pub client_ulid: Uuid,
-    pub contractor_ulid: Uuid,
-}
-
-impl PubSubData for AddClientContractorPair {
-    fn as_topic_id() -> TopicId {
-        TopicId::UpdateClientContractorPair
-    }
-}
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-pub enum UpdateUserName {
-    Client(Uuid, String),
-    Contractor(Uuid, String),
-}
-
-impl PubSubData for UpdateUserName {
-    fn as_topic_id() -> TopicId {
-        TopicId::UpdateUserName
-    }
-}
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CreateOrUpdateContracts {
-    pub ulid: Uuid,
-    pub client_ulid: Uuid,
-    pub branch_ulid: Uuid,
-    pub contractor_ulid: Uuid,
-    pub contract_name: String,
-    pub contract_type: String,
-    pub contract_status: String,
-    pub contract_amount: sqlx::types::Decimal,
-    pub currency: Currency,
-    pub job_title: String,
-    pub seniority: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub begin_at: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub end_at: sqlx::types::time::Date,
-}
-
-impl PubSubData for CreateOrUpdateContracts {
-    fn as_topic_id() -> TopicId {
-        TopicId::CreateOrUpdateContracts
+        ""
     }
 }
 

@@ -1,9 +1,7 @@
 use crate::database::Database;
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
-    custom_serde::{
-        Currency, DateWrapper, EmailWrapper, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT,
-    },
+    custom_serde::{Currency, EmailWrapper, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -23,10 +21,10 @@ pub struct InsertOnePrefillEntityClientPaymentDetails {
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
     pub email: EmailAddress,
     pub currency: Currency,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub payment_date: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub cutoff_date: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub payment_date: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub cutoff_date: sqlx::types::time::OffsetDateTime,
 }
 
 #[serde_as]
@@ -36,10 +34,10 @@ pub struct PrefillEntityClientPaymentDetails {
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
     pub email: EmailAddress,
     pub currency: Currency,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub payment_date: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub cutoff_date: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub payment_date: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub cutoff_date: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub created_at: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
@@ -111,7 +109,7 @@ impl Database {
             currency = $2, payment_date = $3, cutoff_date = $4";
 
         sqlx::query(query)
-            .bind(details.email.to_string())
+            .bind(details.email.as_ref())
             .bind(details.currency)
             .bind(details.payment_date)
             .bind(details.cutoff_date)

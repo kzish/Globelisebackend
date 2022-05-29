@@ -84,6 +84,7 @@ pub async fn login(
     // NOTE: A timing attack can detect registered emails.
     // Mitigating this is not strictly necessary, as attackers can still find out
     // if an email is registered by using the sign-up page.
+    // Simplify this step
     let database = database.lock().await;
     if let Some(ulid) = database.admin_id(&email).await? {
         if let Some(Admin {
@@ -94,12 +95,22 @@ pub async fn login(
             if let Ok(true) = verify_encoded(&hash, password.as_bytes()) {
                 let mut shared_state = shared_state.lock().await;
                 let refresh_token = shared_state.open_session(&database, ulid).await?;
-                return Ok(refresh_token);
+                Ok(refresh_token)
+            } else {
+                Err(GlobeliseError::unauthorized(
+                    "Entered the wrong the password",
+                ))
             }
+        } else {
+            Err(GlobeliseError::not_found(
+                "Cannot find admin with that ulid",
+            ))
         }
+    } else {
+        Err(GlobeliseError::not_found(
+            "Cannot find admin with that email",
+        ))
     }
-
-    Err(GlobeliseError::unauthorized("Email login failed"))
 }
 
 /// Gets a new access token.

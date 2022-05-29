@@ -1,8 +1,7 @@
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{ImageData, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
-    pubsub::{SharedPubSub, UpdateUserName},
     token::Token,
 };
 use serde::{Deserialize, Serialize};
@@ -20,13 +19,11 @@ pub async fn post_onboard_individual_client_account_details(
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
-    Extension(pubsub): Extension<SharedPubSub>,
 ) -> GlobeliseResult<()> {
     if !matches!(claims.payload.user_type, UserType::Individual) {
         return Err(GlobeliseError::Forbidden);
     }
     let ulid = claims.payload.ulid;
-    let full_name = format!("{} {}", body.first_name, body.last_name);
 
     let database = database.lock().await;
     database
@@ -35,17 +32,6 @@ pub async fn post_onboard_individual_client_account_details(
         .map_err(|e| {
             GlobeliseError::internal(format!(
                 "Cannot insert individual client onboard data into the database because \n{:#?}",
-                e
-            ))
-        })?;
-
-    let pubsub = pubsub.lock().await;
-    pubsub
-        .publish_event(UpdateUserName::Client(ulid, full_name))
-        .await
-        .map_err(|e| {
-            GlobeliseError::internal(format!(
-                "Cannot publish individual client user name change event to DAPR because \n{:#?}",
                 e
             ))
         })?;
@@ -77,22 +63,15 @@ pub async fn post_onboard_individual_contractor_account_details(
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
-    Extension(pubsub): Extension<SharedPubSub>,
 ) -> GlobeliseResult<()> {
     if !matches!(claims.payload.user_type, UserType::Individual) {
         return Err(GlobeliseError::Forbidden);
     }
     let ulid = claims.payload.ulid;
-    let full_name = format!("{} {}", request.first_name, request.last_name);
 
     let database = database.lock().await;
     database
         .post_onboard_individual_contractor_account_details(ulid, request)
-        .await?;
-
-    let pubsub = pubsub.lock().await;
-    pubsub
-        .publish_event(UpdateUserName::Contractor(ulid, full_name))
         .await?;
 
     Ok(())
@@ -122,8 +101,8 @@ pub async fn get_onboard_individual_contractor_account_details(
 pub struct IndividualClientAccountDetails {
     pub first_name: String,
     pub last_name: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub dob: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub dob: sqlx::types::time::OffsetDateTime,
     pub dial_code: String,
     pub phone_number: String,
     pub country: String,
@@ -164,8 +143,8 @@ impl FromRow<'_, PgRow> for IndividualClientAccountDetails {
 pub struct IndividualContractorAccountDetails {
     pub first_name: String,
     pub last_name: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub dob: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub dob: sqlx::types::time::OffsetDateTime,
     pub dial_code: String,
     pub phone_number: String,
     pub country: String,
@@ -210,7 +189,11 @@ impl Database {
         ulid: Uuid,
         details: IndividualClientAccountDetails,
     ) -> GlobeliseResult<()> {
-        if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
+        if self
+            .find_one_user(ulid, Some(UserType::Individual))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::Forbidden);
         }
 
@@ -247,7 +230,11 @@ impl Database {
         &self,
         ulid: Uuid,
     ) -> GlobeliseResult<Option<IndividualClientAccountDetails>> {
-        if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
+        if self
+            .find_one_user(ulid, Some(UserType::Individual))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::Forbidden);
         }
 
@@ -273,7 +260,11 @@ impl Database {
         ulid: Uuid,
         details: IndividualContractorAccountDetails,
     ) -> GlobeliseResult<()> {
-        if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
+        if self
+            .find_one_user(ulid, Some(UserType::Individual))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::Forbidden);
         }
 
@@ -312,7 +303,11 @@ impl Database {
         &self,
         ulid: Uuid,
     ) -> GlobeliseResult<Option<IndividualContractorAccountDetails>> {
-        if self.user(ulid, Some(UserType::Individual)).await?.is_none() {
+        if self
+            .find_one_user(ulid, Some(UserType::Individual))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::Forbidden);
         }
 

@@ -12,7 +12,7 @@ impl Database {
     pub async fn create_admin(&self, admin: Admin) -> GlobeliseResult<Uuid> {
         if !admin.has_authentication() {
             return Err(GlobeliseError::unauthorized(
-                "Refused to create admin: no authentication method provided",
+                "Cannot create user without any authentication method provided",
             ));
         }
 
@@ -26,9 +26,12 @@ impl Database {
         let ulid = Uuid::new_v4();
 
         sqlx::query(
-            "INSERT INTO auth_eor_admins
-             (ulid, email, password, is_google, is_outlook)
-            VALUES ($1, $2, $3, $4, $5)",
+            "
+            INSERT INTO admin_users (
+                ulid, email, password, is_google, is_outlook
+            ) VALUES (
+                $1, $2, $3, $4, $5
+            )",
         )
         .bind(ulid)
         .bind(admin.email.as_ref())
@@ -48,11 +51,19 @@ impl Database {
         // TODO: Create a newtype to ensure only hashed password are inserted
         new_password_hash: Option<String>,
     ) -> GlobeliseResult<()> {
-        sqlx::query("UPDATE auth_eor_admins SET password = $1 WHERE ulid = $2")
-            .bind(new_password_hash)
-            .bind(ulid)
-            .execute(&self.0)
-            .await?;
+        sqlx::query(
+            "
+            UPDATE 
+                admin_users 
+            SET 
+                password = $1 
+            WHERE 
+                ulid = $2",
+        )
+        .bind(new_password_hash)
+        .bind(ulid)
+        .execute(&self.0)
+        .await?;
 
         Ok(())
     }
@@ -60,9 +71,13 @@ impl Database {
     /// Gets a admin's authentication information.
     pub async fn admin(&self, ulid: Uuid) -> GlobeliseResult<Option<Admin>> {
         Ok(sqlx::query_as(
-            "SELECT email, password, is_google, is_outlook
-                FROM auth_eor_admins
-                WHERE ulid = $1",
+            "
+            SELECT 
+                email, password, is_google, is_outlook
+            FROM 
+                admin_users
+            WHERE 
+                ulid = $1",
         )
         .bind(ulid)
         .fetch_optional(&self.0)
@@ -71,10 +86,18 @@ impl Database {
 
     /// Gets a admin's id.
     pub async fn admin_id(&self, email: &EmailAddress) -> GlobeliseResult<Option<Uuid>> {
-        let m_row = sqlx::query("SELECT ulid FROM auth_eor_admins WHERE email = $1")
-            .bind(email.as_ref())
-            .fetch_optional(&self.0)
-            .await?;
+        let m_row = sqlx::query(
+            "
+            SELECT 
+                ulid 
+            FROM 
+                admin_users 
+            WHERE 
+                email = $1",
+        )
+        .bind(email.as_ref())
+        .fetch_optional(&self.0)
+        .await?;
 
         if let Some(row) = m_row {
             Ok(Some(row.get("ulid")))

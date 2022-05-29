@@ -6,62 +6,30 @@ use common_utils::{
     calc_limit_and_offset,
     custom_serde::FORM_DATA_LENGTH_LIMIT,
     error::{GlobeliseError, GlobeliseResult},
+    impl_enum_asfrom_str,
     token::Token,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-use sqlx::{
-    postgres::{PgTypeInfo, PgValueRef},
-    FromRow, Row,
-};
+use sqlx::FromRow;
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum FieldDetailType {
-    Personal,
-    Employment,
-    Bank,
-    Payroll,
-}
+impl_enum_asfrom_str!(
+    FieldDetailFormat,
+    SHORT_TEXT,
+    LONG_TEXT,
+    NUMBER,
+    ACCOUNTING_NUMBER,
+    DD_MM_YY,
+    SINGLE_SELECT,
+    MULTIPLE_SELECT
+);
 
-impl FieldDetailType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            FieldDetailType::Personal => "PERSONAL",
-            FieldDetailType::Employment => "EMPLOYMENT",
-            FieldDetailType::Bank => "BANK",
-            FieldDetailType::Payroll => "PAYROLL",
-        }
-    }
-
-    pub fn from_str(input: &str) -> Option<FieldDetailType> {
-        match input {
-            "PERSONAL" => Some(FieldDetailType::Personal),
-            "EMPLOYMENT" => Some(FieldDetailType::Employment),
-            "BANK" => Some(FieldDetailType::Bank),
-            "PAYROLL" => Some(FieldDetailType::Payroll),
-            _ => None,
-        }
-    }
-}
-
-impl sqlx::Type<sqlx::Postgres> for FieldDetailType {
-    fn type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("text")
-    }
-}
-
-impl<'r> sqlx::Decode<'r, sqlx::Postgres> for FieldDetailType {
-    fn decode(value: PgValueRef<'r>) -> Result<Self, sqlx::error::BoxDynError> {
-        let value: &'r str = sqlx::decode::Decode::decode(value)?;
-        Ok(FieldDetailType::from_str(value).ok_or("Invalid field_detail_type")?)
-    }
-}
+impl_enum_asfrom_str!(FieldDetailType, PERSONAL, EMPLOYMENT, BANK, PAYROLL);
 
 #[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize)]
@@ -70,11 +38,8 @@ pub struct GetCustomFieldResponse {
     ulid: Uuid,
     client_ulid: Uuid,
     field_name: String,
-    field_detail_type: FieldDetailType,
-    // Should be an enum in the future
-    field_format: String,
-    field_option_1: String,
-    field_option_2: String,
+    field_type: FieldDetailType,
+    field_format: FieldDetailFormat,
 }
 
 #[serde_as]
@@ -82,16 +47,13 @@ pub struct GetCustomFieldResponse {
 #[serde(rename_all = "kebab-case")]
 pub struct PostCustomFieldRequestForClient {
     field_name: String,
-    field_detail_type: FieldDetailType,
-    // Should be an enum in the future
-    field_format: String,
-    field_option_1: String,
-    field_option_2: String,
+    field_type: FieldDetailType,
+    field_format: FieldDetailFormat,
 }
 
 pub async fn user_post_custom_field(
     claims: Token<UserAccessToken>,
-    ContentLengthLimit(Json(request)): ContentLengthLimit<
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<PostCustomFieldRequestForClient>,
         FORM_DATA_LENGTH_LIMIT,
     >,
@@ -103,19 +65,12 @@ pub async fn user_post_custom_field(
 
     let database = database.lock().await;
 
-    let field_type_ulid = database
-        .get_ulid_custom_field_type(request.field_detail_type)
-        .await?
-        .ok_or(GlobeliseError::NotFound)?;
-
     let ulid = database
         .create_custom_field(
             claims.payload.ulid,
-            request.field_name,
-            field_type_ulid,
-            request.field_format,
-            request.field_option_1,
-            request.field_option_2,
+            body.field_name,
+            body.field_type,
+            body.field_format,
         )
         .await?;
 
@@ -154,16 +109,13 @@ pub async fn user_get_custom_fields(
 pub struct PostCustomFieldRequestForAdmin {
     client_ulid: Uuid,
     field_name: String,
-    field_detail_type: FieldDetailType,
-    // Should be an enum in the future
-    field_format: String,
-    field_option_1: String,
-    field_option_2: String,
+    field_type: FieldDetailType,
+    field_format: FieldDetailFormat,
 }
 
 pub async fn admin_post_custom_field(
     _: Token<AdminAccessToken>,
-    ContentLengthLimit(Json(request)): ContentLengthLimit<
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<PostCustomFieldRequestForAdmin>,
         FORM_DATA_LENGTH_LIMIT,
     >,
@@ -171,19 +123,12 @@ pub async fn admin_post_custom_field(
 ) -> GlobeliseResult<String> {
     let database = database.lock().await;
 
-    let field_type_ulid = database
-        .get_ulid_custom_field_type(request.field_detail_type)
-        .await?
-        .ok_or(GlobeliseError::NotFound)?;
-
     let ulid = database
         .create_custom_field(
-            request.client_ulid,
-            request.field_name,
-            field_type_ulid,
-            request.field_format,
-            request.field_option_1,
-            request.field_option_2,
+            body.client_ulid,
+            body.field_name,
+            body.field_type,
+            body.field_format,
         )
         .await?;
 
@@ -232,11 +177,8 @@ impl Database {
         &self,
         client_ulid: Uuid,
         field_name: String,
-        field_type_ulid: Uuid,
-        // Should be an enum in the future
-        field_format: String,
-        field_option_1: String,
-        field_option_2: String,
+        field_type: FieldDetailType,
+        field_format: FieldDetailFormat,
     ) -> GlobeliseResult<Uuid> {
         let ulid = Uuid::new_v4();
 
@@ -253,10 +195,8 @@ impl Database {
             .bind(ulid)
             .bind(client_ulid)
             .bind(field_name)
-            .bind(field_type_ulid)
+            .bind(field_type)
             .bind(field_format)
-            .bind(field_option_1)
-            .bind(field_option_2)
             .execute(&self.0)
             .await?;
 
@@ -311,30 +251,6 @@ impl Database {
             .bind(offset)
             .fetch_all(&self.0)
             .await?;
-
-        Ok(result)
-    }
-
-    pub async fn get_ulid_custom_field_type(
-        &self,
-        field_type: FieldDetailType,
-    ) -> GlobeliseResult<Option<Uuid>> {
-        let query = "
-            SELECT
-                ulid
-            FROM
-                user_detail_types
-            WHERE
-                detail_type = $1
-            LIMIT 
-                1";
-
-        let result = sqlx::query(query)
-            .bind(field_type.as_str())
-            .fetch_optional(&self.0)
-            .await?
-            .map(|v| v.try_get("ulid"))
-            .transpose()?;
 
         Ok(result)
     }

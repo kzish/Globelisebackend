@@ -1,10 +1,5 @@
 use axum::{extract::Query, Extension, Json};
-use common_utils::{
-    calc_limit_and_offset,
-    error::GlobeliseResult,
-    pubsub::{AddClientContractorPair, SharedPubSub},
-    token::Token,
-};
+use common_utils::{calc_limit_and_offset, error::GlobeliseResult, token::Token};
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
@@ -25,7 +20,6 @@ pub async fn post_one(
     // Only for validation
     _: Token<AdminAccessToken>,
     Json(request): Json<ClientContractorPair>,
-    Extension(pubsub): Extension<SharedPubSub>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
@@ -33,14 +27,6 @@ pub async fn post_one(
         .create_client_contractor_pairs(request.client_ulid, request.contractor_ulid)
         .await?;
 
-    // Publish event to DAPR
-    let pubsub = pubsub.lock().await;
-    pubsub
-        .publish_event(AddClientContractorPair {
-            client_ulid: request.client_ulid,
-            contractor_ulid: request.contractor_ulid,
-        })
-        .await?;
     Ok(())
 }
 

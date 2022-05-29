@@ -1,6 +1,6 @@
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{Country, ImageData, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::GlobeliseResult,
     token::Token,
 };
@@ -30,11 +30,11 @@ pub async fn account_details(
 pub struct IndividualDetails {
     pub first_name: String,
     pub last_name: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub dob: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub dob: sqlx::types::time::OffsetDateTime,
     pub dial_code: String,
     pub phone_number: String,
-    pub country: String,
+    pub country: Country,
     pub city: String,
     pub address: String,
     pub postal_code: String,

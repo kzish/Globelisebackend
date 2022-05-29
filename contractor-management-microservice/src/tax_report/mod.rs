@@ -3,7 +3,7 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{Country, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::GlobeliseResult,
     token::Token,
 };
@@ -89,10 +89,10 @@ pub struct TaxReportIndex {
     contract_name: Option<String>,
     tax_interval: TaxInterval,
     tax_name: String,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    pub begin_period: sqlx::types::time::Date,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    pub end_period: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    pub begin_period: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    pub end_period: sqlx::types::time::OffsetDateTime,
     country: String,
 }
 
@@ -106,10 +106,10 @@ struct TaxReportIndexSqlHelper {
     contract_name: Option<String>,
     tax_interval: TaxInterval,
     tax_name: String,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    pub begin_period: sqlx::types::time::Date,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    pub end_period: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    pub begin_period: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    pub end_period: sqlx::types::time::OffsetDateTime,
     country: String,
 }
 
@@ -123,11 +123,11 @@ pub struct CreateTaxReportIndex {
     pub contract_ulid: Option<Uuid>,
     pub tax_interval: TaxInterval,
     pub tax_name: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub begin_period: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub end_period: sqlx::types::time::Date,
-    pub country: String,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub begin_period: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub end_period: sqlx::types::time::OffsetDateTime,
+    pub country: Country,
     #[serde_as(as = "Base64")]
     pub tax_report_file: Vec<u8>,
 }

@@ -1,7 +1,7 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
     custom_serde::{
-        Currency, DateWrapper, EmailWrapper, OptionDateWrapper, FORM_DATA_LENGTH_LIMIT,
+        Currency, EmailWrapper, OffsetDateWrapper, OptionOffsetDateWrapper, FORM_DATA_LENGTH_LIMIT,
     },
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
@@ -62,8 +62,8 @@ pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Nationality")]
     pub nationality: String,
     #[serde(rename = "Date of Birth")]
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub dob: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub dob: sqlx::types::time::OffsetDateTime,
     #[serde(rename = "Dial Code")]
     pub dial_code: String,
     #[serde(rename = "Phone Number")]
@@ -84,9 +84,9 @@ pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Passport Number")]
     pub passport_number: Option<String>,
     #[serde(rename = "Passport Expiry Date")]
-    #[serde_as(as = "TryFromInto<OptionDateWrapper>")]
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
     #[serde(default)]
-    pub passport_expiry_date: Option<sqlx::types::time::Date>,
+    pub passport_expiry_date: Option<sqlx::types::time::OffsetDateTime>,
     #[serde(rename = "Work Permit")]
     pub work_permit: Option<String>,
     #[serde(rename = "Tax ID")]
@@ -104,13 +104,13 @@ pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Designation")]
     pub designation: Option<String>,
     #[serde(rename = "Start Date")]
-    #[serde_as(as = "TryFromInto<OptionDateWrapper>")]
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
     #[serde(default)]
-    pub start_date: Option<sqlx::types::time::Date>,
+    pub start_date: Option<sqlx::types::time::OffsetDateTime>,
     #[serde(rename = "End Date")]
-    #[serde_as(as = "TryFromInto<OptionDateWrapper>")]
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
     #[serde(default)]
-    pub end_date: Option<sqlx::types::time::Date>,
+    pub end_date: Option<sqlx::types::time::OffsetDateTime>,
     #[serde(rename = "Employment Status")]
     pub employment_status: Option<String>,
     #[serde(rename = "Bank Name")]

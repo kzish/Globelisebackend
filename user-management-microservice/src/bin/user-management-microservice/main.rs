@@ -9,7 +9,7 @@ use axum::{
 };
 use common_utils::{
     error::GlobeliseResult,
-    pubsub::{CreateOrUpdateContracts, PubSub, PubSubData, TopicSubscription},
+    pubsub::{PubSub, TopicSubscription},
     token::PublicKeys,
 };
 use database::Database;
@@ -29,7 +29,6 @@ mod env;
 mod eor_admin;
 mod onboard;
 mod prefill;
-mod pubsub;
 
 use crate::auth::token::KEYS;
 use env::{DAPR_ADDRESS, FRONTEND_URL, LISTENING_ADDRESS};
@@ -296,10 +295,6 @@ async fn main() {
         )
         // ========== PUBSUB PAGES ==========
         .route("/dapr/subscribe", get(dapr_subscription_list))
-        .route(
-            "/pubsub/create_or_update_contracts",
-            post(pubsub::create_or_update_contracts),
-        )
         // ========== DEBUG PAGES ==========
         .route("/debug/google/login", get(auth::google::login_page))
         .route("/healthz", get(handle_healthz))
@@ -372,7 +367,5 @@ async fn handle_error(error: BoxError) -> (StatusCode, &'static str) {
 /// DAPR will invoke this endpoint to know which pubsub and topic names this app
 /// will listen to.
 pub async fn dapr_subscription_list() -> GlobeliseResult<Json<Vec<TopicSubscription>>> {
-    Ok(Json(vec![
-        CreateOrUpdateContracts::create_topic_subscription("pubsub/create_or_update_contracts"),
-    ]))
+    Ok(Json(vec![]))
 }
