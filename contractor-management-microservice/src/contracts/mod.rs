@@ -3,9 +3,8 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{Currency, DateWrapper, OffsetDateWrapper},
+    custom_serde::{Currency, OffsetDateWrapper},
     error::GlobeliseResult,
-    pubsub::{CreateOrUpdateContracts, SharedPubSub},
     token::{Token, TokenString},
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
@@ -59,7 +58,7 @@ pub async fn eor_admin_user_index(
     Ok(Json(result))
 }
 
-pub async fn clients_index(
+pub async fn get_many_clients_for_contractors(
     access_token: Token<UserAccessToken>,
     Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
@@ -67,12 +66,12 @@ pub async fn clients_index(
     let database = database.lock().await;
     Ok(Json(
         database
-            .clients_index(access_token.payload.ulid, query)
+            .select_many_clients_for_contractors(access_token.payload.ulid, query)
             .await?,
     ))
 }
 
-pub async fn contractors_index(
+pub async fn get_many_contractors_for_clients(
     access_token: Token<UserAccessToken>,
     Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
@@ -80,7 +79,7 @@ pub async fn contractors_index(
     let database = database.lock().await;
     Ok(Json(
         database
-            .contractors_index(access_token.payload.ulid, query)
+            .select_many_contractors_for_clients(access_token.payload.ulid, query)
             .await?,
     ))
 }
@@ -133,30 +132,10 @@ pub async fn eor_admin_create_contract(
     _: Token<AdminAccessToken>,
     Json(body): Json<CreateContractRequestForEorAdmin>,
     Extension(database): Extension<SharedDatabase>,
-    Extension(pubsub): Extension<SharedPubSub>,
 ) -> GlobeliseResult<String> {
     let database = database.lock().await;
 
     let ulid = database.create_contract(body.clone()).await?;
-
-    let pubsub = pubsub.lock().await;
-    pubsub
-        .publish_event(CreateOrUpdateContracts {
-            ulid,
-            client_ulid: body.client_ulid,
-            contractor_ulid: body.contractor_ulid,
-            contract_name: body.contract_name,
-            contract_type: body.contract_type,
-            contract_status: body.contract_status,
-            contract_amount: body.contract_amount,
-            currency: body.currency,
-            job_title: body.job_title,
-            seniority: body.seniority,
-            begin_at: body.begin_at,
-            end_at: body.end_at,
-            branch_ulid: body.branch_ulid,
-        })
-        .await?;
 
     Ok(ulid.to_string())
 }
@@ -224,10 +203,10 @@ pub struct ContractsIndexForClient {
     contract_status: String,
     contract_amount: sqlx::types::Decimal,
     currency: Currency,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    begin_at: sqlx::types::time::Date,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    end_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    begin_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    end_at: sqlx::types::time::OffsetDateTime,
 }
 
 #[serde_as]
@@ -243,10 +222,10 @@ pub struct ContractsIndexForContractor {
     contract_status: String,
     contract_amount: sqlx::types::Decimal,
     currency: Currency,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    begin_at: sqlx::types::time::Date,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    end_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    begin_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    end_at: sqlx::types::time::OffsetDateTime,
 }
 
 #[serde_as]
@@ -255,7 +234,7 @@ pub struct ContractsIndexForContractor {
 pub struct CreateContractRequestForEorAdmin {
     client_ulid: Uuid,
     contractor_ulid: Uuid,
-    branch_ulid: Uuid,
+    branch_ulid: Option<Uuid>,
     contract_name: String,
     contract_type: String,
     job_title: String,
@@ -263,10 +242,10 @@ pub struct CreateContractRequestForEorAdmin {
     contract_amount: sqlx::types::Decimal,
     currency: Currency,
     seniority: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    begin_at: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    end_at: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    begin_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    end_at: sqlx::types::time::OffsetDateTime,
 }
 
 #[serde_as]
@@ -282,10 +261,10 @@ pub struct ContractsIndexForEorAdmin {
     contract_status: String,
     contract_amount: sqlx::types::Decimal,
     currency: Currency,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    begin_at: sqlx::types::time::Date,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    end_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    begin_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    end_at: sqlx::types::time::OffsetDateTime,
 }
 
 #[serde_as]
@@ -298,8 +277,8 @@ struct ContractsIndexCommonInfoSqlHelper {
     contract_status: String,
     contract_amount: sqlx::types::Decimal,
     currency: Currency,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    begin_at: sqlx::types::time::Date,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    end_at: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    begin_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    end_at: sqlx::types::time::OffsetDateTime,
 }

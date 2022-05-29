@@ -4,16 +4,15 @@ use axum::{
     error_handling::HandleErrorLayer,
     extract::Extension,
     http::{HeaderValue, Method, StatusCode},
-    routing::{get, post},
+    routing::get,
     BoxError, Json, Router,
 };
 use common_utils::{
     error::GlobeliseResult,
-    pubsub::{AddClientContractorPair, PubSub, PubSubData, TopicSubscription, UpdateUserName},
+    pubsub::{PubSub, TopicSubscription},
     token::PublicKeys,
 };
 use database::Database;
-use pubsub::{update_client_contractor_pair, update_user_name};
 use reqwest::Client;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
@@ -25,7 +24,6 @@ mod database;
 mod env;
 mod invoice;
 mod payslips;
-mod pubsub;
 mod tax_report;
 
 use env::{DAPR_ADDRESS, FRONTEND_URL, LISTENING_ADDRESS};
@@ -52,8 +50,11 @@ async fn main() {
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
-        .route("/clients", get(contracts::clients_index))
-        .route("/contractors", get(contracts::contractors_index))
+        .route("/clients", get(contracts::get_many_clients_for_contractors))
+        .route(
+            "/contractors",
+            get(contracts::get_many_contractors_for_clients),
+        )
         .route("/contracts/:role", get(contracts::contracts_index))
         .route("/payslips/:role", get(payslips::user_payslips_index))
         .route("/tax-reports/:role", get(tax_report::user_tax_report_index))
@@ -90,11 +91,6 @@ async fn main() {
         )
         // ========== PUBSUB PAGES ==========
         .route("/dapr/subscribe", get(dapr_subscription_list))
-        .route(
-            "/update_client_contractor_pair",
-            post(update_client_contractor_pair),
-        )
-        .route("/update_user_name", post(update_user_name))
         // ========== DEBUG PAGES ==========
         .route("/healthz", get(handle_healthz))
         // ========== CONFIGURATIONS ==========
@@ -165,8 +161,5 @@ async fn handle_error(error: BoxError) -> (StatusCode, &'static str) {
 /// DAPR will invoke this endpoint to know which pubsub and topic names this app
 /// will listen to.
 pub async fn dapr_subscription_list() -> GlobeliseResult<Json<Vec<TopicSubscription>>> {
-    Ok(Json(vec![
-        AddClientContractorPair::create_topic_subscription("update_client_contractor_pair"),
-        UpdateUserName::create_topic_subscription("update_user_name"),
-    ]))
+    Ok(Json(vec![]))
 }

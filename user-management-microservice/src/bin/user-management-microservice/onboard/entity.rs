@@ -1,8 +1,7 @@
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::{DateWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{Country, ImageData, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
-    pubsub::{SharedPubSub, UpdateUserName},
     token::Token,
 };
 use serde::{Deserialize, Serialize};
@@ -20,12 +19,10 @@ pub async fn post_onboard_entity_client_account_details(
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
-    Extension(pubsub): Extension<SharedPubSub>,
 ) -> GlobeliseResult<()> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
         return Err(GlobeliseError::Forbidden);
     }
-    let full_name = request.company_name.clone();
 
     let database = database.lock().await;
     database
@@ -34,17 +31,6 @@ pub async fn post_onboard_entity_client_account_details(
         .map_err(|e| {
             GlobeliseError::internal(format!(
                 "Cannot insert entity client onboard data into the database because \n{:#?}",
-                e
-            ))
-        })?;
-
-    let pubsub = pubsub.lock().await;
-    pubsub
-        .publish_event(UpdateUserName::Client(claims.payload.ulid, full_name))
-        .await
-        .map_err(|e| {
-            GlobeliseError::internal(format!(
-                "Cannot publish entity client user name change event to DAPR because \n{:#?}",
                 e
             ))
         })?;
@@ -76,12 +62,10 @@ pub async fn post_onboard_entity_contractor_account_details(
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
-    Extension(pubsub): Extension<SharedPubSub>,
 ) -> GlobeliseResult<()> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
         return Err(GlobeliseError::Forbidden);
     }
-    let full_name = request.company_name.clone();
 
     let database = database.lock().await;
     database
@@ -90,17 +74,6 @@ pub async fn post_onboard_entity_contractor_account_details(
         .map_err(|e| {
             GlobeliseError::internal(format!(
                 "Cannot insert entity client onboard data into the database because \n{:#?}",
-                e
-            ))
-        })?;
-
-    let pubsub = pubsub.lock().await;
-    pubsub
-        .publish_event(UpdateUserName::Contractor(claims.payload.ulid, full_name))
-        .await
-        .map_err(|e| {
-            GlobeliseError::internal(format!(
-                "Cannot publish entity client user name change event to DAPR because \n{:#?}",
                 e
             ))
         })?;
@@ -131,7 +104,7 @@ pub async fn get_onboard_entity_contractor_account_details(
 #[serde(rename_all = "kebab-case")]
 pub struct EntityClientAccountDetails {
     pub company_name: String,
-    pub country: String,
+    pub country: Country,
     pub entity_type: String,
     #[serde(default)]
     pub registration_number: Option<String>,
@@ -169,7 +142,7 @@ impl FromRow<'_, PgRow> for EntityClientAccountDetails {
 #[serde(rename_all = "kebab-case")]
 pub struct EntityContractorAccountDetails {
     pub company_name: String,
-    pub country: String,
+    pub country: Country,
     pub entity_type: String,
     #[serde(default)]
     pub registration_number: Option<String>,
@@ -212,8 +185,8 @@ impl FromRow<'_, PgRow> for EntityContractorAccountDetails {
 pub struct EntityPicDetails {
     pub first_name: String,
     pub last_name: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub dob: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub dob: sqlx::types::time::OffsetDateTime,
     pub dial_code: String,
     pub phone_number: String,
     #[serde_as(as = "Option<Base64>")]
@@ -226,7 +199,7 @@ pub struct EntityPicDetails {
 #[serde(rename_all = "kebab-case")]
 pub struct EntityDetails {
     pub company_name: String,
-    pub country: String,
+    pub country: Country,
     pub entity_type: String,
     #[serde(default)]
     pub registration_number: Option<String>,
@@ -257,7 +230,11 @@ impl Database {
         ulid: Uuid,
         details: EntityClientAccountDetails,
     ) -> GlobeliseResult<()> {
-        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+        if self
+            .find_one_user(ulid, Some(UserType::Entity))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::Forbidden);
         }
 
@@ -293,7 +270,11 @@ impl Database {
         &self,
         ulid: Uuid,
     ) -> GlobeliseResult<EntityClientAccountDetails> {
-        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+        if self
+            .find_one_user(ulid, Some(UserType::Entity))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::Forbidden);
         }
 
@@ -320,7 +301,11 @@ impl Database {
         ulid: Uuid,
         details: EntityContractorAccountDetails,
     ) -> GlobeliseResult<()> {
-        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+        if self
+            .find_one_user(ulid, Some(UserType::Entity))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::Forbidden);
         }
 
@@ -357,7 +342,11 @@ impl Database {
         &self,
         ulid: Uuid,
     ) -> GlobeliseResult<Option<EntityContractorAccountDetails>> {
-        if self.user(ulid, Some(UserType::Entity)).await?.is_none() {
+        if self
+            .find_one_user(ulid, Some(UserType::Entity))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::Forbidden);
         }
 

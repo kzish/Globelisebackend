@@ -3,7 +3,7 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::GlobeliseResult,
     token::Token,
 };
@@ -71,12 +71,12 @@ pub struct PayslipsIndex {
     #[serde(default)]
     contract_name: Option<String>,
     payslip_title: String,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    payment_date: sqlx::types::time::Date,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    begin_period: sqlx::types::time::Date,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    end_period: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    payment_date: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    begin_period: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    end_period: sqlx::types::time::OffsetDateTime,
 }
 
 #[serde_as]
@@ -88,12 +88,12 @@ struct PayslipsIndexSqlHelper {
     #[serde(default)]
     contract_name: Option<String>,
     payslip_title: String,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    payment_date: sqlx::types::time::Date,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    begin_period: sqlx::types::time::Date,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    end_period: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    payment_date: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    begin_period: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    end_period: sqlx::types::time::OffsetDateTime,
 }
 
 #[serde_as]
@@ -105,12 +105,12 @@ pub struct CreatePayslipsIndex {
     #[serde(default)]
     pub contract_ulid: Option<Uuid>,
     pub payslip_title: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub payment_date: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub begin_period: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub end_period: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub payment_date: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub begin_period: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub end_period: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "Base64")]
     pub payslip_file: Vec<u8>,
 }

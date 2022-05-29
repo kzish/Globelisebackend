@@ -63,7 +63,11 @@ impl State {
         user_type: UserType,
     ) -> GlobeliseResult<String> {
         // Validate that the user and role are correct.
-        if database.user(ulid, Some(user_type)).await?.is_none() {
+        if database
+            .find_one_user(ulid, Some(user_type))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::unauthorized(
                 "Refused to open session: invalid user",
             ));
@@ -118,7 +122,11 @@ impl State {
         T: OneTimeTokenAudience,
     {
         // Validate that the user and role are correct.
-        if database.user(ulid, Some(user_type)).await?.is_none() {
+        if database
+            .find_one_user(ulid, Some(user_type))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::unauthorized(
                 "Refused to open one-time session: invalid user",
             ));

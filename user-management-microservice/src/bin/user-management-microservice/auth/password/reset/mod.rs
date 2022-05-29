@@ -152,7 +152,7 @@ pub async fn execute(
         .map_err(GlobeliseError::internal)?;
 
     database
-        .update_password(ulid, user_type, Some(hash))
+        .update_user_password_hash(ulid, user_type, Some(hash))
         .await?;
     shared_state.revoke_all_sessions(ulid).await?;
 

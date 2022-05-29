@@ -40,7 +40,7 @@ impl Database {
     }
 
     /// Indexes clients that a contractor works for.
-    pub async fn clients_index(
+    pub async fn select_many_clients_for_contractors(
         &self,
         contractor_ulid: Uuid,
         query: PaginatedQuery,
@@ -52,10 +52,10 @@ impl Database {
             SELECT DISTINCT
                 client_ulid, client_name
             FROM
-                contractors_index
+                clients_index_for_contractors
             WHERE
                 contractor_ulid = $1 AND
-                ($2 IS NULL OR (client_name ~* $2))
+                ($2 IS NULL OR client_name ~* $2)
             LIMIT $3 OFFSET $4",
         )
         .bind(contractor_ulid)
@@ -69,7 +69,7 @@ impl Database {
     }
 
     /// Indexes contracts working for a client.
-    pub async fn contractors_index(
+    pub async fn select_many_contractors_for_clients(
         &self,
         client_ulid: Uuid,
         query: PaginatedQuery,
@@ -82,7 +82,7 @@ impl Database {
                 contractor_ulid, contractor_name, contract_name, contract_status,
                 job_title, seniority
             FROM
-                contractors_index
+                contractors_index_for_clients
             WHERE
                 client_ulid = $1 AND
                 ($2 IS NULL OR (contractor_name ~* $2))

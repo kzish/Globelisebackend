@@ -18,7 +18,7 @@ pub async fn post_onboard_contractor_bank_details(
     let database = database.lock().await;
 
     if database
-        .user(claims.payload.ulid, Some(claims.payload.user_type))
+        .find_one_user(claims.payload.ulid, Some(claims.payload.user_type))
         .await?
         .is_none()
     {
@@ -37,7 +37,7 @@ pub async fn get_onboard_contractor_bank_details(
     let database = database.lock().await;
 
     if database
-        .user(claims.payload.ulid, Some(claims.payload.user_type))
+        .find_one_user(claims.payload.ulid, Some(claims.payload.user_type))
         .await?
         .is_none()
     {

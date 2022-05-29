@@ -65,11 +65,15 @@ pub async fn signup(
     let user = User {
         email,
         password_hash: Some(hash),
-        google: false,
-        outlook: false,
+        is_google: false,
+        is_outlook: false,
+        is_entity: user_type == UserType::Entity,
+        is_individual: user_type == UserType::Individual,
+        is_client: false,
+        is_contractor: false,
     };
     let database = database.lock().await;
-    let ulid = database.create_user(user, user_type).await?;
+    let ulid = database.create_user(user).await?;
 
     let mut shared_state = shared_state.lock().await;
     let refresh_token = shared_state
@@ -95,13 +99,10 @@ pub async fn login(
     // if an email is registered by using the sign-up page.
     let database = database.lock().await;
     if let Some((ulid, user_type)) = database.user_id(&email).await? {
-        if let Some((
-            User {
-                password_hash: Some(hash),
-                ..
-            },
-            _,
-        )) = database.user(ulid, Some(user_type)).await?
+        if let Some(User {
+            password_hash: Some(hash),
+            ..
+        }) = database.find_one_user(ulid, Some(user_type)).await?
         {
             if let Ok(true) = verify_encoded(&hash, password.as_bytes()) {
                 let mut shared_state = shared_state.lock().await;
@@ -154,7 +155,7 @@ pub async fn access_token(
     }
 
     let database = database.lock().await;
-    if let Some((User { email, .. }, _)) = database.user(ulid, Some(user_type)).await? {
+    if let Some(User { email, .. }) = database.find_one_user(ulid, Some(user_type)).await? {
         let mut user_roles = vec![];
         if database
             .get_is_user_fully_onboarded(ulid, user_type, Role::Client)

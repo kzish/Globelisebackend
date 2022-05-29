@@ -129,9 +129,13 @@ where
 
         // Make sure the user actually exists.
         let database = database.lock().await;
-        if database.user(ulid, Some(user_type)).await?.is_none() {
+        if database
+            .find_one_user(ulid, Some(user_type))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::unauthorized(
-                "One-time token rejected: user does not exist",
+                "Cannot create one time token because the user does not exist",
             ));
         }
 
@@ -192,9 +196,13 @@ where
 
         // Make sure the user actually exists.
         let database = database.lock().await;
-        if database.user(ulid, Some(user_type)).await?.is_none() {
+        if database
+            .find_one_user(ulid, Some(user_type))
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::unauthorized(
-                "One-time token rejected: user does not exist",
+                "Cannot create one time token because the user does not exist",
             ));
         }
 

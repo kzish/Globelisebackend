@@ -2,7 +2,7 @@ use axum::{
     extract::{Extension, Path, Query},
     Json,
 };
-use common_utils::{custom_serde::DateWrapper, error::GlobeliseResult, token::Token};
+use common_utils::{custom_serde::OffsetDateWrapper, error::GlobeliseResult, token::Token};
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use itertools::izip;
 use serde::{Deserialize, Serialize};
@@ -91,8 +91,8 @@ pub struct InvoiceIndividualIndex {
     client_ulid: Uuid,
     contractor_ulid: Uuid,
     invoice_id: i64,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    invoice_due: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    invoice_due: sqlx::types::time::OffsetDateTime,
     invoice_status: String,
     invoice_amount: sqlx::types::Decimal,
 }
@@ -102,8 +102,8 @@ pub struct InvoiceIndividualIndex {
 #[serde(rename_all = "kebab-case")]
 pub struct InvoiceIndividualIndexSqlHelper {
     invoice_id: i64,
-    #[serde_as(as = "FromInto<DateWrapper>")]
-    invoice_due: sqlx::types::time::Date,
+    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
+    invoice_due: sqlx::types::time::OffsetDateTime,
     invoice_status: String,
     invoice_amount: sqlx::types::Decimal,
 }
@@ -203,7 +203,7 @@ impl FromRow<'_, PgRow> for InvoiceGroupIndexInternal {
 #[derive(Debug, FromRow)]
 struct InvoiceGroupIndexInternalSqlHelper {
     invoice_id: Vec<i64>,
-    invoice_due: Vec<sqlx::types::time::Date>,
+    invoice_due: Vec<sqlx::types::time::OffsetDateTime>,
     invoice_status: Vec<String>,
     invoice_amount: Vec<sqlx::types::Decimal>,
 }

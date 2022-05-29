@@ -1,8 +1,6 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
-    custom_serde::{
-        DateWrapper, EmailWrapper, ImageData, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT,
-    },
+    custom_serde::{Country, EmailWrapper, ImageData, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -23,7 +21,7 @@ pub struct PrefillEntityClientAccountDetails {
     pub email: EmailAddress,
     pub client_ulid: Option<Uuid>,
     pub company_name: String,
-    pub country: String,
+    pub country: Country,
     pub entity_type: String,
     #[serde(default)]
     pub registration_number: Option<String>,
@@ -114,11 +112,11 @@ pub struct InsertOnePrefillIndividualContractorAccountDetails {
     pub client_ulid: Option<Uuid>,
     pub first_name: String,
     pub last_name: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub dob: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub dob: sqlx::types::time::OffsetDateTime,
     pub dial_code: String,
     pub phone_number: String,
-    pub country: String,
+    pub country: Country,
     pub city: String,
     pub address: String,
     pub postal_code: String,
@@ -136,11 +134,11 @@ pub struct PrefillIndividualContractorAccountDetails {
     pub client_ulid: Option<Uuid>,
     pub first_name: String,
     pub last_name: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub dob: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub dob: sqlx::types::time::OffsetDateTime,
     pub dial_code: String,
     pub phone_number: String,
-    pub country: String,
+    pub country: Country,
     pub city: String,
     pub address: String,
     pub postal_code: String,

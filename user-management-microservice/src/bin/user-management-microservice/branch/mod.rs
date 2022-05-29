@@ -81,7 +81,7 @@ pub async fn user_post_branch(
     database
         .post_branch_account_details(PostBranchAccountDetailsInput {
             ulid,
-            company_name: body.account.company_name,
+            branch_name: body.account.branch_name,
             country: body.account.country,
             entity_type: body.account.entity_type,
             registration_number: body.account.registration_number,
@@ -229,7 +229,7 @@ pub async fn admin_post_branch(
     database
         .post_branch_account_details(PostBranchAccountDetailsInput {
             ulid,
-            company_name: body.account.company_name,
+            branch_name: body.account.branch_name,
             country: body.account.country,
             entity_type: body.account.entity_type,
             registration_number: body.account.registration_number,

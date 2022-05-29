@@ -1,6 +1,6 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
-    custom_serde::{DateWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -16,10 +16,10 @@ use crate::database::{Database, SharedDatabase};
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchPayrollDetails {
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub payment_date: sqlx::types::time::Date,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub cutoff_date: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub payment_date: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub cutoff_date: sqlx::types::time::OffsetDateTime,
 }
 
 #[serde_as]
@@ -78,8 +78,8 @@ impl Database {
     pub async fn post_branch_payroll_details(
         &self,
         ulid: Uuid,
-        payment_date: sqlx::types::time::Date,
-        cutoff_date: sqlx::types::time::Date,
+        payment_date: sqlx::types::time::OffsetDateTime,
+        cutoff_date: sqlx::types::time::OffsetDateTime,
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "

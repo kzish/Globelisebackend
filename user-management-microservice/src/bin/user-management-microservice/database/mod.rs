@@ -83,7 +83,7 @@ impl Database {
                 ulid,
                 email
             FROM 
-                user_index 
+                users_index 
             WHERE
                 ($1 IS NULL OR email = $1)
             LIMIT

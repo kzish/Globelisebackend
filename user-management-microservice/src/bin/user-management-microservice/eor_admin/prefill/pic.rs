@@ -1,7 +1,7 @@
 use crate::database::Database;
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::{DateWrapper, EmailWrapper, ImageData, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{EmailWrapper, ImageData, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -21,8 +21,8 @@ pub struct PrefillEntityClientPicDetails {
     pub email: EmailAddress,
     pub first_name: String,
     pub last_name: String,
-    #[serde_as(as = "TryFromInto<DateWrapper>")]
-    pub dob: sqlx::types::time::Date,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub dob: sqlx::types::time::OffsetDateTime,
     pub dial_code: String,
     pub phone_number: String,
     #[serde_as(as = "Option<Base64>")]

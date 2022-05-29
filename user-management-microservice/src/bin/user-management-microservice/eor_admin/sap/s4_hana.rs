@@ -138,6 +138,8 @@ pub async fn post_one(
             cost_center: String,
             #[serde(rename = "amount")]
             amount: String,
+            #[serde(rename = "documentItemText")]
+            document_item_text: Option<String>,
         }
 
         #[derive(Debug, Serialize)]
@@ -148,6 +150,8 @@ pub async fn post_one(
             country_iso: String,
             #[serde(rename = "companyCode")]
             company_code: String,
+            #[serde(rename = "postingDate")]
+            posting_date: String,
             #[serde(rename = "details")]
             details: Vec<B>,
         }
@@ -176,6 +180,8 @@ pub async fn post_one(
                     String,
                     // Cost center
                     Option<String>,
+                    // Document Item Text
+                    Option<String>,
                 )>,
                 _,
             >>()?
@@ -192,6 +198,7 @@ pub async fn post_one(
                     gl_account,
                     amount,
                     cost_center,
+                    document_item_text,
                 )| {
                     Ok(InsertPayrollJournalRowData {
                         posting_date,
@@ -204,6 +211,7 @@ pub async fn post_one(
                         gl_account,
                         amount: lexical::parse(amount)?,
                         cost_center_code: cost_center,
+                        document_item_text,
                     })
                 },
             )
@@ -217,6 +225,19 @@ pub async fn post_one(
         if raw_payroll_journals.iter().map(|v| v.amount).sum::<f64>() != 0.0f64 {
             return Err(GlobeliseError::bad_request(
                 "The total sum of amounts should be equal to 0",
+            ));
+        };
+
+        if raw_payroll_journals
+            .iter()
+            .map(|v| v.posting_date.clone())
+            .unique()
+            .collect::<Vec<_>>()
+            .len()
+            != 1
+        {
+            return Err(GlobeliseError::bad_request(
+                "All posting dates should be the same",
             ));
         };
 
@@ -271,6 +292,12 @@ pub async fn post_one(
             .insert_sap_mulesoft_payroll_journal(&body.country_code, &raw_payroll_journals)
             .await?;
 
+        let posting_date = raw_payroll_journals
+            .iter()
+            .map(|v| v.posting_date.clone())
+            .next()
+            .expect("We already checked that there is only 1 unique posting date");
+
         let payroll_journals = raw_payroll_journals
             .into_iter()
             .enumerate()
@@ -282,6 +309,7 @@ pub async fn post_one(
                     debit_credit_code: row.debit_credit_code.as_str().to_string(),
                     cost_center: row.cost_center_code.unwrap_or_default(),
                     amount: row.amount.to_string(),
+                    document_item_text: row.document_item_text,
                 })
             })
             .collect::<GlobeliseResult<Vec<B>>>()?;
@@ -293,10 +321,9 @@ pub async fn post_one(
             },
             country_iso: body.country_code,
             company_code: body.company_code,
+            posting_date,
             details: payroll_journals,
         };
-
-        println!("json_body:\n{}", serde_json::to_string(&json_body).unwrap());
 
         let response = reqwest_client
             .post(format!(
@@ -332,6 +359,7 @@ pub struct InsertPayrollJournalRowData {
     gl_account: GlAccount,
     amount: f64,
     cost_center_code: Option<String>,
+    document_item_text: Option<String>,
 }
 
 impl Database {
@@ -357,7 +385,7 @@ impl Database {
 
         let rows_query = "
         INSERT INTO sap_mulesoft_payroll_journals_rows (
-            entry_ulid, posting_date, doc_type, company_code, currency_code, 
+            ulid, entry_ulid, posting_date, doc_type, company_code, currency_code, 
             reference, debit_credit_code, document_header_text, gl_account, amount, 
             cost_center
         ) 
@@ -366,13 +394,14 @@ impl Database {
         FROM UNNEST (
             $1, $2, $3, $4, $5,
             $6, $7, $8, $9, $10, 
-            $11
+            $11, $12
         ) RETURNING
             entry_ulid, posting_date, doc_type, company_code, currency_code, 
             reference, debit_credit_code, document_header_text, gl_account, amount, 
             cost_center";
 
         sqlx::query(rows_query)
+            .bind(rows.iter().map(|_| Uuid::new_v4()).collect::<Vec<_>>())
             .bind(rows.iter().map(|_| ulid).collect::<Vec<_>>())
             .bind(
                 rows.iter()
