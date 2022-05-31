@@ -232,8 +232,7 @@ pub async fn post_one(
             .iter()
             .map(|v| v.posting_date.clone())
             .unique()
-            .collect::<Vec<_>>()
-            .len()
+            .count()
             != 1
         {
             return Err(GlobeliseError::bad_request(

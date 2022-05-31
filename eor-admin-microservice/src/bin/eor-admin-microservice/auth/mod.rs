@@ -102,12 +102,12 @@ pub async fn login(
                 ))
             }
         } else {
-            Err(GlobeliseError::not_found(
+            Err(GlobeliseError::unauthorized(
                 "Cannot find admin with that ulid",
             ))
         }
     } else {
-        Err(GlobeliseError::not_found(
+        Err(GlobeliseError::unauthorized(
             "Cannot find admin with that email",
         ))
     }

@@ -1,28 +1,18 @@
-use argon2::{self, hash_encoded, verify_encoded, Config};
-use axum::{
-    extract::{Extension, Path, Query},
-    Json,
-};
-use common_utils::custom_serde::OffsetDateWrapper;
+use axum::{extract::Extension, Json};
 use common_utils::{
     custom_serde::ImageData,
+    custom_serde::OffsetDateWrapper,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use email_address::EmailAddress;
-use once_cell::sync::Lazy;
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{
-    token::UserAccessToken,
-    user::{Role, UserType},
-};
+use user_management_microservice_sdk::token::UserAccessToken;
+use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
-// use sqlx::types::Uuid;
-use uuid::Uuid;
 
 #[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize)]
@@ -319,7 +309,7 @@ impl Database {
                             logo = $14, 
                             company_profile = $15";
 
-        sqlx::query(&query)
+        sqlx::query(query)
             .bind(request.ulid)
             .bind(request.company_name)
             .bind(request.country)
@@ -394,7 +384,7 @@ impl Database {
                             passport_expiry_date = $22,
                             profile_picture = $23,
                             cv = $24";
-        sqlx::query(&query)
+        sqlx::query(query)
             .bind(request.ulid)
             .bind(request.first_name)
             .bind(request.last_name)

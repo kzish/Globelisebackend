@@ -8,7 +8,7 @@ use itertools::izip;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, FromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{token::UserAccessToken, user::Role};
+use user_management_microservice_sdk::{token::UserAccessToken, user::UserRole};
 use uuid::Uuid;
 
 use crate::database::SharedDatabase;
@@ -17,7 +17,7 @@ mod database;
 
 pub async fn user_invoice_individual_index(
     claims: Token<UserAccessToken>,
-    Path(role): Path<Role>,
+    Path(role): Path<UserRole>,
     Query(mut query): Query<InvoiceIndividualIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<InvoiceIndividualIndex>>> {
@@ -25,8 +25,8 @@ pub async fn user_invoice_individual_index(
 
     // Override the provided query with the ulid provided by the tokens.
     match role {
-        Role::Client => query.client_ulid = Some(ulid),
-        Role::Contractor => query.contractor_ulid = Some(ulid),
+        UserRole::Client => query.client_ulid = Some(ulid),
+        UserRole::Contractor => query.contractor_ulid = Some(ulid),
     };
 
     let database = database.lock().await;
@@ -44,7 +44,7 @@ pub async fn eor_admin_invoice_individual_index(
 
 pub async fn user_invoice_group_index(
     claims: Token<UserAccessToken>,
-    Path(role): Path<Role>,
+    Path(role): Path<UserRole>,
     Query(mut query): Query<InvoiceGroupIndexQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<InvoiceGroupIndex>>> {
@@ -52,8 +52,8 @@ pub async fn user_invoice_group_index(
 
     // Override the provided query with the ulid provided by the tokens.
     match role {
-        Role::Client => query.client_ulid = Some(ulid),
-        Role::Contractor => query.contractor_ulid = Some(ulid),
+        UserRole::Client => query.client_ulid = Some(ulid),
+        UserRole::Contractor => query.contractor_ulid = Some(ulid),
     };
 
     let database = database.lock().await;

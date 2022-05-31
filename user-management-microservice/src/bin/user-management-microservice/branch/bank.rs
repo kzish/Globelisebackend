@@ -12,34 +12,20 @@ use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
-pub struct PostBranchBankDetailsInput {
-    pub ulid: Uuid,
-    pub currency: Currency,
-    pub bank_name: String,
-    pub bank_account_name: String,
-    pub bank_account_number: String,
-    pub swift_code: Option<String>,
-    pub bank_key: Option<String>,
-    pub iban: Option<String>,
-    pub bank_code: Option<String>,
-    pub branch_code: Option<String>,
-}
-
 impl Database {
+    #[allow(clippy::too_many_arguments)]
     pub async fn post_branch_bank_details(
         &self,
-        PostBranchBankDetailsInput {
-            ulid,
-            currency,
-            bank_name,
-            bank_account_name,
-            bank_account_number,
-            swift_code,
-            bank_key,
-            iban,
-            bank_code,
-            branch_code,
-        }: PostBranchBankDetailsInput,
+        ulid: Uuid,
+        currency: Currency,
+        bank_name: String,
+        bank_account_name: String,
+        bank_account_number: String,
+        swift_code: Option<String>,
+        bank_key: Option<String>,
+        iban: Option<String>,
+        bank_code: Option<String>,
+        branch_code: Option<String>,
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "
@@ -108,18 +94,18 @@ pub async fn post_branch_bank_details(
     let database = database.lock().await;
 
     database
-        .post_branch_bank_details(PostBranchBankDetailsInput {
-            ulid: claims.payload.ulid,
-            currency: body.currency,
-            bank_name: body.bank_name,
-            bank_account_name: body.bank_account_name,
-            bank_account_number: body.bank_account_number,
-            swift_code: body.swift_code,
-            bank_key: body.bank_key,
-            iban: body.iban,
-            bank_code: body.bank_code,
-            branch_code: body.branch_code,
-        })
+        .post_branch_bank_details(
+            claims.payload.ulid,
+            body.currency,
+            body.bank_name,
+            body.bank_account_name,
+            body.bank_account_number,
+            body.swift_code,
+            body.bank_key,
+            body.iban,
+            body.bank_code,
+            body.branch_code,
+        )
         .await
 }
 

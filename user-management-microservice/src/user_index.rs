@@ -12,7 +12,7 @@ use serde_with::{serde_as, TryFromInto};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use super::user::{Role, UserType};
+use super::user::{UserRole, UserType};
 
 pub async fn eor_admin_onboarded_users(
     client: &Client,
@@ -43,6 +43,7 @@ pub async fn eor_admin_onboarded_users(
     }
 }
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GetUserInfoRequest {
@@ -50,7 +51,7 @@ pub struct GetUserInfoRequest {
     pub per_page: Option<u32>,
     pub search_text: Option<String>,
     pub user_type: Option<UserType>,
-    pub user_role: Option<Role>,
+    pub user_role: Option<UserRole>,
 }
 
 /// Stores information associated with a user id.
@@ -60,7 +61,7 @@ pub struct GetUserInfoRequest {
 pub struct OnboardedUserIndex {
     pub ulid: Uuid,
     pub name: String,
-    pub user_role: Role,
+    pub user_role: UserRole,
     pub user_type: UserType,
     pub email: String,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
@@ -74,6 +75,9 @@ pub struct OnboardedUserIndex {
 pub struct UserIndex {
     pub ulid: Uuid,
     pub email: String,
+    pub user_type: UserType,
+    pub is_google: bool,
+    pub is_outlook: bool,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub created_at: sqlx::types::time::OffsetDateTime,
 }

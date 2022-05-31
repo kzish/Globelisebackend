@@ -78,7 +78,7 @@ impl Database {
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "
-            INSERT INTO individual_contractor_branch_pairs 
+            INSERT INTO entity_client_branch_individual_contractor_pairs 
                 (contractor_ulid, branch_ulid)
             VALUES
                 ($1, $2)",
@@ -99,7 +99,7 @@ impl Database {
         sqlx::query(
             "
             DELETE FROM
-                individual_contractor_branch_pairs 
+                entity_client_branch_individual_contractor_pairs 
             WHERE
                 contractor_ulid = $1 AND
                 branch_ulid =$2",
@@ -123,7 +123,7 @@ impl Database {
             SELECT 
                 client_ulid, contractor_ulid
             FROM
-                individual_contractor_branch_pairs
+                entity_client_branch_individual_contractor_pairs
             WHERE
                 ($1 IS NULL OR (client = $1)) AND
                 ($2 IS NULL OR (contractor_ulid = $2))

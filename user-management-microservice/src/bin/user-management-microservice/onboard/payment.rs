@@ -9,7 +9,7 @@ use serde_with::{serde_as, TryFromInto};
 use sqlx::FromRow;
 use user_management_microservice_sdk::{
     token::UserAccessToken,
-    user::{Role, UserType},
+    user::{UserRole, UserType},
 };
 use uuid::Uuid;
 
@@ -82,7 +82,8 @@ impl Database {
             return Err(GlobeliseError::Forbidden);
         }
 
-        let target_table = user_type.db_onboard_details_prefix(Role::Client) + "_payment_details";
+        let target_table =
+            user_type.db_onboard_details_prefix(UserRole::Client) + "_payment_details";
         let query = format!(
             "
             INSERT INTO {target_table} (
@@ -113,7 +114,8 @@ impl Database {
             return Err(GlobeliseError::Forbidden);
         }
 
-        let target_table = user_type.db_onboard_details_prefix(Role::Client) + "_payment_details";
+        let target_table =
+            user_type.db_onboard_details_prefix(UserRole::Client) + "_payment_details";
         let query = format!(
             "
             SELECT

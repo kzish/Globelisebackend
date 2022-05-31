@@ -11,7 +11,7 @@ use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
 use sqlx::FromRow;
-use user_management_microservice_sdk::{token::UserAccessToken, user::Role};
+use user_management_microservice_sdk::{token::UserAccessToken, user::UserRole};
 use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::SharedDatabase};
@@ -21,15 +21,15 @@ mod database;
 /// List the payslips.
 pub async fn user_payslips_index(
     claims: Token<UserAccessToken>,
-    Path(role): Path<Role>,
+    Path(role): Path<UserRole>,
     Query(mut query): Query<PaginatedQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<PayslipsIndex>>> {
     let database = shared_database.lock().await;
 
     match role {
-        Role::Client => query.client_ulid = Some(claims.payload.ulid),
-        Role::Contractor => query.contractor_ulid = Some(claims.payload.ulid),
+        UserRole::Client => query.client_ulid = Some(claims.payload.ulid),
+        UserRole::Contractor => query.contractor_ulid = Some(claims.payload.ulid),
     };
 
     let result = database.payslips_index(query).await?;

@@ -20,9 +20,9 @@ CREATE VIEW public.search_employee_contractors AS
            FROM (public.entity_clients_branch_account_details
              JOIN public.entity_client_branches ON ((entity_clients_branch_account_details.ulid = entity_client_branches.ulid)))
         ), contractor_branches AS (
-         SELECT individual_contractor_branch_pairs.contractor_ulid,
-            individual_contractor_branch_pairs.branch_ulid
-           FROM public.individual_contractor_branch_pairs
+         SELECT entity_client_branch_individual_contractor_pairs.contractor_ulid,
+            entity_client_branch_individual_contractor_pairs.branch_ulid
+           FROM public.entity_client_branch_individual_contractor_pairs
         UNION
          SELECT entity_contractor_branch_pairs.contractor_ulid,
             entity_contractor_branch_pairs.branch_ulid

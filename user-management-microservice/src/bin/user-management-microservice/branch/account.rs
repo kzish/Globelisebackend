@@ -68,21 +68,20 @@ pub async fn post_branch_account_details(
     let database = database.lock().await;
 
     database
-        .post_branch_account_details(PostBranchAccountDetailsInput {
-            ulid: claims.payload.ulid,
-            branch_name: request.branch_name,
-            country: request.country,
-            entity_type: request.entity_type,
-            registration_number: request.registration_number,
-            tax_id: request.tax_id,
-            statutory_contribution_submission_number: request
-                .statutory_contribution_submission_number,
-            company_address: request.company_address,
-            city: request.city,
-            postal_code: request.postal_code,
-            time_zone: request.time_zone,
-            logo: request.logo,
-        })
+        .post_branch_account_details(
+            claims.payload.ulid,
+            request.branch_name,
+            request.country,
+            request.entity_type,
+            request.registration_number,
+            request.tax_id,
+            request.statutory_contribution_submission_number,
+            request.company_address,
+            request.city,
+            request.postal_code,
+            request.time_zone,
+            request.logo,
+        )
         .await?;
 
     Ok(())
@@ -117,38 +116,22 @@ pub async fn get_branch_account_details(
     ))
 }
 
-pub struct PostBranchAccountDetailsInput {
-    pub ulid: Uuid,
-    pub branch_name: String,
-    pub country: Country,
-    pub entity_type: String,
-    pub registration_number: Option<String>,
-    pub tax_id: Option<String>,
-    pub statutory_contribution_submission_number: Option<String>,
-    pub company_address: String,
-    pub city: String,
-    pub postal_code: String,
-    pub time_zone: String,
-    pub logo: Option<ImageData>,
-}
-
 impl Database {
+    #[allow(clippy::too_many_arguments)]
     pub async fn post_branch_account_details(
         &self,
-        PostBranchAccountDetailsInput {
-            ulid,
-            branch_name,
-            country,
-            entity_type,
-            registration_number,
-            tax_id,
-            statutory_contribution_submission_number,
-            company_address,
-            city,
-            postal_code,
-            time_zone,
-            logo,
-        }: PostBranchAccountDetailsInput,
+        ulid: Uuid,
+        branch_name: String,
+        country: Country,
+        entity_type: String,
+        registration_number: Option<String>,
+        tax_id: Option<String>,
+        statutory_contribution_submission_number: Option<String>,
+        company_address: String,
+        city: String,
+        postal_code: String,
+        time_zone: String,
+        logo: Option<ImageData>,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO entity_clients_branch_account_details (

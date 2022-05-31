@@ -109,7 +109,7 @@ pub async fn entity_client_get_one(
 pub struct InsertOnePrefillIndividualContractorAccountDetails {
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
     pub email: EmailAddress,
-    pub client_ulid: Option<Uuid>,
+    pub client_ulid: Uuid,
     pub first_name: String,
     pub last_name: String,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
@@ -131,7 +131,7 @@ pub struct InsertOnePrefillIndividualContractorAccountDetails {
 pub struct PrefillIndividualContractorAccountDetails {
     #[serde_as(as = "TryFromInto<EmailWrapper>")]
     pub email: EmailAddress,
-    pub client_ulid: Option<Uuid>,
+    pub client_ulid: Uuid,
     pub first_name: String,
     pub last_name: String,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]

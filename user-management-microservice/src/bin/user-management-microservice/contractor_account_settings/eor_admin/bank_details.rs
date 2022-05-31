@@ -1,26 +1,15 @@
-use argon2::{self, hash_encoded, verify_encoded, Config};
 use axum::{
-    extract::{Extension, Path, Query},
+    extract::{Extension, Path},
     Json,
 };
-use common_utils::custom_serde::OffsetDateWrapper;
-use common_utils::{
-    custom_serde::ImageData,
-    error::{GlobeliseError, GlobeliseResult},
-    token::Token,
-};
+use common_utils::{error::GlobeliseResult, token::Token};
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use once_cell::sync::Lazy;
-use rand::Rng;
-use serde::{Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
-
-use crate::database::{Database, SharedDatabase};
 use sqlx::types::Uuid;
 
-use crate::contractor_account_settings::contractor::bank_details::BankDetailsRequest;
-use crate::contractor_account_settings::contractor::bank_details::BankDetailsResponse;
+use crate::contractor_account_settings::contractor::bank_details::{
+    BankDetailsRequest, BankDetailsResponse,
+};
+use crate::database::SharedDatabase;
 
 //methods
 pub async fn get_bank_details_entity(

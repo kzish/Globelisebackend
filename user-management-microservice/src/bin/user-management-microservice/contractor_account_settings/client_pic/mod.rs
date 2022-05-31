@@ -1,11 +1,12 @@
+use sqlx::types::Uuid;
+
+use crate::database::Database;
+use crate::GlobeliseResult;
+
 pub mod bank_details;
 pub mod employment_information;
 pub mod payroll_information;
 pub mod personal_information;
-
-use crate::database::{Database, SharedDatabase};
-use crate::GlobeliseResult;
-use sqlx::types::Uuid;
 
 impl Database {
     //check this pic is the owner of the entity

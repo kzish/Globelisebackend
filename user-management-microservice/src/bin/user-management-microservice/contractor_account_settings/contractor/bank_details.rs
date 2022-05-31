@@ -1,25 +1,15 @@
-use crate::database::{Database, SharedDatabase};
-use argon2::{self, hash_encoded, verify_encoded, Config};
-use axum::{
-    extract::{Extension, Path, Query},
-    Json,
-};
-use common_utils::custom_serde::OffsetDateWrapper;
+use axum::{extract::Extension, Json};
 use common_utils::{
-    custom_serde::ImageData,
+    custom_serde::OffsetDateWrapper,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
-use once_cell::sync::Lazy;
-use rand::Rng;
 use serde::{Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as, TryFromInto};
-use sqlx::types::Uuid;
-use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{
-    token::UserAccessToken,
-    user::{Role, UserType},
-};
+use serde_with::{serde_as, TryFromInto};
+use sqlx::{postgres::PgRow, types::Uuid, FromRow, Row};
+use user_management_microservice_sdk::token::UserAccessToken;
+
+use crate::database::{Database, SharedDatabase};
 
 //entities
 

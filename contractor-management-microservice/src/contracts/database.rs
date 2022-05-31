@@ -1,5 +1,5 @@
 use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
-use user_management_microservice_sdk::user::Role;
+use user_management_microservice_sdk::user::UserRole;
 use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::Database};
@@ -11,14 +11,18 @@ use super::{
 
 impl Database {
     /// Counts the number of contracts.
-    pub async fn count_number_of_contracts(&self, ulid: Uuid, role: Role) -> GlobeliseResult<i64> {
+    pub async fn count_number_of_contracts(
+        &self,
+        ulid: Uuid,
+        role: UserRole,
+    ) -> GlobeliseResult<i64> {
         let client_ulid = match role {
-            Role::Client => Some(ulid),
-            Role::Contractor => None,
+            UserRole::Client => Some(ulid),
+            UserRole::Contractor => None,
         };
         let contractor_ulid = match role {
-            Role::Client => None,
-            Role::Contractor => Some(ulid),
+            UserRole::Client => None,
+            UserRole::Contractor => Some(ulid),
         };
 
         let result = sqlx::query_scalar(
