@@ -534,7 +534,7 @@ checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
 
 [[package]]
 name = "common-utils"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "axum",
  "email_address",
@@ -577,7 +577,7 @@ checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 
 [[package]]
 name = "contractor-management-microservice"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "axum",
  "common-utils",
@@ -927,7 +927,7 @@ dependencies = [
 
 [[package]]
 name = "eor-admin-microservice"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "axum",
  "common-utils",
@@ -1239,7 +1239,7 @@ dependencies = [
 
 [[package]]
 name = "google_auth"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "http-cache-reqwest",
  "jsonwebtoken",
@@ -3705,7 +3705,7 @@ dependencies = [
 
 [[package]]
 name = "user-management-microservice"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "axum",
  "calamine",
