@@ -24,7 +24,7 @@ impl UserType {
         }
     }
 
-    pub fn db_onboard_details_prefix(&self, role: Role) -> String {
+    pub fn db_onboard_details_prefix(&self, role: UserRole) -> String {
         UserTypeAndRole::from((*self, role)).to_string() + "s"
     }
 
@@ -49,27 +49,58 @@ impl<'r> sqlx::Decode<'r, sqlx::Postgres> for UserType {
     }
 }
 
+impl sqlx::encode::Encode<'_, sqlx::Postgres> for UserType {
+    fn encode_by_ref(&self, buf: &mut sqlx::postgres::PgArgumentBuffer) -> sqlx::encode::IsNull {
+        let val = self.as_str();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::encode(val, buf)
+    }
+    fn size_hint(&self) -> std::primitive::usize {
+        let val = self.as_str();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::size_hint(&val)
+    }
+}
+
 /// Type representing which role a user has.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, EnumIter, EnumString, Display, Deserialize, Serialize,
 )]
 #[serde(rename_all = "kebab-case")]
 #[strum(serialize_all = "kebab-case")]
-pub enum Role {
+pub enum UserRole {
     Client,
     Contractor,
 }
 
-impl sqlx::Type<sqlx::Postgres> for Role {
+impl UserRole {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            UserRole::Client => "client",
+            UserRole::Contractor => "contractor",
+        }
+    }
+}
+
+impl sqlx::Type<sqlx::Postgres> for UserRole {
     fn type_info() -> PgTypeInfo {
         PgTypeInfo::with_name("text")
     }
 }
 
-impl<'r> sqlx::Decode<'r, sqlx::Postgres> for Role {
+impl<'r> sqlx::Decode<'r, sqlx::Postgres> for UserRole {
     fn decode(value: PgValueRef<'r>) -> Result<Self, sqlx::error::BoxDynError> {
         let value: &'r str = sqlx::decode::Decode::decode(value)?;
-        Ok(Role::from_str(value)?)
+        Ok(UserRole::from_str(value)?)
+    }
+}
+
+impl sqlx::encode::Encode<'_, sqlx::Postgres> for UserRole {
+    fn encode_by_ref(&self, buf: &mut sqlx::postgres::PgArgumentBuffer) -> sqlx::encode::IsNull {
+        let val = self.as_str();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::encode(val, buf)
+    }
+    fn size_hint(&self) -> std::primitive::usize {
+        let val = self.as_str();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::size_hint(&val)
     }
 }
 
@@ -83,13 +114,13 @@ enum UserTypeAndRole {
     EntityContractor,
 }
 
-impl From<(UserType, Role)> for UserTypeAndRole {
-    fn from(value: (UserType, Role)) -> Self {
+impl From<(UserType, UserRole)> for UserTypeAndRole {
+    fn from(value: (UserType, UserRole)) -> Self {
         match value {
-            (UserType::Individual, Role::Client) => UserTypeAndRole::IndividualClient,
-            (UserType::Individual, Role::Contractor) => UserTypeAndRole::IndividualContractor,
-            (UserType::Entity, Role::Client) => UserTypeAndRole::EntityClient,
-            (UserType::Entity, Role::Contractor) => UserTypeAndRole::EntityContractor,
+            (UserType::Individual, UserRole::Client) => UserTypeAndRole::IndividualClient,
+            (UserType::Individual, UserRole::Contractor) => UserTypeAndRole::IndividualContractor,
+            (UserType::Entity, UserRole::Client) => UserTypeAndRole::EntityClient,
+            (UserType::Entity, UserRole::Contractor) => UserTypeAndRole::EntityContractor,
         }
     }
 }

@@ -9,7 +9,7 @@ use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
 use user_management_microservice_sdk::{
     token::UserAccessToken,
-    user::{Role, UserType},
+    user::{UserRole, UserType},
 };
 use uuid::Uuid;
 
@@ -21,7 +21,7 @@ pub async fn post_onboard_entity_pic_details(
         Json<EntityPicDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
-    Path(role): Path<Role>,
+    Path(role): Path<UserRole>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -37,7 +37,7 @@ pub async fn post_onboard_entity_pic_details(
 
 pub async fn get_onboard_entity_pic_details(
     claims: Token<UserAccessToken>,
-    Path(role): Path<Role>,
+    Path(role): Path<UserRole>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<EntityPicDetails>> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -86,7 +86,7 @@ impl Database {
     pub async fn post_onboard_entity_pic_details(
         &self,
         ulid: Uuid,
-        role: Role,
+        role: UserRole,
         details: EntityPicDetails,
     ) -> GlobeliseResult<()> {
         if self
@@ -125,7 +125,7 @@ impl Database {
     pub async fn get_onboard_entity_pic_details(
         &self,
         ulid: Uuid,
-        role: Role,
+        role: UserRole,
     ) -> GlobeliseResult<Option<EntityPicDetails>> {
         if self
             .find_one_user(ulid, Some(UserType::Entity))
@@ -136,7 +136,7 @@ impl Database {
         }
 
         let result = match role {
-            Role::Client => {
+            UserRole::Client => {
                 let query = "
                     SELECT
                         ulid, first_name, last_name, dob, dial_code,
@@ -151,7 +151,7 @@ impl Database {
                     .fetch_optional(&self.0)
                     .await?
             }
-            Role::Contractor => {
+            UserRole::Contractor => {
                 let query = "
                     SELECT
                         ulid, first_name, last_name, dob, dial_code,

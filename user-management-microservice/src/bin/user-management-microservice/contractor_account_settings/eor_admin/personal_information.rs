@@ -1,28 +1,16 @@
-use argon2::{self, hash_encoded, verify_encoded, Config};
 use axum::{
-    extract::{Extension, Path, Query},
+    extract::{Extension, Path},
     Json,
 };
-use common_utils::custom_serde::OffsetDateWrapper;
-use common_utils::{
-    custom_serde::ImageData,
-    error::{GlobeliseError, GlobeliseResult},
-    token::Token,
-};
+use common_utils::{error::GlobeliseResult, token::Token};
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use once_cell::sync::Lazy;
-use rand::Rng;
-use serde::{Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
-
-use crate::database::{Database, SharedDatabase};
 use sqlx::types::Uuid;
 
-use crate::contractor_account_settings::contractor::personal_information::EntityContractorProfileSettingsRequest;
-use crate::contractor_account_settings::contractor::personal_information::EntityContractorProfileSettingsResponse;
-use crate::contractor_account_settings::contractor::personal_information::IndividualContractorProfileSettingsRequest;
-use crate::contractor_account_settings::contractor::personal_information::IndividualContractorProfileSettingsResponse;
+use crate::contractor_account_settings::contractor::personal_information::{
+    EntityContractorProfileSettingsRequest, EntityContractorProfileSettingsResponse,
+    IndividualContractorProfileSettingsRequest, IndividualContractorProfileSettingsResponse,
+};
+use crate::database::SharedDatabase;
 
 pub async fn get_profile_settings_entity(
     _: Token<AdminAccessToken>,

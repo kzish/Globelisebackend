@@ -2,7 +2,7 @@ use axum::{extract::Path, Extension, Json};
 use common_utils::{error::GlobeliseResult, token::Token};
 use user_management_microservice_sdk::{
     token::UserAccessToken,
-    user::{Role, UserType},
+    user::{UserRole, UserType},
 };
 use uuid::Uuid;
 
@@ -16,7 +16,7 @@ pub mod pic;
 
 pub async fn fully_onboarded(
     claims: Token<UserAccessToken>,
-    Path(role): Path<Role>,
+    Path(role): Path<UserRole>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<bool>> {
     let database = database.lock().await;
@@ -32,13 +32,15 @@ impl Database {
         &self,
         ulid: Uuid,
         user_type: UserType,
-        user_role: Role,
+        user_role: UserRole,
     ) -> GlobeliseResult<bool> {
         let table_name = match (user_type, user_role) {
-            (UserType::Individual, Role::Client) => "individual_clients_fully_onboarded",
-            (UserType::Individual, Role::Contractor) => "individual_contractors_fully_onboarded",
-            (UserType::Entity, Role::Client) => "entity_clients_fully_onboarded",
-            (UserType::Entity, Role::Contractor) => "entity_contractors_fully_onboarded",
+            (UserType::Individual, UserRole::Client) => "individual_clients_fully_onboarded",
+            (UserType::Individual, UserRole::Contractor) => {
+                "individual_contractors_fully_onboarded"
+            }
+            (UserType::Entity, UserRole::Client) => "entity_clients_fully_onboarded",
+            (UserType::Entity, UserRole::Contractor) => "entity_contractors_fully_onboarded",
         };
         let query = format!(
             "

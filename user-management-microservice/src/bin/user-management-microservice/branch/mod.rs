@@ -1,24 +1,12 @@
-use axum::extract::{ContentLengthLimit, Extension, Json, Path, Query};
-use common_utils::{
-    calc_limit_and_offset,
-    custom_serde::FORM_DATA_LENGTH_LIMIT,
-    error::{GlobeliseError, GlobeliseResult},
-    token::Token,
-};
-use eor_admin_microservice_sdk::token::AdminAccessToken;
+use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 use uuid::Uuid;
 
-use crate::database::{Database, SharedDatabase};
+use crate::database::Database;
 
-use self::{
-    account::{BranchAccountDetails, PostBranchAccountDetailsInput},
-    bank::{BranchBankDetails, PostBranchBankDetailsInput},
-    payroll::BranchPayrollDetails,
-};
+use self::{account::BranchAccountDetails, bank::BranchBankDetails, payroll::BranchPayrollDetails};
 
 pub mod account;
 pub mod bank;
@@ -53,282 +41,359 @@ impl FromRow<'_, PgRow> for BranchDetails {
     }
 }
 
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct PostBranchDetailsRequest {
-    pub account: BranchAccountDetails,
-    pub bank: BranchBankDetails,
-    pub payroll: BranchPayrollDetails,
-}
+pub mod user {
+    use axum::extract::{ContentLengthLimit, Extension, Json, Path, Query};
+    use common_utils::{
+        custom_serde::FORM_DATA_LENGTH_LIMIT,
+        error::{GlobeliseError, GlobeliseResult},
+        token::Token,
+    };
+    use serde::{Deserialize, Serialize};
+    use serde_with::serde_as;
+    use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+    use uuid::Uuid;
 
-pub async fn user_post_branch(
-    claims: Token<UserAccessToken>,
-    ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<PostBranchDetailsRequest>,
-        FORM_DATA_LENGTH_LIMIT,
-    >,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<String> {
-    if !matches!(claims.payload.user_type, UserType::Entity) {
-        return Err(GlobeliseError::Forbidden);
+    use crate::database::SharedDatabase;
+
+    use super::{
+        account::BranchAccountDetails, bank::BranchBankDetails, payroll::BranchPayrollDetails,
+    };
+
+    use super::BranchDetails;
+
+    #[serde_as]
+    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    pub struct PostBranchDetailsRequest {
+        pub account: BranchAccountDetails,
+        pub bank: BranchBankDetails,
+        pub payroll: BranchPayrollDetails,
     }
 
-    let database = database.lock().await;
+    pub async fn post_one_branch(
+        claims: Token<UserAccessToken>,
+        ContentLengthLimit(Json(body)): ContentLengthLimit<
+            Json<PostBranchDetailsRequest>,
+            FORM_DATA_LENGTH_LIMIT,
+        >,
+        Extension(database): Extension<SharedDatabase>,
+    ) -> GlobeliseResult<String> {
+        if !matches!(claims.payload.user_type, UserType::Entity) {
+            return Err(GlobeliseError::Forbidden);
+        }
 
-    let ulid = database.create_branch(claims.payload.ulid).await?;
+        let database = database.lock().await;
 
-    database
-        .post_branch_account_details(PostBranchAccountDetailsInput {
-            ulid,
-            branch_name: body.account.branch_name,
-            country: body.account.country,
-            entity_type: body.account.entity_type,
-            registration_number: body.account.registration_number,
-            tax_id: body.account.tax_id,
-            statutory_contribution_submission_number: body
-                .account
-                .statutory_contribution_submission_number,
-            company_address: body.account.company_address,
-            city: body.account.city,
-            postal_code: body.account.postal_code,
-            time_zone: body.account.time_zone,
-            logo: body.account.logo,
-        })
-        .await?;
+        let ulid = database
+            .insert_one_entity_client_branch(claims.payload.ulid)
+            .await?;
 
-    database
-        .post_branch_bank_details(PostBranchBankDetailsInput {
-            ulid,
-            currency: body.bank.currency,
-            bank_name: body.bank.bank_name,
-            bank_account_name: body.bank.bank_account_name,
-            bank_account_number: body.bank.bank_account_number,
-            swift_code: body.bank.swift_code,
-            bank_key: body.bank.bank_key,
-            iban: body.bank.iban,
-            bank_code: body.bank.bank_code,
-            branch_code: body.bank.branch_code,
-        })
-        .await?;
+        database
+            .post_branch_account_details(
+                ulid,
+                body.account.branch_name,
+                body.account.country,
+                body.account.entity_type,
+                body.account.registration_number,
+                body.account.tax_id,
+                body.account.statutory_contribution_submission_number,
+                body.account.company_address,
+                body.account.city,
+                body.account.postal_code,
+                body.account.time_zone,
+                body.account.logo,
+            )
+            .await?;
 
-    database
-        .post_branch_payroll_details(ulid, body.payroll.payment_date, body.payroll.cutoff_date)
-        .await?;
+        database
+            .post_branch_bank_details(
+                ulid,
+                body.bank.currency,
+                body.bank.bank_name,
+                body.bank.bank_account_name,
+                body.bank.bank_account_number,
+                body.bank.swift_code,
+                body.bank.bank_key,
+                body.bank.iban,
+                body.bank.bank_code,
+                body.bank.branch_code,
+            )
+            .await?;
 
-    Ok(ulid.to_string())
-}
+        database
+            .post_branch_payroll_details(ulid, body.payroll.payment_date, body.payroll.cutoff_date)
+            .await?;
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct GetBranchDetailsRequest {
-    pub page: Option<u32>,
-    pub per_page: Option<u32>,
-}
-
-pub async fn user_get_branches(
-    claims: Token<UserAccessToken>,
-    Query(query): Query<GetBranchDetailsRequest>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<BranchDetails>>> {
-    if !matches!(claims.payload.user_type, UserType::Entity) {
-        return Err(GlobeliseError::Forbidden);
+        Ok(ulid.to_string())
     }
 
-    let database = database.lock().await;
-
-    let result = database
-        .get_entity_clients_branch_details(Some(claims.payload.ulid), query.page, query.per_page)
-        .await?;
-
-    Ok(Json(result))
-}
-
-pub async fn user_get_branch_by_ulid(
-    claims: Token<UserAccessToken>,
-    Path(branch_ulid): Path<Uuid>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<BranchDetails>> {
-    if !matches!(claims.payload.user_type, UserType::Entity) {
-        return Err(GlobeliseError::Forbidden);
+    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    pub struct GetBranchDetailsRequest {
+        pub page: Option<u32>,
+        pub per_page: Option<u32>,
     }
 
-    let database = database.lock().await;
+    pub async fn get_many_branches(
+        claims: Token<UserAccessToken>,
+        Query(query): Query<GetBranchDetailsRequest>,
+        Extension(database): Extension<SharedDatabase>,
+    ) -> GlobeliseResult<Json<Vec<BranchDetails>>> {
+        if !matches!(claims.payload.user_type, UserType::Entity) {
+            return Err(GlobeliseError::Forbidden);
+        }
 
-    if !database
-        .client_owns_branch(claims.payload.ulid, branch_ulid)
-        .await?
-    {
-        return Err(GlobeliseError::Forbidden);
+        let database = database.lock().await;
+
+        let result = database
+            .select_many_entity_clients_branch_details(
+                Some(claims.payload.ulid),
+                query.page,
+                query.per_page,
+            )
+            .await?;
+
+        Ok(Json(result))
     }
 
-    let details = database
-        .get_one_entity_clients_branch_details(branch_ulid)
-        .await?
-        .ok_or(GlobeliseError::NotFound)?;
+    pub async fn get_one_branch_by_ulid(
+        claims: Token<UserAccessToken>,
+        Path(branch_ulid): Path<Uuid>,
+        Extension(database): Extension<SharedDatabase>,
+    ) -> GlobeliseResult<Json<BranchDetails>> {
+        if !matches!(claims.payload.user_type, UserType::Entity) {
+            return Err(GlobeliseError::Forbidden);
+        }
 
-    Ok(Json(details))
-}
+        let database = database.lock().await;
 
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct DeleteBranchRequest {
-    pub branch_ulid: Uuid,
-}
+        if !database
+            .client_owns_branch(claims.payload.ulid, branch_ulid)
+            .await?
+        {
+            return Err(GlobeliseError::Forbidden);
+        }
 
-pub async fn user_delete_branch(
-    claims: Token<UserAccessToken>,
-    Query(query): Query<DeleteBranchRequest>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<()> {
-    if !matches!(claims.payload.user_type, UserType::Entity) {
-        return Err(GlobeliseError::Forbidden);
+        let details = database
+            .select_one_entity_clients_branch_details(branch_ulid)
+            .await?
+            .ok_or(GlobeliseError::NotFound)?;
+
+        Ok(Json(details))
     }
 
-    let database = database.lock().await;
-
-    if !database
-        .client_owns_branch(claims.payload.ulid, query.branch_ulid)
-        .await?
-    {
-        return Err(GlobeliseError::Forbidden);
+    #[serde_as]
+    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    pub struct DeleteBranchRequest {
+        pub branch_ulid: Uuid,
     }
 
-    database
-        .delete_branch(claims.payload.ulid, query.branch_ulid)
-        .await?;
+    pub async fn delete_one_branch(
+        claims: Token<UserAccessToken>,
+        Query(query): Query<DeleteBranchRequest>,
+        Extension(database): Extension<SharedDatabase>,
+    ) -> GlobeliseResult<()> {
+        if !matches!(claims.payload.user_type, UserType::Entity) {
+            return Err(GlobeliseError::Forbidden);
+        }
 
-    Ok(())
+        let database = database.lock().await;
+
+        if !database
+            .client_owns_branch(claims.payload.ulid, query.branch_ulid)
+            .await?
+        {
+            return Err(GlobeliseError::Forbidden);
+        }
+
+        database
+            .delete_one_branch(claims.payload.ulid, query.branch_ulid)
+            .await?;
+
+        Ok(())
+    }
 }
 
-/// EOR-ADMIN
+pub mod eor_admin {
+    use axum::extract::{ContentLengthLimit, Extension, Json, Path, Query};
+    use common_utils::{
+        custom_serde::FORM_DATA_LENGTH_LIMIT,
+        error::{GlobeliseError, GlobeliseResult},
+        token::Token,
+    };
+    use eor_admin_microservice_sdk::token::AdminAccessToken;
+    use serde::{Deserialize, Serialize};
+    use serde_with::serde_as;
+    use uuid::Uuid;
 
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct PostBranchDetailsRequestForAdmin {
-    pub client_ulid: Uuid,
-    pub account: BranchAccountDetails,
-    pub bank: BranchBankDetails,
-    pub payroll: BranchPayrollDetails,
-}
+    use crate::database::SharedDatabase;
 
-pub async fn admin_post_branch(
-    _: Token<AdminAccessToken>,
-    ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<PostBranchDetailsRequestForAdmin>,
-        FORM_DATA_LENGTH_LIMIT,
-    >,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<String> {
-    let database = database.lock().await;
+    use super::{
+        account::BranchAccountDetails, bank::BranchBankDetails, payroll::BranchPayrollDetails,
+        BranchDetails,
+    };
 
-    let ulid = database.create_branch(body.client_ulid).await?;
+    #[serde_as]
+    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    pub struct PostBranchDetailsRequestForAdmin {
+        pub client_ulid: Uuid,
+        pub account: BranchAccountDetails,
+        pub bank: BranchBankDetails,
+        pub payroll: BranchPayrollDetails,
+    }
 
-    database
-        .post_branch_account_details(PostBranchAccountDetailsInput {
-            ulid,
-            branch_name: body.account.branch_name,
-            country: body.account.country,
-            entity_type: body.account.entity_type,
-            registration_number: body.account.registration_number,
-            tax_id: body.account.tax_id,
-            statutory_contribution_submission_number: body
-                .account
-                .statutory_contribution_submission_number,
-            company_address: body.account.company_address,
-            city: body.account.city,
-            postal_code: body.account.postal_code,
-            time_zone: body.account.time_zone,
-            logo: body.account.logo,
-        })
-        .await?;
+    pub async fn post_one_branch(
+        _: Token<AdminAccessToken>,
+        ContentLengthLimit(Json(body)): ContentLengthLimit<
+            Json<PostBranchDetailsRequestForAdmin>,
+            FORM_DATA_LENGTH_LIMIT,
+        >,
+        Extension(database): Extension<SharedDatabase>,
+    ) -> GlobeliseResult<String> {
+        let database = database.lock().await;
 
-    database
-        .post_branch_bank_details(PostBranchBankDetailsInput {
-            ulid,
-            currency: body.bank.currency,
-            bank_name: body.bank.bank_name,
-            bank_account_name: body.bank.bank_account_name,
-            bank_account_number: body.bank.bank_account_number,
-            swift_code: body.bank.swift_code,
-            bank_key: body.bank.bank_key,
-            iban: body.bank.iban,
-            bank_code: body.bank.bank_code,
-            branch_code: body.bank.branch_code,
-        })
-        .await?;
+        let ulid = database
+            .insert_one_entity_client_branch(body.client_ulid)
+            .await?;
 
-    database
-        .post_branch_payroll_details(ulid, body.payroll.payment_date, body.payroll.cutoff_date)
-        .await?;
+        database
+            .post_branch_account_details(
+                ulid,
+                body.account.branch_name,
+                body.account.country,
+                body.account.entity_type,
+                body.account.registration_number,
+                body.account.tax_id,
+                body.account.statutory_contribution_submission_number,
+                body.account.company_address,
+                body.account.city,
+                body.account.postal_code,
+                body.account.time_zone,
+                body.account.logo,
+            )
+            .await?;
 
-    Ok(ulid.to_string())
-}
+        database
+            .post_branch_bank_details(
+                ulid,
+                body.bank.currency,
+                body.bank.bank_name,
+                body.bank.bank_account_name,
+                body.bank.bank_account_number,
+                body.bank.swift_code,
+                body.bank.bank_key,
+                body.bank.iban,
+                body.bank.bank_code,
+                body.bank.branch_code,
+            )
+            .await?;
 
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct GetBranchDetailsRequestForAdmin {
-    pub client_ulid: Option<Uuid>,
-    pub page: Option<u32>,
-    pub per_page: Option<u32>,
-}
+        database
+            .post_branch_payroll_details(ulid, body.payroll.payment_date, body.payroll.cutoff_date)
+            .await?;
 
-pub async fn admin_get_branches(
-    _: Token<AdminAccessToken>,
-    Query(query): Query<GetBranchDetailsRequestForAdmin>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<BranchDetails>>> {
-    let database = database.lock().await;
+        Ok(ulid.to_string())
+    }
 
-    let result = database
-        .get_entity_clients_branch_details(query.client_ulid, query.page, query.per_page)
-        .await?;
+    #[serde_as]
+    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    pub struct GetManyBranchesQuery {
+        pub client_ulid: Option<Uuid>,
+        pub page: Option<u32>,
+        pub per_page: Option<u32>,
+    }
 
-    Ok(Json(result))
-}
+    pub async fn get_many_branches(
+        _: Token<AdminAccessToken>,
+        Query(query): Query<GetManyBranchesQuery>,
+        Extension(database): Extension<SharedDatabase>,
+    ) -> GlobeliseResult<Json<Vec<BranchDetails>>> {
+        let database = database.lock().await;
 
-pub async fn admin_get_branch_by_ulid(
-    _: Token<AdminAccessToken>,
-    Path(branch_ulid): Path<Uuid>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<BranchDetails>> {
-    let database = database.lock().await;
+        let result = database
+            .select_many_entity_clients_branch_details(
+                query.client_ulid,
+                query.page,
+                query.per_page,
+            )
+            .await?;
 
-    let details = database
-        .get_one_entity_clients_branch_details(branch_ulid)
-        .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        Ok(Json(result))
+    }
 
-    Ok(Json(details))
-}
+    pub async fn get_one_branch_by_ulid(
+        _: Token<AdminAccessToken>,
+        Path(branch_ulid): Path<Uuid>,
+        Extension(database): Extension<SharedDatabase>,
+    ) -> GlobeliseResult<Json<BranchDetails>> {
+        let database = database.lock().await;
 
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct DeleteBranchRequestForAdmin {
-    pub client_ulid: Uuid,
-    pub branch_ulid: Uuid,
-}
+        let details = database
+            .select_one_entity_clients_branch_details(branch_ulid)
+            .await?
+            .ok_or(GlobeliseError::NotFound)?;
 
-pub async fn admin_delete_branch(
-    _: Token<AdminAccessToken>,
-    Query(query): Query<DeleteBranchRequestForAdmin>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<()> {
-    let database = database.lock().await;
+        Ok(Json(details))
+    }
 
-    database
-        .delete_branch(query.client_ulid, query.branch_ulid)
-        .await?;
+    #[serde_as]
+    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    pub struct DeleteBranchRequestForAdmin {
+        pub client_ulid: Uuid,
+        pub branch_ulid: Uuid,
+    }
 
-    Ok(())
+    pub async fn delete_one_branch(
+        _: Token<AdminAccessToken>,
+        Query(query): Query<DeleteBranchRequestForAdmin>,
+        Extension(database): Extension<SharedDatabase>,
+    ) -> GlobeliseResult<()> {
+        let database = database.lock().await;
+
+        database
+            .delete_one_branch(query.client_ulid, query.branch_ulid)
+            .await?;
+
+        Ok(())
+    }
+
+    #[serde_as]
+    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    pub struct GetManyBranchesIndividualContractorQuery {
+        pub branch_ulid: Option<Uuid>,
+        pub page: Option<u32>,
+        pub per_page: Option<u32>,
+    }
+
+    pub async fn get_many_individual_contractors(
+        _: Token<AdminAccessToken>,
+        Query(query): Query<GetManyBranchesIndividualContractorQuery>,
+        Extension(database): Extension<SharedDatabase>,
+    ) -> GlobeliseResult<Json<Vec<BranchDetails>>> {
+        let database = database.lock().await;
+
+        let result = database
+            .select_many_entity_client_branch_individual_contractors(
+                query.branch_ulid,
+                query.page,
+                query.per_page,
+            )
+            .await?;
+
+        Ok(Json(result))
+    }
 }
 
 impl Database {
-    pub async fn create_branch(&self, client_ulid: Uuid) -> GlobeliseResult<Uuid> {
+    pub async fn insert_one_entity_client_branch(
+        &self,
+        client_ulid: Uuid,
+    ) -> GlobeliseResult<Uuid> {
         let ulid = Uuid::new_v4();
 
         let query = "
@@ -342,8 +407,7 @@ impl Database {
             .bind(ulid)
             .bind(client_ulid)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(ulid)
     }
@@ -372,7 +436,11 @@ impl Database {
         Ok(result)
     }
 
-    pub async fn delete_branch(&self, client_ulid: Uuid, branch_ulid: Uuid) -> GlobeliseResult<()> {
+    pub async fn delete_one_branch(
+        &self,
+        client_ulid: Uuid,
+        branch_ulid: Uuid,
+    ) -> GlobeliseResult<()> {
         let query = "
             DELETE FROM
                 entity_client_branches 
@@ -383,13 +451,12 @@ impl Database {
             .bind(branch_ulid)
             .bind(client_ulid)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
 
-    pub async fn get_entity_clients_branch_details(
+    pub async fn select_many_entity_clients_branch_details(
         &self,
         client_ulid: Option<Uuid>,
         page: Option<u32>,
@@ -402,7 +469,7 @@ impl Database {
                 -- branch details
                 ulid, client_ulid,
                 -- account details
-                company_name, country, entity_type, registration_number, tax_id, 
+                branch_name, country, entity_type, registration_number, tax_id, 
                 statutory_contribution_submission_number, company_address, city, 
                 postal_code, time_zone, logo,
                 -- bank details
@@ -421,13 +488,43 @@ impl Database {
             .bind(limit)
             .bind(offset)
             .fetch_all(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(result)
     }
 
-    pub async fn get_one_entity_clients_branch_details(
+    pub async fn select_many_entity_client_branch_individual_contractors(
+        &self,
+        branch_ulid: Option<Uuid>,
+        page: Option<u32>,
+        per_page: Option<u32>,
+    ) -> GlobeliseResult<Vec<BranchDetails>> {
+        let (limit, offset) = calc_limit_and_offset(per_page, page);
+
+        let query = "
+            SELECT
+                ulid, branch_ulid, branch_name, department_ulid, department_name,
+                classification
+            FROM
+                entity_client_branch_deparment_individual_contractors_index
+            WHERE
+                $1 IS NULL OR (branch_ulid = $1)
+            LIMIT 
+                $2 
+            OFFSET 
+                $3";
+
+        let result = sqlx::query_as(query)
+            .bind(branch_ulid)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&self.0)
+            .await?;
+
+        Ok(result)
+    }
+
+    pub async fn select_one_entity_clients_branch_details(
         &self,
         branch_ulid: Uuid,
     ) -> GlobeliseResult<Option<BranchDetails>> {
@@ -436,7 +533,7 @@ impl Database {
                 -- branch details
                 ulid, client_ulid
                 -- account details
-                company_name, country, entity_type, registration_number, tax_id, 
+                branch_name, country, entity_type, registration_number, tax_id, 
                 statutory_contribution_submission_number, company_address, city, 
                 postal_code, time_zone, logo,
                 -- bank details
@@ -452,8 +549,7 @@ impl Database {
         let result = sqlx::query_as(query)
             .bind(branch_ulid)
             .fetch_optional(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(result)
     }

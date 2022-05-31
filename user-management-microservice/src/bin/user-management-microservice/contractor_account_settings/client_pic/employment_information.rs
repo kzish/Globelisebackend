@@ -1,23 +1,19 @@
-use crate::database::{Database, SharedDatabase};
-use argon2::{self, hash_encoded, verify_encoded, Config};
 use axum::{
-    extract::{Extension, Path, Query},
+    extract::{Extension, Path},
     Json,
 };
-use common_utils::calc_limit_and_offset;
-use common_utils::custom_serde::OffsetDateWrapper;
 use common_utils::{
-    custom_serde::ImageData,
+    calc_limit_and_offset,
+    custom_serde::OffsetDateWrapper,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
-use once_cell::sync::Lazy;
-use rand::Rng;
 use serde::{Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as, TryFromInto};
-use sqlx::types::Uuid;
-use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{token::UserAccessToken, user::Role};
+use serde_with::{serde_as, TryFromInto};
+use sqlx::{postgres::PgRow, types::Uuid, FromRow, Row};
+use user_management_microservice_sdk::token::UserAccessToken;
+
+use crate::database::{Database, SharedDatabase};
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
@@ -205,24 +201,6 @@ impl Database {
         .await?;
 
         Ok(index)
-    }
-
-    pub async fn index_contractor_employment_information(
-        &self,
-        branch_uuid: Uuid,
-    ) -> GlobeliseResult<Vec<EmploymentInformation>> {
-        let response = sqlx::query_as(
-            "SELECT
-                *
-            FROM
-                contractor_employment_information 
-            WHERE branch_uuid = $1",
-        )
-        .bind(branch_uuid)
-        .fetch_all(&self.0)
-        .await?;
-
-        Ok(response)
     }
 
     pub async fn get_employment_information_individual(

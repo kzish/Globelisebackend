@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, FromInto, TryFromInto};
 use sqlx::FromRow;
 use user_management_microservice_sdk::{
-    token::UserAccessToken, user::Role, user_index::GetUserInfoRequest,
+    token::UserAccessToken, user::UserRole, user_index::GetUserInfoRequest,
 };
 use uuid::Uuid;
 
@@ -98,18 +98,18 @@ pub struct GetContractsRequest {
 
 pub async fn contracts_index(
     access_token: Token<UserAccessToken>,
-    Path(role): Path<Role>,
+    Path(role): Path<UserRole>,
     Query(query): Query<GetContractsRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<ContractsIndex>> {
     let database = database.lock().await;
     let results = match role {
-        Role::Client => ContractsIndex::Client(
+        UserRole::Client => ContractsIndex::Client(
             database
                 .contracts_index_for_client(access_token.payload.ulid, query)
                 .await?,
         ),
-        Role::Contractor => ContractsIndex::Contractor(
+        UserRole::Contractor => ContractsIndex::Contractor(
             database
                 .contracts_index_for_contractor(access_token.payload.ulid, query)
                 .await?,
@@ -146,7 +146,7 @@ pub async fn eor_admin_create_contract(
 pub struct UserIndex {
     pub ulid: Uuid,
     pub name: String,
-    pub role: Role,
+    pub role: UserRole,
     pub contract_count: i64,
     #[serde_as(as = "FromInto<OffsetDateWrapper>")]
     pub created_at: sqlx::types::time::OffsetDateTime,

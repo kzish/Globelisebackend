@@ -4,7 +4,7 @@ use serde_with::serde_as;
 use time::Duration;
 use uuid::Uuid;
 
-use crate::user::Role;
+use crate::user::UserRole;
 
 use super::user::UserType;
 
@@ -16,7 +16,7 @@ pub struct UserAccessToken {
     pub ulid: Uuid,
     pub email: String,
     pub user_type: UserType,
-    pub user_roles: Vec<Role>,
+    pub user_roles: Vec<UserRole>,
 }
 
 impl TokenLike for UserAccessToken {

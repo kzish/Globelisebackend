@@ -141,12 +141,11 @@ pub async fn admin_get_custom_field_by_ulid(
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<GetCustomFieldResponse>> {
     let database = database.lock().await;
-
-    if let Some(result) = database.get_custom_field_by_ulid(ulid).await? {
-        Ok(Json(result))
-    } else {
-        Err(GlobeliseError::NotFound)
-    }
+    let result = database
+        .get_custom_field_by_ulid(ulid, None)
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
+    Ok(Json(result))
 }
 
 #[serde_as]
@@ -184,11 +183,9 @@ impl Database {
 
         let query = "
             INSERT INTO entity_client_custom_fields (
-                ulid, client_ulid, field_name, field_detail_type_ulid, field_format,
-                field_option_1, field_option_2
+                ulid, client_ulid, field_name, field_type, field_format
             ) VALUES (
-                $1, $2, $3, $4, $5,
-                $6, $7
+                $1, $2, $3, $4, $5
             )";
 
         sqlx::query(query)
@@ -205,18 +202,20 @@ impl Database {
 
     pub async fn get_custom_field_by_ulid(
         &self,
-        client_ulid: Uuid,
+        ulid: Uuid,
+        client_ulid: Option<Uuid>,
     ) -> GlobeliseResult<Option<GetCustomFieldResponse>> {
         let query = "
             SELECT
-                ulid, client_ulid, field_name, field_detail_type, field_format,
-                field_option_1, field_option_2
+                ulid, client_ulid, field_name, field_type, field_format
             FROM
-                entity_client_custom_fields_index
+                entity_client_custom_fields
             WHERE
-                ulid = $1";
+                ulid = $1 AND
+                ($2 IS NULL OR client_ulid = $2)";
 
         let result = sqlx::query_as(query)
+            .bind(ulid)
             .bind(client_ulid)
             .fetch_optional(&self.0)
             .await?;
@@ -234,10 +233,9 @@ impl Database {
 
         let query = "
             SELECT
-                ulid, client_ulid, field_name, field_detail_type, field_format,
-                field_option_1, field_option_2
+                ulid, client_ulid, field_name, field_type, field_format
             FROM
-                entity_client_custom_fields_index
+                entity_client_custom_fields
             WHERE
                 $1 IS NULL OR (client_ulid = $1)
             LIMIT 

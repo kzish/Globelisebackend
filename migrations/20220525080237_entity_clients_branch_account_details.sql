@@ -3,7 +3,7 @@
 --
 
 CREATE TABLE public.entity_clients_branch_account_details (
-    ulid uuid NOT NULL PRIMARY KEY REFERENCES public.users(ulid),
+    ulid uuid NOT NULL PRIMARY KEY REFERENCES public.entity_client_branches(ulid),
     branch_name text NOT NULL,
     country text NOT NULL REFERENCES public.country_codes(code),
     entity_type text NOT NULL,

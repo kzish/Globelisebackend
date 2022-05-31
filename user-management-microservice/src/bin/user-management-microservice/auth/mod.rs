@@ -16,7 +16,7 @@ use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 use user_management_microservice_sdk::{
     token::UserAccessToken,
-    user::{Role, UserType},
+    user::{UserRole, UserType},
 };
 
 use crate::database::SharedDatabase;
@@ -116,10 +116,12 @@ pub async fn login(
                 ))
             }
         } else {
-            Err(GlobeliseError::not_found("Cannot find user with that ulid"))
+            Err(GlobeliseError::unauthorized(
+                "Cannot find user with that ulid",
+            ))
         }
     } else {
-        Err(GlobeliseError::not_found(
+        Err(GlobeliseError::unauthorized(
             "Cannot find user with that email",
         ))
     }
@@ -158,16 +160,16 @@ pub async fn access_token(
     if let Some(User { email, .. }) = database.find_one_user(ulid, Some(user_type)).await? {
         let mut user_roles = vec![];
         if database
-            .get_is_user_fully_onboarded(ulid, user_type, Role::Client)
+            .get_is_user_fully_onboarded(ulid, user_type, UserRole::Client)
             .await?
         {
-            user_roles.push(Role::Client);
+            user_roles.push(UserRole::Client);
         };
         if database
-            .get_is_user_fully_onboarded(ulid, user_type, Role::Contractor)
+            .get_is_user_fully_onboarded(ulid, user_type, UserRole::Contractor)
             .await?
         {
-            user_roles.push(Role::Contractor);
+            user_roles.push(UserRole::Contractor);
         };
         let access_token = UserAccessToken {
             ulid,

@@ -9,15 +9,9 @@ CREATE VIEW public.users_index AS
             a.password,
             a.email,
             a.is_google,
-            a.is_outlook,
-                CASE
-                    WHEN (b.ulid IS NULL) THEN 'f'::text
-                    ELSE 't'::text
-                END AS is_client,
-                CASE
-                    WHEN (b.ulid IS NULL) THEN 'f'::text
-                    ELSE 't'::text
-                END AS is_contractor
+            a.is_outlook,     
+            a.is_entity,
+            a.is_individual
            FROM ((public.users a
              LEFT JOIN public.individual_clients_fully_onboarded b ON ((a.ulid = b.ulid)))
              LEFT JOIN public.individual_contractors_fully_onboarded c ON ((a.ulid = c.ulid)))
@@ -27,15 +21,9 @@ CREATE VIEW public.users_index AS
             a.password,
             a.email,
             a.is_google,
-            a.is_outlook,
-                CASE
-                    WHEN (b.ulid IS NULL) THEN 'f'::text
-                    ELSE 't'::text
-                END AS is_client,
-                CASE
-                    WHEN (b.ulid IS NULL) THEN 'f'::text
-                    ELSE 't'::text
-                END AS is_contractor
+            a.is_outlook,     
+            a.is_entity,
+            a.is_individual
            FROM ((public.users a
              LEFT JOIN public.entity_clients_fully_onboarded b ON ((a.ulid = b.ulid)))
              LEFT JOIN public.entity_contractors_fully_onboarded c ON ((a.ulid = c.ulid)))
@@ -46,8 +34,6 @@ CREATE VIEW public.users_index AS
     client_individual_info.email,
     client_individual_info.is_google,
     client_individual_info.is_outlook,
-    client_individual_info.is_client,
-    client_individual_info.is_contractor,
     'individual'::text AS user_type
    FROM client_individual_info
 UNION
@@ -57,8 +43,6 @@ UNION
     client_entity_info.email,
     client_entity_info.is_google,
     client_entity_info.is_outlook,
-    client_entity_info.is_client,
-    client_entity_info.is_contractor,
     'entity'::text AS user_type
    FROM client_entity_info;
 
