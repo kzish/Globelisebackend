@@ -18,6 +18,7 @@ pub struct EmployeeContractorQuery {
     #[serde(default)]
     pub branch_ulid: Option<Uuid>,
     pub employee_contractor_name: Option<String>,
+    pub contractor_type: Option<String>,
 }
 
 #[serde_as]
@@ -37,6 +38,7 @@ pub struct EmployeeContractorResponse {
     pub client_ulid: Uuid,
     pub contract_name: String,
     pub contract_status: String,
+    pub contractor_type: String,
 }
 
 pub async fn eor_admin_get_employee_contractors(
