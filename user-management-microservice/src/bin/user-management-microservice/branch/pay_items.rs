@@ -152,7 +152,7 @@ impl Database {
         let query = "SELECT 
                     password 
                 FROM 
-                    auth_entities
+                    users
                 WHERE
                     ulid = $1";
         let password_hash: Option<String> = sqlx::query(query)

@@ -21,6 +21,7 @@ use tower_http::cors::{Any, CorsLayer, Origin};
 mod auth;
 mod branch;
 mod bulk_add;
+mod contractor_account_settings;
 mod custom_field;
 mod database;
 mod department;
@@ -190,6 +191,118 @@ async fn main() {
         .route(
             "/onboard/fully_onboarded/:role",
             get(onboard::fully_onboarded),
+        )
+        // ========== contractor account settings (contractors routes) ==========
+        .route(
+            "/account-settings/contractors/bank-details/entity",
+            get(contractor_account_settings::contractor::bank_details::get_bank_details_entity)
+            .post(contractor_account_settings::contractor::bank_details::post_bank_details_entity),
+        )
+        .route(
+            "/account-settings/contractors/bank-details/individual",
+            get(contractor_account_settings::contractor::bank_details::get_bank_details_individual)
+            .post(contractor_account_settings::contractor::bank_details::post_bank_details_individual),
+        )
+        .route(
+            "/account-settings/contractors/personal-information/entity",
+            get(contractor_account_settings::contractor::personal_information::get_profile_settings_entity)
+            .post(contractor_account_settings::contractor::personal_information::post_profile_settings_entity),
+        )
+        .route(
+            "/account-settings/contractors/personal-information/individual",
+            get(contractor_account_settings::contractor::personal_information::get_profile_settings_individual)
+            .post(contractor_account_settings::contractor::personal_information::post_profile_settings_individual),
+        )
+        // ========== contractor account settings (pic routes) ==========
+        .route(
+            "/admin-pic/account-settings/contractors/bank-details/entity/:contractor_ulid",
+            get(contractor_account_settings::client_pic::bank_details::get_bank_details_entity)
+            .post(contractor_account_settings::client_pic::bank_details::post_bank_details_entity),
+        )
+        .route(
+            "/admin-pic/account-settings/contractors/bank-details/individual/:contractor_ulid",
+            get(contractor_account_settings::client_pic::bank_details::get_bank_details_individual)
+            .post(contractor_account_settings::client_pic::bank_details::post_bank_details_individual),
+        )
+        .route(
+            "/admin-pic/account-settings/contractors/personal-information/entity/:contractor_ulid",
+            get(contractor_account_settings::client_pic::personal_information::get_profile_settings_entity)
+            .post(contractor_account_settings::client_pic::personal_information::post_profile_settings_entity),
+        )
+        .route(
+            "/admin-pic/account-settings/contractors/personal-information/individual/:contractor_ulid",
+            get(contractor_account_settings::client_pic::personal_information::get_profile_settings_individual)
+            .post(contractor_account_settings::client_pic::personal_information::post_profile_settings_individual),
+        )
+         .route(
+            "/admin-pic/account-settings/contractors/payroll-information/entity/:contractor_ulid",
+            get(contractor_account_settings::client_pic::payroll_information::get_payroll_information_entity)
+            .post(contractor_account_settings::client_pic::payroll_information::post_payroll_information_entity),
+        )
+        .route(
+            "/admin-pic/admin-pic/account-settings/contractors/payroll-information/individual/:contractor_ulid",
+            get(contractor_account_settings::client_pic::payroll_information::get_payroll_information_individual)
+            .post(contractor_account_settings::client_pic::payroll_information::post_payroll_information_individual),
+        )
+        .route(
+            "/admin-pic/account-settings/contractors/employment-information/entity/:contractor_ulid",
+            get(contractor_account_settings::client_pic::employment_information::get_employment_information_entity)
+            .post(contractor_account_settings::client_pic::employment_information::post_employment_information_entity),
+        )
+        .route(
+            "/admin-pic/account-settings/contractors/employment-information/individual/:contractor_ulid",
+            get(contractor_account_settings::client_pic::employment_information::get_employment_information_individual)
+            .post(contractor_account_settings::client_pic::employment_information::post_employment_information_individual),
+        )
+
+    // ========== contractor account settings (eor admin routes) ==========
+        .route(
+            "/eor-admin/account-settings/contractors/bank-details/entity/:contractor_ulid",
+            get(contractor_account_settings::eor_admin::bank_details::get_bank_details_entity)
+            .post(contractor_account_settings::eor_admin::bank_details::post_bank_details_entity),
+        )
+        .route(
+            "/eor-admin/account-settings/contractors/bank-details/individual/:contractor_ulid",
+            get(contractor_account_settings::eor_admin::bank_details::get_bank_details_individual)
+            .post(contractor_account_settings::eor_admin::bank_details::post_bank_details_individual),
+        )
+        .route(
+            "/eor-admin/account-settings/contractors/personal-information/entity/:contractor_ulid",
+            get(contractor_account_settings::eor_admin::personal_information::get_profile_settings_entity)
+            .post(contractor_account_settings::eor_admin::personal_information::post_profile_settings_entity),
+        )
+        .route(
+            "/eor-admin/account-settings/contractors/personal-information/individual/:contractor_ulid",
+            get(contractor_account_settings::eor_admin::personal_information::get_profile_settings_individual)
+            .post(contractor_account_settings::eor_admin::personal_information::post_profile_settings_individual),
+        )
+         .route(
+            "/eor-admin/account-settings/contractors/payroll-information/entity/:contractor_ulid",
+            get(contractor_account_settings::eor_admin::payroll_information::get_payroll_information_entity)
+            .post(contractor_account_settings::eor_admin::payroll_information::post_payroll_information_entity),
+        )
+        .route(
+            "/eor-admin/account-settings/contractors/payroll-information/individual/:contractor_ulid",
+            get(contractor_account_settings::eor_admin::payroll_information::get_payroll_information_individual)
+            .post(contractor_account_settings::eor_admin::payroll_information::post_payroll_information_individual),
+        )
+        .route(
+            "/eor-admin/account-settings/contractors/employment-information/entity/:contractor_ulid",
+            get(contractor_account_settings::eor_admin::employment_information::get_employment_information_entity)
+            .post(contractor_account_settings::eor_admin::employment_information::post_employment_information_entity),
+        )
+        .route(
+            "/eor-admin/account-settings/contractors/employment-information/individual/:contractor_ulid",
+            get(contractor_account_settings::eor_admin::employment_information::get_employment_information_individual)
+            .post(contractor_account_settings::eor_admin::employment_information::post_employment_information_individual),
+        )
+        .route(
+            "/eor-admin/account-settings/contractors/employment-information",//list all for this client
+            get(contractor_account_settings::eor_admin::employment_information::get_employment_information_all)
+        )
+        .route(
+            "/eor-admin/account-settings/contractors/payroll-information",//list all for this client
+            get(contractor_account_settings::eor_admin::payroll_information::get_payroll_information_all)
         )
         // ========== ADMIN APIS ==========
         .route(
