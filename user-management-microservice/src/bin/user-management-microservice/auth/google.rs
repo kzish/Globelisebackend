@@ -2,7 +2,6 @@
 
 use axum::extract::{Extension, Form, Path};
 use common_utils::error::{GlobeliseError, GlobeliseResult};
-use email_address::EmailAddress;
 use google_auth::IdToken;
 use once_cell::sync::Lazy;
 use user_management_microservice_sdk::user::UserType;
@@ -20,11 +19,10 @@ pub async fn signup(
         google_auth::Error::Decoding(_) => GlobeliseError::unauthorized("Google login failed"),
         _ => GlobeliseError::Internal("Failed to decode Google ID token".into()),
     })?;
-    let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
 
     let user = User {
-        email,
-        password_hash: None,
+        email: claims.email,
+        password: None,
         is_google: true,
         is_outlook: false,
         is_entity: user_type == UserType::Entity,
@@ -52,11 +50,10 @@ pub async fn login(
         google_auth::Error::Decoding(_) => GlobeliseError::unauthorized("Google login failed"),
         _ => GlobeliseError::Internal("Failed to decode Google ID token".into()),
     })?;
-    let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
 
     let database = database.lock().await;
     let mut shared_state = shared_state.lock().await;
-    if let Some((ulid, user_type)) = database.user_id(&email).await? {
+    if let Some((ulid, user_type)) = database.user_id(&claims.email).await? {
         if let Some(User {
             is_google: true, ..
         }) = database.find_one_user(ulid, Some(user_type)).await?

@@ -1,9 +1,11 @@
+use std::str::FromStr;
+
 use crate::error::GlobeliseError;
 use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct OffsetDateWrapper(String);
+pub struct OffsetDateWrapper(pub String);
 
 impl TryFrom<OffsetDateWrapper> for sqlx::types::time::OffsetDateTime {
     type Error = GlobeliseError;
@@ -21,7 +23,7 @@ impl From<sqlx::types::time::OffsetDateTime> for OffsetDateWrapper {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct OptionOffsetDateWrapper(Option<String>);
+pub struct OptionOffsetDateWrapper(pub Option<String>);
 
 impl TryFrom<OptionOffsetDateWrapper> for Option<sqlx::types::time::OffsetDateTime> {
     type Error = GlobeliseError;
@@ -43,22 +45,36 @@ impl From<Option<sqlx::types::time::OffsetDateTime>> for OptionOffsetDateWrapper
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct EmailWrapper(String);
+pub struct EmailWrapper(pub EmailAddress);
 
-impl TryFrom<EmailWrapper> for EmailAddress {
-    type Error = GlobeliseError;
-
-    fn try_from(email: EmailWrapper) -> Result<Self, Self::Error> {
-        email
-            .0
-            .parse::<EmailAddress>()
-            .map_err(GlobeliseError::bad_request)
+impl AsRef<EmailWrapper> for EmailWrapper {
+    fn as_ref(&self) -> &EmailWrapper {
+        self
     }
 }
 
-impl From<EmailAddress> for EmailWrapper {
-    fn from(email: EmailAddress) -> Self {
-        EmailWrapper(email.to_string())
+impl sqlx::Type<sqlx::Postgres> for EmailWrapper {
+    fn type_info() -> sqlx::postgres::PgTypeInfo {
+        sqlx::postgres::PgTypeInfo::with_name("text")
+    }
+}
+
+impl sqlx::Decode<'_, sqlx::Postgres> for EmailWrapper {
+    fn decode(value: sqlx::postgres::PgValueRef<'_>) -> Result<Self, sqlx::error::BoxDynError> {
+        let value: &'_ str = sqlx::decode::Decode::decode(value)?;
+        let email = EmailAddress::from_str(value)?;
+        Ok(EmailWrapper(email))
+    }
+}
+
+impl sqlx::encode::Encode<'_, sqlx::Postgres> for EmailWrapper {
+    fn encode_by_ref(&self, buf: &mut sqlx::postgres::PgArgumentBuffer) -> sqlx::encode::IsNull {
+        let val = self.0.as_ref();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::encode(val, buf)
+    }
+    fn size_hint(&self) -> std::primitive::usize {
+        let val = self.0.as_ref();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::size_hint(&val)
     }
 }
 
@@ -92,21 +108,49 @@ impl TryFrom<Vec<u8>> for ImageData {
     }
 }
 
+impl sqlx::Type<sqlx::Postgres> for ImageData {
+    fn type_info() -> sqlx::postgres::PgTypeInfo {
+        sqlx::postgres::PgTypeInfo::with_name("bytea")
+    }
+}
+
+impl sqlx::Decode<'_, sqlx::Postgres> for ImageData {
+    fn decode(value: sqlx::postgres::PgValueRef<'_>) -> Result<Self, sqlx::error::BoxDynError> {
+        let value: &[u8] = sqlx::decode::Decode::decode(value)?;
+        Ok(ImageData(value.to_owned()))
+    }
+}
+
+impl sqlx::encode::Encode<'_, sqlx::Postgres> for ImageData {
+    fn encode_by_ref(&self, buf: &mut sqlx::postgres::PgArgumentBuffer) -> sqlx::encode::IsNull {
+        let val: &[u8] = self.0.as_ref();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::encode(val, buf)
+    }
+    fn size_hint(&self) -> std::primitive::usize {
+        let val: &[u8] = self.0.as_ref();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::size_hint(&val)
+    }
+}
+
 #[macro_export]
 macro_rules! impl_enum_asfrom_str {
-    ($name:ident, $($next_variant:ident),+) => {
+    ($name:ident, $($enum_variant:ident),+) => {
         #[derive(::std::clone::Clone, Copy, Debug, Deserialize, Serialize)]
         #[allow(clippy::upper_case_acronyms)]
         #[allow(non_camel_case_types)]
         pub enum $name {
-            $($next_variant),+
+            $($enum_variant),+
         }
 
         impl $name {
             pub fn as_str(&self) -> &'static str {
                 match self {
-                    $($name::$next_variant => stringify!($next_variant)),+
+                    $($name::$enum_variant => stringify!($enum_variant)),+
                 }
+            }
+
+            pub fn as_array(&self) -> &'static [$name] {
+                &[$($name::$enum_variant),+]
             }
         }
 
@@ -114,7 +158,7 @@ macro_rules! impl_enum_asfrom_str {
             type Err = String;
             fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
                 match s {
-                    $(stringify!($next_variant) => Ok($name::$next_variant)),+,
+                    $(stringify!($enum_variant) => Ok($name::$enum_variant)),+,
                     _ => Err(format!("Cannot convert '{}' into an enum variant of '{}'", s, stringify!($name)))
                 }
             }

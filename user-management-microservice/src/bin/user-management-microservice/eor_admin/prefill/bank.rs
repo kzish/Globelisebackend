@@ -4,11 +4,10 @@ use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
-use email_address::EmailAddress;
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
@@ -17,8 +16,7 @@ use crate::database::{Database, SharedDatabase};
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct InsertOnePrefillIndividualContractorBankDetails {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
     pub client_ulid: Uuid,
     pub bank_name: String,
     pub bank_account_name: String,
@@ -26,11 +24,10 @@ pub struct InsertOnePrefillIndividualContractorBankDetails {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualContractorBankDetails {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
     pub client_ulid: Uuid,
     pub bank_name: String,
     pub bank_account_name: String,
@@ -39,23 +36,6 @@ pub struct PrefillIndividualContractorBankDetails {
     pub created_at: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub updated_at: sqlx::types::time::OffsetDateTime,
-}
-
-impl FromRow<'_, PgRow> for PrefillIndividualContractorBankDetails {
-    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Self {
-            email: row
-                .try_get::<'_, String, &'static str>("email")?
-                .parse()
-                .unwrap(),
-            client_ulid: row.try_get("client_ulid")?,
-            bank_name: row.try_get("bank_name")?,
-            bank_account_name: row.try_get("bank_account_name")?,
-            bank_account_number: row.try_get("bank_account_number")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
 }
 
 pub async fn individual_contractor_post_one(
@@ -69,7 +49,7 @@ pub async fn individual_contractor_post_one(
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
     database
-        .insert_one_prefill_individual_contractor_bank_details(body)
+        .insert_one_prefilled_individual_contractors_bank_details_by_admin(body)
         .await?;
     Ok(())
 }
@@ -78,9 +58,8 @@ pub async fn individual_contractor_post_one(
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualContractorBankDetailsQueryForAdmin {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
-    pub client_ulid: Option<Uuid>,
+    pub email: EmailWrapper,
+    pub client_ulid: Uuid,
 }
 
 pub async fn individual_contractor_get_one(
@@ -91,7 +70,10 @@ pub async fn individual_contractor_get_one(
 ) -> GlobeliseResult<Json<PrefillIndividualContractorBankDetails>> {
     let database = database.lock().await;
     let result = database
-        .select_one_prefill_individual_contractor_bank_details(query.email, query.client_ulid)
+        .select_one_prefilled_individual_contractors_bank_details_by_admin(
+            query.email,
+            query.client_ulid,
+        )
         .await?
         .ok_or(GlobeliseError::NotFound)?;
     Ok(Json(result))
@@ -101,8 +83,7 @@ pub async fn individual_contractor_get_one(
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillEntityClientBankDetails {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
     pub bank_name: String,
     pub bank_account_name: String,
     pub bank_account_number: String,
@@ -140,7 +121,7 @@ impl Database {
         details: PrefillEntityClientBankDetails,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO prefilled_entity_clients_bank_details (
+            INSERT INTO prefilled_individual_contractors_bank_details_by_admin (
                 email, bank_name, bank_account_name, bank_account_number
             ) VALUES (
                 $1, $2, $3, $4
@@ -148,7 +129,7 @@ impl Database {
                 bank_name = $2, bank_account_name = $3, bank_account_number = $4";
 
         sqlx::query(query)
-            .bind(details.email.to_string())
+            .bind(details.email)
             .bind(details.bank_name)
             .bind(details.bank_account_name)
             .bind(details.bank_account_number)
@@ -158,7 +139,7 @@ impl Database {
         Ok(())
     }
 
-    pub async fn insert_one_prefill_individual_contractor_bank_details(
+    pub async fn insert_one_prefilled_individual_contractors_bank_details_by_admin(
         &self,
         details: InsertOnePrefillIndividualContractorBankDetails,
     ) -> GlobeliseResult<()> {
@@ -171,7 +152,7 @@ impl Database {
                 bank_name = $3, bank_account_name = $4, bank_account_number = $5";
 
         sqlx::query(query)
-            .bind(details.email.to_string())
+            .bind(details.email)
             .bind(details.client_ulid)
             .bind(details.bank_name)
             .bind(details.bank_account_name)
@@ -182,10 +163,10 @@ impl Database {
         Ok(())
     }
 
-    pub async fn select_one_prefill_individual_contractor_bank_details(
+    pub async fn select_one_prefilled_individual_contractors_bank_details_by_admin(
         &self,
-        email: EmailAddress,
-        client_ulid: Option<Uuid>,
+        email: EmailWrapper,
+        client_ulid: Uuid,
     ) -> GlobeliseResult<Option<PrefillIndividualContractorBankDetails>> {
         let query = "
             SELECT
@@ -194,10 +175,10 @@ impl Database {
                 prefilled_individual_contractors_bank_details
             WHERE
                 email = $1 AND
-                $2 IS NULL OR client_ulid = $2";
+                client_ulid = $2";
 
         let result = sqlx::query_as(query)
-            .bind(email.to_string())
+            .bind(email)
             .bind(client_ulid)
             .fetch_optional(&self.0)
             .await?;

@@ -6,7 +6,7 @@ use common_utils::{
 };
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, types::Uuid, FromRow, Row};
+use sqlx::{types::Uuid, FromRow};
 use user_management_microservice_sdk::token::UserAccessToken;
 
 use crate::database::{Database, SharedDatabase};
@@ -26,7 +26,7 @@ pub struct BankDetailsRequest {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize)]
+#[derive(Debug, FromRow, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BankDetailsResponse {
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
@@ -37,20 +37,6 @@ pub struct BankDetailsResponse {
     pub bank_account_number: String,
     pub bank_code: String,
     pub branch_code: String,
-}
-
-impl<'r> FromRow<'r, PgRow> for BankDetailsResponse {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Self {
-            ulid: row.try_get("ulid")?,
-            bank_name: row.try_get("bank_name")?,
-            bank_account_name: row.try_get("bank_account_name")?,
-            bank_account_number: row.try_get("bank_account_number")?,
-            branch_code: row.try_get("branch_code")?,
-            bank_code: row.try_get("bank_code")?,
-            created_at: row.try_get("created_at")?,
-        })
-    }
 }
 
 //methods

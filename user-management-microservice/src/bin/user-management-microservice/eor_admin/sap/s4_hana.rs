@@ -3,11 +3,10 @@ use std::io::Cursor;
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use calamine::Reader;
 use common_utils::{
-    custom_serde::FORM_DATA_LENGTH_LIMIT,
+    custom_serde::{EmailWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
-use email_address::EmailAddress;
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use itertools::Itertools;
 use reqwest::{Client, StatusCode};
@@ -79,7 +78,7 @@ pub struct PostPayrollJournalS4Hana {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GetPrefillIndividualContractorDetailsForBulkUpload {
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
 }
 
 pub async fn post_one(

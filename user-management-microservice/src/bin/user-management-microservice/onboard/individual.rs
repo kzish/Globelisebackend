@@ -6,7 +6,7 @@ use common_utils::{
 };
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 use uuid::Uuid;
 
@@ -96,7 +96,7 @@ pub async fn get_onboard_individual_contractor_account_details(
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct IndividualClientAccountDetails {
     pub first_name: String,
@@ -117,28 +117,8 @@ pub struct IndividualClientAccountDetails {
     pub profile_picture: Option<ImageData>,
 }
 
-impl FromRow<'_, PgRow> for IndividualClientAccountDetails {
-    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        let meybe_profile_picture: Option<Vec<u8>> = row.try_get("profile_picture")?;
-        Ok(IndividualClientAccountDetails {
-            first_name: row.try_get("first_name")?,
-            last_name: row.try_get("last_name")?,
-            dob: row.try_get("dob")?,
-            dial_code: row.try_get("dial_code")?,
-            phone_number: row.try_get("phone_number")?,
-            country: row.try_get("country")?,
-            city: row.try_get("city")?,
-            address: row.try_get("address")?,
-            postal_code: row.try_get("postal_code")?,
-            tax_id: row.try_get("tax_id")?,
-            time_zone: row.try_get("time_zone")?,
-            profile_picture: meybe_profile_picture.map(ImageData),
-        })
-    }
-}
-
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct IndividualContractorAccountDetails {
     pub first_name: String,
@@ -160,27 +140,6 @@ pub struct IndividualContractorAccountDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub cv: Option<Vec<u8>>,
-}
-
-impl FromRow<'_, PgRow> for IndividualContractorAccountDetails {
-    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        let meybe_profile_picture: Option<Vec<u8>> = row.try_get("profile_picture")?;
-        Ok(IndividualContractorAccountDetails {
-            first_name: row.try_get("first_name")?,
-            last_name: row.try_get("last_name")?,
-            dob: row.try_get("dob")?,
-            dial_code: row.try_get("dial_code")?,
-            phone_number: row.try_get("phone_number")?,
-            country: row.try_get("country")?,
-            city: row.try_get("city")?,
-            address: row.try_get("address")?,
-            postal_code: row.try_get("postal_code")?,
-            tax_id: row.try_get("tax_id")?,
-            time_zone: row.try_get("time_zone")?,
-            profile_picture: meybe_profile_picture.map(ImageData),
-            cv: row.try_get("cv")?,
-        })
-    }
 }
 
 impl Database {

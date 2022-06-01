@@ -1,5 +1,7 @@
-use common_utils::error::{GlobeliseError, GlobeliseResult};
-use email_address::EmailAddress;
+use common_utils::{
+    custom_serde::EmailWrapper,
+    error::{GlobeliseError, GlobeliseResult},
+};
 use sqlx::Row;
 use user_management_microservice_sdk::user::UserType;
 use uuid::Uuid;
@@ -29,7 +31,7 @@ impl Database {
         )
         .bind(ulid)
         .bind(user.email.as_ref())
-        .bind(user.password_hash)
+        .bind(user.password)
         .bind(user.is_google)
         .bind(user.is_outlook)
         .bind(user.is_entity)
@@ -80,7 +82,7 @@ impl Database {
         ulid: Uuid,
         user_type: Option<UserType>,
     ) -> GlobeliseResult<Option<User>> {
-        let maybe_user = sqlx::query(
+        let maybe_user = sqlx::query_as(
             "
             SELECT 
                 ulid, email, password, is_google, is_outlook, 
@@ -96,30 +98,17 @@ impl Database {
         .bind(user_type.map(|t| t == UserType::Entity))
         .bind(user_type.map(|t| t == UserType::Individual))
         .fetch_optional(&self.0)
-        .await?
-        .map(|row| -> GlobeliseResult<User> {
-            Ok(User {
-                email: row.try_get::<String, _>("email")?.parse()?,
-                password_hash: row.try_get("password")?,
-                is_google: row.try_get("is_google")?,
-                is_outlook: row.try_get("is_outlook")?,
-                is_entity: row.try_get("is_entity")?,
-                is_individual: row.try_get("is_individual")?,
-                is_client: row.try_get("is_client")?,
-                is_contractor: row.try_get("is_contractor")?,
-            })
-        })
-        .transpose()?;
+        .await?;
 
         Ok(maybe_user)
     }
 
     /// Gets a user's id and user type.
-    pub async fn user_id(&self, email: &EmailAddress) -> GlobeliseResult<Option<(Uuid, UserType)>> {
+    pub async fn user_id(&self, email: &EmailWrapper) -> GlobeliseResult<Option<(Uuid, UserType)>> {
         if let Some(row) = sqlx::query(
             "
                 SELECT 
-                    email, ulid, user_type
+                    ulid, email, user_type
                 FROM 
                     users_index
                 WHERE 

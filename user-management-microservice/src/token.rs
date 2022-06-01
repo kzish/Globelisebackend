@@ -1,4 +1,4 @@
-use common_utils::{token::TokenLike, DaprAppId};
+use common_utils::{custom_serde::EmailWrapper, token::TokenLike, DaprAppId};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use time::Duration;
@@ -14,7 +14,7 @@ use super::user::UserType;
 #[serde(rename_all = "kebab-case")]
 pub struct UserAccessToken {
     pub ulid: Uuid,
-    pub email: String,
+    pub email: EmailWrapper,
     pub user_type: UserType,
     pub user_roles: Vec<UserRole>,
 }

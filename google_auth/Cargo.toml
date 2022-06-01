@@ -12,3 +12,4 @@ reqwest = "0.11.10"
 reqwest-middleware = "0.1.5"
 serde = { version = "1.0.136", features = ["derive"] }
 thiserror = "1.0.30"
+common-utils = { path = "../common-utils" }

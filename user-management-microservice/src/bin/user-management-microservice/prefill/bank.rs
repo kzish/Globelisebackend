@@ -5,13 +5,11 @@ use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
-use uuid::Uuid;
-
-use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use uuid::Uuid;
 
 use crate::database::SharedDatabase;
 
@@ -19,8 +17,7 @@ use crate::database::SharedDatabase;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct InsertOnePrefillIndividualContractorBankDetails {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
     pub client_ulid: Uuid,
     pub bank_name: String,
     pub bank_account_name: String,
@@ -28,11 +25,10 @@ pub struct InsertOnePrefillIndividualContractorBankDetails {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualContractorBankDetails {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
     pub client_ulid: Uuid,
     pub bank_name: String,
     pub bank_account_name: String,
@@ -41,23 +37,6 @@ pub struct PrefillIndividualContractorBankDetails {
     pub created_at: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub updated_at: sqlx::types::time::OffsetDateTime,
-}
-
-impl FromRow<'_, PgRow> for PrefillIndividualContractorBankDetails {
-    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Self {
-            email: row
-                .try_get::<'_, String, &'static str>("email")?
-                .parse()
-                .unwrap(),
-            client_ulid: row.try_get("client_ulid")?,
-            bank_name: row.try_get("bank_name")?,
-            bank_account_name: row.try_get("bank_account_name")?,
-            bank_account_number: row.try_get("bank_account_number")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
 }
 
 pub async fn individual_contractor_post_one(
@@ -79,11 +58,10 @@ pub async fn individual_contractor_post_one(
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualContractorBankDetailsQuery {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    email: EmailAddress,
+    email: EmailWrapper,
 }
 
 pub async fn individual_contractor_get_one(
@@ -120,7 +98,7 @@ impl Database {
                 bank_name = $2, bank_account_name = $3, bank_account_number = $4";
 
         sqlx::query(query)
-            .bind(details.email.to_string())
+            .bind(details.email)
             .bind(client_ulid)
             .bind(details.bank_name)
             .bind(details.bank_account_name)
@@ -134,7 +112,7 @@ impl Database {
     pub async fn select_one_client_prefill_individual_contractor_bank_details(
         &self,
         client_ulid: Uuid,
-        email: EmailAddress,
+        email: EmailWrapper,
     ) -> GlobeliseResult<Option<PrefillIndividualContractorBankDetails>> {
         let query = "
             SELECT
@@ -146,7 +124,7 @@ impl Database {
                 client_ulid = $2";
 
         let result = sqlx::query_as(query)
-            .bind(email.to_string())
+            .bind(email)
             .bind(client_ulid)
             .fetch_optional(&self.0)
             .await?;

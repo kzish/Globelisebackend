@@ -9,24 +9,28 @@ CREATE VIEW public.users_index AS
             a.password,
             a.email,
             a.is_google,
-            a.is_outlook,     
+            a.is_outlook,
             a.is_entity,
             a.is_individual
            FROM ((public.users a
              LEFT JOIN public.individual_clients_fully_onboarded b ON ((a.ulid = b.ulid)))
              LEFT JOIN public.individual_contractors_fully_onboarded c ON ((a.ulid = c.ulid)))
+            WHERE
+                a.is_individual = 't'
         ), client_entity_info AS (
          SELECT a.created_at,
             a.ulid,
             a.password,
             a.email,
             a.is_google,
-            a.is_outlook,     
+            a.is_outlook,
             a.is_entity,
             a.is_individual
            FROM ((public.users a
              LEFT JOIN public.entity_clients_fully_onboarded b ON ((a.ulid = b.ulid)))
              LEFT JOIN public.entity_contractors_fully_onboarded c ON ((a.ulid = c.ulid)))
+            WHERE
+                a.is_entity = 't'
         )
  SELECT client_individual_info.created_at,
     client_individual_info.ulid,

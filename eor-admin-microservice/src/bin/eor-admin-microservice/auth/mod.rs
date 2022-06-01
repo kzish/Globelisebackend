@@ -1,12 +1,12 @@
 //! Endpoints for admin authentication and authorization.
 
 use argon2::{self, hash_encoded, verify_encoded, Config};
-use axum::extract::{Extension, Json};
+use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
+    custom_serde::{EmailWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::{create_token, Token},
 };
-use email_address::EmailAddress;
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use once_cell::sync::Lazy;
 use rand::Rng;
@@ -28,20 +28,16 @@ use token::KEYS;
 
 /// Creates an account.
 pub async fn signup(
-    Json(request): Json<CreateAccountRequest>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<CreateAccountRequest>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    // Credentials should be normalized for maximum compatibility.
-    let email: String = request.email.trim().nfc().collect();
-    let password: String = request.password.nfc().collect();
-    let confirm_password: String = request.confirm_password.nfc().collect();
+    let password: String = body.password.nfc().collect();
+    let confirm_password: String = body.confirm_password.nfc().collect();
 
-    // Frontend validation can be bypassed, so perform basic validation
-    // in the backend as well.
-    let email = email
-        .parse::<EmailAddress>()
-        .map_err(GlobeliseError::bad_request)?;
     if password.len() < 8 {
         return Err(GlobeliseError::bad_request(
             "Password must be at least 8 characters long",
@@ -56,10 +52,10 @@ pub async fn signup(
         hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG).map_err(GlobeliseError::internal)?;
 
     let admin = Admin {
-        email,
-        password_hash: Some(hash),
-        google: false,
-        outlook: false,
+        email: body.email,
+        password: Some(hash),
+        is_google: false,
+        is_outlook: false,
     };
     let database = database.lock().await;
     let ulid = database.create_admin(admin).await?;
@@ -71,24 +67,20 @@ pub async fn signup(
 
 /// Logs a admin in.
 pub async fn login(
-    Json(request): Json<LoginRequest>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<Json<LoginRequest>, FORM_DATA_LENGTH_LIMIT>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    // Credentials should be normalized for maximum compatibility.
-    let email: String = request.email.trim().nfc().collect();
-    let password: String = request.password.nfc().collect();
-
-    let email: EmailAddress = email.parse().map_err(GlobeliseError::bad_request)?;
+    let password: String = body.password.nfc().collect();
 
     // NOTE: A timing attack can detect registered emails.
     // Mitigating this is not strictly necessary, as attackers can still find out
     // if an email is registered by using the sign-up page.
     // Simplify this step
     let database = database.lock().await;
-    if let Some(ulid) = database.admin_id(&email).await? {
+    if let Some(ulid) = database.admin_id(&body.email).await? {
         if let Some(Admin {
-            password_hash: Some(hash),
+            password: Some(hash),
             ..
         }) = database.admin(ulid).await?
         {
@@ -144,7 +136,7 @@ pub async fn access_token(
     if let Some(Admin { email, .. }) = database.admin(ulid).await? {
         let access = AdminAccessToken {
             ulid: claims.payload.ulid,
-            email: email.to_string(),
+            email,
         };
         let (access_token, _) = create_token(access, &KEYS.encoding)?;
         Ok(access_token)
@@ -162,7 +154,7 @@ pub async fn public_key() -> String {
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct CreateAccountRequest {
-    email: String,
+    email: EmailWrapper,
     password: String,
     confirm_password: String,
 }
@@ -171,7 +163,7 @@ pub struct CreateAccountRequest {
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct LoginRequest {
-    email: String,
+    email: EmailWrapper,
     password: String,
 }
 

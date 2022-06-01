@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use common_utils::custom_serde::EmailWrapper;
 use http_cache_reqwest::{Cache, CacheMode, HttpCache, MokaManager};
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, TokenData, Validation};
 use once_cell::sync::Lazy;
@@ -63,7 +64,7 @@ impl IdToken {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Claims {
-    pub email: String,
+    pub email: EmailWrapper,
 }
 
 /// Google's public key used for decoding tokens.

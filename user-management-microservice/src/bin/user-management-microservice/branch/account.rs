@@ -6,14 +6,14 @@ use common_utils::{
 };
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchAccountDetails {
     pub branch_name: String,
@@ -31,26 +31,6 @@ pub struct BranchAccountDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub logo: Option<ImageData>,
-}
-
-impl<'r> FromRow<'r, PgRow> for BranchAccountDetails {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        let maybe_logo: Option<Vec<u8>> = row.try_get("logo")?;
-        Ok(BranchAccountDetails {
-            branch_name: row.try_get("branch_name")?,
-            country: row.try_get("country")?,
-            entity_type: row.try_get("entity_type")?,
-            registration_number: row.try_get("registration_number")?,
-            tax_id: row.try_get("tax_id")?,
-            statutory_contribution_submission_number: row
-                .try_get("statutory_contribution_submission_number")?,
-            company_address: row.try_get("company_address")?,
-            city: row.try_get("city")?,
-            postal_code: row.try_get("postal_code")?,
-            time_zone: row.try_get("time_zone")?,
-            logo: maybe_logo.map(ImageData),
-        })
-    }
 }
 
 pub async fn post_branch_account_details(

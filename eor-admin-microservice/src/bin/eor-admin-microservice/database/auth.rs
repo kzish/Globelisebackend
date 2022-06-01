@@ -1,5 +1,7 @@
-use common_utils::error::{GlobeliseError, GlobeliseResult};
-use email_address::EmailAddress;
+use common_utils::{
+    custom_serde::EmailWrapper,
+    error::{GlobeliseError, GlobeliseResult},
+};
 use sqlx::Row;
 use uuid::Uuid;
 
@@ -34,10 +36,10 @@ impl Database {
             )",
         )
         .bind(ulid)
-        .bind(admin.email.as_ref())
-        .bind(admin.password_hash)
-        .bind(admin.google)
-        .bind(admin.outlook)
+        .bind(admin.email)
+        .bind(admin.password)
+        .bind(admin.is_google)
+        .bind(admin.is_outlook)
         .execute(&self.0)
         .await?;
 
@@ -85,7 +87,7 @@ impl Database {
     }
 
     /// Gets a admin's id.
-    pub async fn admin_id(&self, email: &EmailAddress) -> GlobeliseResult<Option<Uuid>> {
+    pub async fn admin_id(&self, email: &EmailWrapper) -> GlobeliseResult<Option<Uuid>> {
         let m_row = sqlx::query(
             "
             SELECT 

@@ -2,7 +2,6 @@
 
 use axum::extract::{Extension, Form};
 use common_utils::error::{GlobeliseError, GlobeliseResult};
-use email_address::EmailAddress;
 use google_auth::IdToken;
 use once_cell::sync::Lazy;
 
@@ -18,13 +17,12 @@ pub async fn signup(
         google_auth::Error::Decoding(_) => GlobeliseError::unauthorized("Google login failed"),
         e => GlobeliseError::internal(e),
     })?;
-    let email: EmailAddress = claims.email.parse().unwrap(); // Google emails should be valid.
 
     let admin = Admin {
-        email,
-        password_hash: None,
-        google: true,
-        outlook: false,
+        email: claims.email,
+        password: None,
+        is_google: true,
+        is_outlook: false,
     };
     let database = database.lock().await;
     let ulid = database.create_admin(admin).await?;
@@ -44,12 +42,14 @@ pub async fn login(
         google_auth::Error::Decoding(_) => GlobeliseError::unauthorized("Google login failed"),
         e => GlobeliseError::internal(e),
     })?;
-    let email = claims.email.parse::<EmailAddress>()?; // Google emails should be valid.
 
     let database = database.lock().await;
     let mut shared_state = shared_state.lock().await;
-    if let Some(ulid) = database.admin_id(&email).await? {
-        if let Some(Admin { google: true, .. }) = database.admin(ulid).await? {
+    if let Some(ulid) = database.admin_id(&claims.email).await? {
+        if let Some(Admin {
+            is_google: true, ..
+        }) = database.admin(ulid).await?
+        {
             let refresh_token = shared_state.open_session(&database, ulid).await?;
 
             Ok(refresh_token)

@@ -10,7 +10,7 @@ use common_utils::{
 };
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, types::Uuid, FromRow, Row};
+use sqlx::{types::Uuid, FromRow};
 use user_management_microservice_sdk::token::UserAccessToken;
 
 use crate::database::{Database, SharedDatabase};
@@ -25,7 +25,7 @@ pub struct ListClientContractorEmploymentInformationRequest {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize)]
+#[derive(Debug, FromRow, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ListClientContractorEmploymentInformationResponse {
     pub contractor_uuid: Uuid,
@@ -40,35 +40,8 @@ pub struct ListClientContractorEmploymentInformationResponse {
     pub client_ulid: Uuid,
 }
 
-impl<'r> FromRow<'r, PgRow> for ListClientContractorEmploymentInformationResponse {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        // let start_date_offset: sqlx::types::time::OffsetDateTime = row.try_get("start_date")?;
-        // let (year, month) = start_date_offset.iso_year_week();
-        // let weekday = start_date_offset.weekday();
-        // let _start_date = sqlx::types::time::Date::try_from_iso_ywd(year, month, weekday)
-        //     .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
-
-        // let end_date_offset: sqlx::types::time::OffsetDateTime = row.try_get("end_date")?;
-        // let (year, month) = end_date_offset.iso_year_week();
-        // let weekday = end_date_offset.weekday();
-        // let _end_date = sqlx::types::time::Date::try_from_iso_ywd(year, month, weekday)
-        //     .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
-
-        Ok(Self {
-            contractor_uuid: row.try_get("contractor_uuid")?,
-            team_uuid: row.try_get("team_uuid")?,
-            designation: row.try_get("designation")?,
-            employment_status: row.try_get("employment_status")?,
-            contractor_type: row.try_get("contractor_type")?,
-            start_date: row.try_get("start_date")?,
-            end_date: row.try_get("end_date")?,
-            client_ulid: row.try_get("client_ulid")?,
-        })
-    }
-}
-
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct EmploymentInformation {
     pub contractor_uuid: Uuid,
@@ -79,19 +52,6 @@ pub struct EmploymentInformation {
     pub start_date: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub end_date: sqlx::types::time::OffsetDateTime,
-}
-
-impl<'r> FromRow<'r, PgRow> for EmploymentInformation {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Self {
-            contractor_uuid: row.try_get("contractor_uuid")?,
-            team_uuid: row.try_get("team_uuid")?,
-            designation: row.try_get("designation")?,
-            employment_status: row.try_get("employment_status")?,
-            start_date: row.try_get("start_date")?,
-            end_date: row.try_get("end_date")?,
-        })
-    }
 }
 
 pub async fn get_employment_information_individual(

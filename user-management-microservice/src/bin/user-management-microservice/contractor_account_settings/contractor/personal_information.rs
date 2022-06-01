@@ -1,14 +1,12 @@
 use axum::{extract::Extension, Json};
 use common_utils::{
-    custom_serde::ImageData,
-    custom_serde::OffsetDateWrapper,
+    custom_serde::{EmailWrapper, ImageData, OffsetDateWrapper},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
-use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
@@ -34,7 +32,7 @@ pub struct IndividualContractorProfileSettingsRequest {
     pub gender: String,
     pub marital_status: String,
     pub nationality: String,
-    pub email_address: EmailAddress,
+    pub email_address: EmailWrapper,
     pub national_id: String,
     pub passport_number: String,
     pub work_permit: bool,
@@ -48,7 +46,7 @@ pub struct IndividualContractorProfileSettingsRequest {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct IndividualContractorProfileSettingsResponse {
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
@@ -69,7 +67,7 @@ pub struct IndividualContractorProfileSettingsResponse {
     pub gender: String,
     pub marital_status: String,
     pub nationality: String,
-    pub email_address: EmailAddress,
+    pub email_address: EmailWrapper,
     pub national_id: String,
     pub passport_number: String,
     pub work_permit: bool,
@@ -80,43 +78,6 @@ pub struct IndividualContractorProfileSettingsResponse {
     #[serde(default)]
     pub profile_picture: Option<ImageData>,
     pub cv: Option<Vec<u8>>,
-}
-
-impl<'r> FromRow<'r, PgRow> for IndividualContractorProfileSettingsResponse {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        let maybe_profile_picture: Option<Vec<u8>> = row.try_get("profile_picture")?;
-
-        Ok(Self {
-            ulid: row.try_get("ulid")?,
-            first_name: row.try_get("first_name")?,
-            last_name: row.try_get("last_name")?,
-            dob: row.try_get("dob")?,
-            dial_code: row.try_get("dial_code")?,
-            phone_number: row.try_get("phone_number")?,
-            country: row.try_get("country")?,
-            city: row.try_get("city")?,
-            address: row.try_get("address")?,
-            postal_code: row.try_get("postal_code")?,
-            tax_id: row.try_get("tax_id")?,
-            time_zone: row.try_get("time_zone")?,
-            gender: row.try_get("gender")?,
-            marital_status: row.try_get("marital_status")?,
-            nationality: row.try_get("nationality")?,
-            email_address: row
-                .try_get::<String, _>("email_address")?
-                .parse::<EmailAddress>()
-                .map_err(|e| sqlx::Error::Decode(Box::new(e)))?,
-            national_id: row.try_get("national_id")?,
-            passport_number: row.try_get("passport_number")?,
-            work_permit: row.try_get("work_permit")?,
-            added_related_pay_item_id: row.try_get("added_related_pay_item_id")?,
-            total_dependants: row.try_get("total_dependants")?,
-            passport_expiry_date: row.try_get("passport_expiry_date")?,
-            profile_picture: maybe_profile_picture.map(ImageData),
-            cv: row.try_get("cv")?,
-            created_at: row.try_get("created_at")?,
-        })
-    }
 }
 
 #[serde_as]
@@ -133,7 +94,7 @@ pub struct EntityContractorProfileSettingsRequest {
     pub city: String,
     pub postal_code: String,
     pub time_zone: String,
-    pub email_address: EmailAddress,
+    pub email_address: EmailWrapper,
     pub added_related_pay_item_id: Uuid,
     pub total_dependants: i64,
     #[serde_as(as = "Option<Base64>")]
@@ -145,7 +106,7 @@ pub struct EntityContractorProfileSettingsRequest {
 }
 
 #[serde_as]
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, FromRow, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct EntityContractorProfileSettingsResponse {
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
@@ -160,7 +121,7 @@ pub struct EntityContractorProfileSettingsResponse {
     pub city: String,
     pub postal_code: String,
     pub time_zone: String,
-    pub email_address: EmailAddress,
+    pub email_address: EmailWrapper,
     pub added_related_pay_item_id: Uuid,
     pub total_dependants: i64,
     #[serde_as(as = "Option<Base64>")]
@@ -169,34 +130,6 @@ pub struct EntityContractorProfileSettingsResponse {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub company_profile: Option<Vec<u8>>,
-}
-
-impl<'r> FromRow<'r, PgRow> for EntityContractorProfileSettingsResponse {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        let maybe_logo: Option<Vec<u8>> = row.try_get("logo")?;
-
-        Ok(Self {
-            ulid: row.try_get("ulid")?,
-            company_name: row.try_get("company_name")?,
-            country: row.try_get("country")?,
-            entity_type: row.try_get("entity_type")?,
-            registration_number: row.try_get("registration_number")?,
-            tax_id: row.try_get("tax_id")?,
-            company_address: row.try_get("company_address")?,
-            city: row.try_get("city")?,
-            postal_code: row.try_get("postal_code")?,
-            time_zone: row.try_get("time_zone")?,
-            logo: maybe_logo.map(ImageData),
-            company_profile: row.try_get("company_profile")?,
-            created_at: row.try_get("created_at")?,
-            email_address: row
-                .try_get::<String, _>("email_address")?
-                .parse::<EmailAddress>()
-                .map_err(|e| sqlx::Error::Decode(Box::new(e)))?,
-            added_related_pay_item_id: row.try_get("added_related_pay_item_id")?,
-            total_dependants: row.try_get("total_dependants")?,
-        })
-    }
 }
 
 pub async fn get_profile_settings_entity(
@@ -320,7 +253,7 @@ impl Database {
             .bind(request.city)
             .bind(request.postal_code)
             .bind(request.time_zone)
-            .bind(request.email_address.to_string())
+            .bind(request.email_address)
             .bind(request.added_related_pay_item_id)
             .bind(request.total_dependants)
             .bind(request.logo.map(|b| b.as_ref().to_owned()))
@@ -400,7 +333,7 @@ impl Database {
             .bind(request.gender)
             .bind(request.marital_status)
             .bind(request.nationality)
-            .bind(request.email_address.to_string())
+            .bind(request.email_address)
             .bind(request.national_id)
             .bind(request.passport_number)
             .bind(request.work_permit)
