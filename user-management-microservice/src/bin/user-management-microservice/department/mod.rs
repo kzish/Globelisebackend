@@ -141,8 +141,7 @@ impl Database {
             .bind(request.classification)
             .bind(request.currency)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(ulid)
     }
@@ -171,8 +170,7 @@ impl Database {
             .bind(limit)
             .bind(offset)
             .fetch_all(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(result)
     }

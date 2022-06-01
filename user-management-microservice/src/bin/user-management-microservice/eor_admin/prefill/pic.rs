@@ -2,7 +2,7 @@ use crate::database::Database;
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
     custom_serde::{EmailWrapper, ImageData, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
-    error::{GlobeliseError, GlobeliseResult},
+    error::GlobeliseResult,
     token::Token,
 };
 
@@ -78,8 +78,7 @@ impl Database {
             .bind(details.phone_number)
             .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }

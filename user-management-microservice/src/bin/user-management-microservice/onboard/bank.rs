@@ -82,8 +82,7 @@ impl Database {
                 .bind(details.bank_account_number)
                 .bind(ulid)
                 .execute(&self.0)
-                .await
-                .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+                .await?;
             }
             UserType::Entity => {
                 sqlx::query(
@@ -99,8 +98,7 @@ impl Database {
                 .bind(details.bank_account_number)
                 .bind(ulid)
                 .execute(&self.0)
-                .await
-                .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+                .await?;
             }
         }
         Ok(())

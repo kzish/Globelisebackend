@@ -153,8 +153,7 @@ impl Database {
             .bind(details.bank_account_name)
             .bind(details.bank_account_number)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
@@ -178,8 +177,7 @@ impl Database {
             .bind(details.bank_account_name)
             .bind(details.bank_account_number)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
@@ -202,8 +200,7 @@ impl Database {
             .bind(email.to_string())
             .bind(client_ulid)
             .fetch_optional(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(result)
     }

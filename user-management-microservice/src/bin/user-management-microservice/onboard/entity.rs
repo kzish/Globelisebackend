@@ -260,8 +260,7 @@ impl Database {
             .bind(details.time_zone)
             .bind(details.logo.map(|b| b.as_ref().to_owned()))
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
@@ -332,8 +331,7 @@ impl Database {
             .bind(details.logo.map(|b| b.as_ref().to_owned()))
             .bind(details.company_profile)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }

@@ -114,8 +114,7 @@ impl Database {
             .bind(details.payment_date)
             .bind(details.cutoff_date)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
@@ -135,8 +134,7 @@ impl Database {
         let result = sqlx::query_as(query)
             .bind(email.to_string())
             .fetch_optional(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(result)
     }

@@ -248,8 +248,7 @@ impl Database {
             .bind(details.tax_id)
             .bind(details.time_zone)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
@@ -274,8 +273,7 @@ impl Database {
             .bind(email.to_string())
             .bind(client_ulid)
             .fetch_optional(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(result)
     }
@@ -307,8 +305,7 @@ impl Database {
             .bind(details.time_zone)
             .bind(details.logo.map(|b| b.as_ref().to_owned()))
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
@@ -330,8 +327,7 @@ impl Database {
         let result = sqlx::query_as(query)
             .bind(email.to_string())
             .fetch_optional(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(result)
     }

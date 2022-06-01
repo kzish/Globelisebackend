@@ -193,8 +193,7 @@ impl Database {
             .bind(pay_item.employers_contribution)
             .bind(pay_item.require_employee_id)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(ulid)
     }
@@ -222,8 +221,7 @@ impl Database {
             .bind(pay_item.employers_contribution)
             .bind(pay_item.require_employee_id)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
@@ -235,11 +233,7 @@ impl Database {
             WHERE
                 ulid = $1
             ";
-        sqlx::query(query)
-            .bind(ulid)
-            .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+        sqlx::query(query).bind(ulid).execute(&self.0).await?;
 
         Ok(())
     }
