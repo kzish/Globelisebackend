@@ -4,21 +4,19 @@ use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
-use email_address::EmailAddress;
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillEntityClientAccountDetails {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
     pub client_ulid: Option<Uuid>,
     pub company_name: String,
     pub country: Country,
@@ -37,33 +35,6 @@ pub struct PrefillEntityClientAccountDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub company_profile: Option<Vec<u8>>,
-}
-
-impl FromRow<'_, PgRow> for PrefillEntityClientAccountDetails {
-    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Self {
-            email: row
-                .try_get::<'_, String, &'static str>("email")?
-                .parse()
-                .unwrap(),
-            client_ulid: row
-                .try_get::<'_, Option<String>, &'static str>("email")?
-                .map(|v| v.parse().unwrap()),
-            company_name: row.try_get("company_name")?,
-            country: row.try_get("country")?,
-            entity_type: row.try_get("entity_type")?,
-            registration_number: row.try_get("registration_number")?,
-            tax_id: row.try_get("tax_id")?,
-            company_address: row.try_get("company_address")?,
-            city: row.try_get("city")?,
-            postal_code: row.try_get("postal_code")?,
-            time_zone: row.try_get("time_zone")?,
-            logo: row
-                .try_get::<'_, Option<Vec<u8>>, &'static str>("logo")?
-                .map(ImageData),
-            company_profile: row.try_get("company_profile")?,
-        })
-    }
 }
 
 pub async fn entity_client_post_one(
@@ -86,7 +57,7 @@ pub async fn entity_client_post_one(
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct EntityClientGetOneQuery {
-    email: EmailAddress,
+    email: EmailWrapper,
 }
 
 pub async fn entity_client_get_one(
@@ -107,8 +78,7 @@ pub async fn entity_client_get_one(
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct InsertOnePrefillIndividualContractorAccountDetails {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
     pub client_ulid: Uuid,
     pub first_name: String,
     pub last_name: String,
@@ -126,11 +96,10 @@ pub struct InsertOnePrefillIndividualContractorAccountDetails {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualContractorAccountDetails {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
     pub client_ulid: Uuid,
     pub first_name: String,
     pub last_name: String,
@@ -151,31 +120,6 @@ pub struct PrefillIndividualContractorAccountDetails {
     pub updated_at: sqlx::types::time::OffsetDateTime,
 }
 
-impl FromRow<'_, PgRow> for PrefillIndividualContractorAccountDetails {
-    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Self {
-            email: row
-                .try_get::<'_, String, &'static str>("email")?
-                .parse()
-                .unwrap(),
-            client_ulid: row.try_get("client_ulid")?,
-            first_name: row.try_get("first_name")?,
-            last_name: row.try_get("last_name")?,
-            dob: row.try_get("dob")?,
-            dial_code: row.try_get("dial_code")?,
-            phone_number: row.try_get("phone_number")?,
-            country: row.try_get("country")?,
-            city: row.try_get("city")?,
-            address: row.try_get("address")?,
-            postal_code: row.try_get("postal_code")?,
-            tax_id: row.try_get("tax_id")?,
-            time_zone: row.try_get("time_zone")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
-}
-
 pub async fn individual_contractor_post_one(
     // Only needed for validation
     _: Token<AdminAccessToken>,
@@ -187,7 +131,7 @@ pub async fn individual_contractor_post_one(
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
     database
-        .insert_one_prefill_individual_contractor_account_details(body)
+        .insert_one_prefilled_individual_contractors_account_details_by_admin(body)
         .await?;
     Ok(())
 }
@@ -196,8 +140,8 @@ pub async fn individual_contractor_post_one(
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct IndividualContractorGetOneQuery {
-    email: EmailAddress,
-    client_ulid: Option<Uuid>,
+    email: EmailWrapper,
+    client_ulid: Uuid,
 }
 
 pub async fn individual_contractor_get_one(
@@ -208,33 +152,36 @@ pub async fn individual_contractor_get_one(
 ) -> GlobeliseResult<Json<PrefillIndividualContractorAccountDetails>> {
     let database = database.lock().await;
     let result = database
-        .select_one_prefill_individual_contractor_account_details(query.email, query.client_ulid)
+        .select_one_prefilled_individual_contractors_account_details_by_admin(
+            query.email,
+            query.client_ulid,
+        )
         .await?
         .ok_or(GlobeliseError::NotFound)?;
     Ok(Json(result))
 }
 
 impl Database {
-    pub async fn insert_one_prefill_individual_contractor_account_details(
+    pub async fn insert_one_prefilled_individual_contractors_account_details_by_admin(
         &self,
         details: InsertOnePrefillIndividualContractorAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO prefilled_individual_contractors_account_details (
                 email, client_ulid, first_name, last_name, dob, 
-                dial_code, phone_number, country, city, address,
+                dial_code, phone_number, country, city, address, 
                 postal_code, tax_id, time_zone
             ) VALUES (
                 $1, $2, $3, $4, $5, 
                 $6, $7, $8, $9, $10, 
                 $11, $12, $13
             ) ON CONFLICT(email, client_ulid) DO UPDATE SET 
-                first_name = $3, last_name = $4, dob = $5, dial_code = $6, phone_number = $7,
-                country = $8, city = $9, address = $10, postal_code = $11, tax_id = $12,
-                time_zone = $13";
+                first_name = $3, last_name = $4, dob = $5, 
+                dial_code = $6, phone_number = $7, country = $8, city = $9, address = $10, 
+                postal_code = $11, tax_id = $12, time_zone = $13";
 
         sqlx::query(query)
-            .bind(details.email.to_string())
+            .bind(details.email)
             .bind(details.client_ulid)
             .bind(details.first_name)
             .bind(details.last_name)
@@ -248,34 +195,32 @@ impl Database {
             .bind(details.tax_id)
             .bind(details.time_zone)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
 
-    pub async fn select_one_prefill_individual_contractor_account_details(
+    pub async fn select_one_prefilled_individual_contractors_account_details_by_admin(
         &self,
-        email: EmailAddress,
-        client_ulid: Option<Uuid>,
+        email: EmailWrapper,
+        client_ulid: Uuid,
     ) -> GlobeliseResult<Option<PrefillIndividualContractorAccountDetails>> {
         let query = "
             SELECT
-                email, client_ulid, first_name, last_name, dob, 
-                dial_code, phone_number, country, city, address,
-                postal_code, tax_id, time_zone
+                email, first_name, last_name, dob, dial_code, 
+                phone_number, country, city, address, postal_code, 
+                tax_id, time_zone
             FROM
                 prefilled_individual_contractors_account_details
             WHERE
                 email = $1 AND
-                ($2 IS NULL OR client_ulid = $2)";
+                client_ulid = $2";
 
         let result = sqlx::query_as(query)
-            .bind(email.to_string())
+            .bind(email)
             .bind(client_ulid)
             .fetch_optional(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(result)
     }
@@ -285,17 +230,21 @@ impl Database {
         details: PrefillEntityClientAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO prefilled_entity_clients_account_details
-            (email, company_name, country, entity_type, registration_number, tax_id, company_address,
-            city, postal_code, time_zone, logo)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            ON CONFLICT(email) DO UPDATE SET 
-            company_name = $2, country = $3, entity_type = $4, registration_number = $5,
-            tax_id = $6, company_address = $7, city = $8, postal_code = $9, time_zone = $10,
-            logo = $11";
+            INSERT INTO prefilled_entity_clients_account_details (
+                email, company_name, country, entity_type, registration_number, 
+                tax_id, company_address, city, postal_code, time_zone, 
+                logo
+            ) VALUES (
+                $1, $2, $3, $4, $5,
+                $6, $7, $8, $9, $10, 
+                $11
+            ) ON CONFLICT(email) DO UPDATE SET 
+                company_name = $2, country = $3, entity_type = $4, registration_number = $5,
+                tax_id = $6, company_address = $7, city = $8, postal_code = $9, time_zone = $10,
+                logo = $11";
 
         sqlx::query(query)
-            .bind(details.email.to_string())
+            .bind(details.email)
             .bind(details.company_name)
             .bind(details.country)
             .bind(details.entity_type)
@@ -307,15 +256,14 @@ impl Database {
             .bind(details.time_zone)
             .bind(details.logo.map(|b| b.as_ref().to_owned()))
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
 
     pub async fn select_one_prefill_entity_client_account_details(
         &self,
-        email: EmailAddress,
+        email: EmailWrapper,
     ) -> GlobeliseResult<Option<PrefillEntityClientAccountDetails>> {
         let query = "
             SELECT 
@@ -328,10 +276,9 @@ impl Database {
                 email = $1";
 
         let result = sqlx::query_as(query)
-            .bind(email.to_string())
+            .bind(email)
             .fetch_optional(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(result)
     }

@@ -5,12 +5,10 @@ use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
-
-use email_address::EmailAddress;
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 
 use crate::database::SharedDatabase;
 
@@ -18,8 +16,7 @@ use crate::database::SharedDatabase;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct InsertOnePrefillEntityClientPaymentDetails {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
     pub currency: Currency,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub payment_date: sqlx::types::time::OffsetDateTime,
@@ -28,11 +25,10 @@ pub struct InsertOnePrefillEntityClientPaymentDetails {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillEntityClientPaymentDetails {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
     pub currency: Currency,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub payment_date: sqlx::types::time::OffsetDateTime,
@@ -42,22 +38,6 @@ pub struct PrefillEntityClientPaymentDetails {
     pub created_at: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub updated_at: sqlx::types::time::OffsetDateTime,
-}
-
-impl FromRow<'_, PgRow> for PrefillEntityClientPaymentDetails {
-    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Self {
-            email: row
-                .try_get::<'_, String, &'static str>("email")?
-                .parse()
-                .unwrap(),
-            currency: row.try_get("currency")?,
-            payment_date: row.try_get("payment_date")?,
-            cutoff_date: row.try_get("cutoff_date")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
 }
 
 pub async fn entity_client_post_one(
@@ -79,8 +59,7 @@ pub async fn entity_client_post_one(
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillEntityClientPaymentDetailsQueryForAdmin {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    email: EmailAddress,
+    email: EmailWrapper,
 }
 
 pub async fn entity_client_get_one(
@@ -109,20 +88,19 @@ impl Database {
             currency = $2, payment_date = $3, cutoff_date = $4";
 
         sqlx::query(query)
-            .bind(details.email.as_ref())
+            .bind(details.email)
             .bind(details.currency)
             .bind(details.payment_date)
             .bind(details.cutoff_date)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
 
     pub async fn select_one_prefill_entity_client_payment_details(
         &self,
-        email: EmailAddress,
+        email: EmailWrapper,
     ) -> GlobeliseResult<Option<PrefillEntityClientPaymentDetails>> {
         let query = "
             SELECT
@@ -133,10 +111,9 @@ impl Database {
                 email = $1";
 
         let result = sqlx::query_as(query)
-            .bind(email.to_string())
+            .bind(email)
             .fetch_optional(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(result)
     }

@@ -7,12 +7,11 @@ use common_utils::{
     token::Token,
 };
 use csv::{ReaderBuilder, StringRecord};
-use email_address::EmailAddress;
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::{
@@ -37,11 +36,11 @@ pub struct PostPrefillIndividualContractorDetailsForBulkUpload {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GetPrefillIndividualContractorDetailsForBulkUpload {
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Client")]
@@ -69,8 +68,7 @@ pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Phone Number")]
     pub phone_number: String,
     #[serde(rename = "Email Address")]
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
     #[serde(rename = "Address")]
     pub address: Option<String>,
     #[serde(rename = "Country")]
@@ -141,59 +139,6 @@ pub struct PrefillIndividualContractorDetailsForBulkUpload {
     pub other_pay_item_2: Option<String>,
 }
 
-impl<'r> FromRow<'r, PgRow> for PrefillIndividualContractorDetailsForBulkUpload {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Self {
-            client_ulid: row.try_get("client_ulid")?,
-            branch_ulid: row.try_get("branch_ulid")?,
-            department_ulid: row.try_get("department_ulid")?,
-            first_name: row.try_get("first_name")?,
-            last_name: row.try_get("last_name")?,
-            gender: row.try_get("gender")?,
-            marital_status: row.try_get("marital_status")?,
-            nationality: row.try_get("nationality")?,
-            dob: row.try_get("dob")?,
-            dial_code: row.try_get("dial_code")?,
-            phone_number: row.try_get("phone_number")?,
-            email: row
-                .try_get::<'r, String, &'static str>("email")?
-                .parse()
-                .unwrap(),
-            address: row.try_get("address")?,
-            country: row.try_get("country")?,
-            city: row.try_get("city")?,
-            postal_code: row.try_get("postal_code")?,
-            national_id: row.try_get("national_id")?,
-            passport_number: row.try_get("passport_number")?,
-            passport_expiry_date: row.try_get("passport_expiry_date")?,
-            work_permit: row.try_get("work_permit")?,
-            tax_id: row.try_get("tax_id")?,
-            contribution_id_1: row.try_get("contribution_id_1")?,
-            contribution_id_2: row.try_get("contribution_id_2")?,
-            total_dependants: row.try_get("total_dependants")?,
-            time_zone: row.try_get("time_zone")?,
-            employee_id: row.try_get("employee_id")?,
-            designation: row.try_get("designation")?,
-            start_date: row.try_get("start_date")?,
-            end_date: row.try_get("end_date")?,
-            employment_status: row.try_get("employment_status")?,
-            bank_name: row.try_get("bank_name")?,
-            bank_account_owner_name: row.try_get("bank_account_owner_name")?,
-            bank_account_number: row.try_get("bank_account_number")?,
-            bank_code: row.try_get("bank_code")?,
-            bank_branch_code: row.try_get("bank_branch_code")?,
-            currency: row.try_get("currency")?,
-            basic_salary: row.try_get("basic_salary")?,
-            additional_item_1: row.try_get("additional_item_1")?,
-            additional_item_2: row.try_get("additional_item_2")?,
-            deduction_1: row.try_get("deduction_1")?,
-            deduction_2: row.try_get("deduction_2")?,
-            other_pay_item_1: row.try_get("other_pay_item_1")?,
-            other_pay_item_2: row.try_get("other_pay_item_2")?,
-        })
-    }
-}
-
 pub async fn post_one(
     // Only for validation
     _: Token<AdminAccessToken>,
@@ -220,6 +165,7 @@ pub async fn post_one(
                 let receiver_email = value
                     .email
                     // TODO: Get the name of the person associated to this email address
+                    .0
                     .to_display("")
                     .parse()?;
 
@@ -338,7 +284,7 @@ impl Database {
             .bind(details.dob)
             .bind(details.dial_code)
             .bind(details.phone_number)
-            .bind(details.email.to_string())
+            .bind(details.email)
             .bind(details.address)
             .bind(details.country)
             .bind(details.city)
@@ -371,14 +317,13 @@ impl Database {
             .bind(details.other_pay_item_1)
             .bind(details.other_pay_item_2)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
         Ok(())
     }
 
     pub async fn get_prefilll_individual_contractor_details_for_bulk_upload(
         &self,
-        email: EmailAddress,
+        email: EmailWrapper,
     ) -> GlobeliseResult<Option<PrefillIndividualContractorDetailsForBulkUpload>> {
         let query = "
             SELECT
@@ -396,10 +341,9 @@ impl Database {
             WHERE
                 email = $1";
         let result = sqlx::query_as(query)
-            .bind(email.to_string())
+            .bind(email)
             .fetch_optional(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
         Ok(result)
     }
 }

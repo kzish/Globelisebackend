@@ -1,10 +1,12 @@
 use argon2::{self, hash_encoded};
 use axum::{
-    extract::{Extension, Json},
+    extract::{ContentLengthLimit, Extension, Json},
     response::Redirect,
 };
-use common_utils::error::{GlobeliseError, GlobeliseResult};
-use email_address::EmailAddress;
+use common_utils::{
+    custom_serde::{EmailWrapper, FORM_DATA_LENGTH_LIMIT},
+    error::{GlobeliseError, GlobeliseResult},
+};
 use lettre::{message::Mailbox, Message, SmtpTransport, Transport};
 use rand::Rng;
 use serde::Deserialize;
@@ -29,17 +31,15 @@ use token::{ChangePasswordToken, LostPasswordToken};
 
 /// Send email to the admin with the steps to recover their password.
 pub async fn send_email(
-    Json(request): Json<LostPasswordRequest>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<LostPasswordRequest>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<()> {
-    let email_address = request
-        .email
-        .parse::<EmailAddress>()
-        .map_err(GlobeliseError::bad_request)?;
-
     let database = database.lock().await;
-    let (admin_ulid, is_valid_attempt) = match database.admin_id(&email_address).await {
+    let (admin_ulid, is_valid_attempt) = match database.admin_id(&body.email).await {
         Ok(Some(ulid)) => (ulid, true),
         _ => (Uuid::new_v4(), false),
     };
@@ -56,7 +56,9 @@ pub async fn send_email(
         }
     };
 
-    let receiver_email = email_address
+    let receiver_email = body
+        .email
+        .0
         // TODO: Get the name of the person associated to this email address
         .to_display("")
         .parse::<Mailbox>()
@@ -154,7 +156,7 @@ pub async fn execute(
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct LostPasswordRequest {
-    pub email: String,
+    pub email: EmailWrapper,
 }
 
 /// Request to change password.

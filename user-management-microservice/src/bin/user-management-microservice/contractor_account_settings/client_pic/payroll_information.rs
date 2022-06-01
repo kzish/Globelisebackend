@@ -9,7 +9,7 @@ use common_utils::{
 };
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
@@ -26,7 +26,7 @@ pub struct ListClientContractorPayrollInformationRequest {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ListClientContractorPayrollInformationResponse {
     pub contractor_ulid: Uuid,
@@ -36,24 +36,6 @@ pub struct ListClientContractorPayrollInformationResponse {
     pub monthly_added_pay_items_for_deduction_section: f64,
     pub monthly_added_pay_items_for_statement_only_section: f64,
     pub monthly_added_pay_items_for_employers_contribution_section: f64,
-}
-
-impl<'r> FromRow<'r, PgRow> for ListClientContractorPayrollInformationResponse {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Self {
-            contractor_ulid: row.try_get("contractor_ulid")?,
-            client_ulid: row.try_get("client_ulid")?,
-            monthly_basic_salary_amount: row.try_get("monthly_basic_salary_amount")?,
-            monthly_added_pay_items_for_addition_section: row
-                .try_get("monthly_added_pay_items_for_addition_section")?,
-            monthly_added_pay_items_for_deduction_section: row
-                .try_get("monthly_added_pay_items_for_deduction_section")?,
-            monthly_added_pay_items_for_statement_only_section: row
-                .try_get("monthly_added_pay_items_for_statement_only_section")?,
-            monthly_added_pay_items_for_employers_contribution_section: row
-                .try_get("monthly_added_pay_items_for_employers_contribution_section")?,
-        })
-    }
 }
 
 pub async fn get_payroll_information_individual(

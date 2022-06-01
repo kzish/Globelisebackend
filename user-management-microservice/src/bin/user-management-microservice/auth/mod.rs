@@ -2,14 +2,14 @@
 
 use argon2::{self, hash_encoded, verify_encoded, Config};
 use axum::{
-    extract::{Extension, Path},
+    extract::{ContentLengthLimit, Extension, Path},
     Json,
 };
 use common_utils::{
+    custom_serde::{EmailWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::{create_token, Token},
 };
-use email_address::EmailAddress;
 use once_cell::sync::Lazy;
 use rand::Rng;
 use serde::Deserialize;
@@ -36,24 +36,23 @@ use self::token::KEYS;
 
 /// Creates an account.
 pub async fn signup(
-    Json(request): Json<CreateAccountRequest>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<CreateAccountRequest>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
     Path(user_type): Path<UserType>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    // Credentials should be normalized for maximum compatibility.
-    let email: String = request.email.trim().nfc().collect();
-    let password: String = request.password.nfc().collect();
-    let confirm_password: String = request.confirm_password.nfc().collect();
+    let password: String = body.password.nfc().collect();
+    let confirm_password: String = body.confirm_password.nfc().collect();
 
-    // Frontend validation can be bypassed, so perform basic validation
-    // in the backend as well.
-    let email: EmailAddress = email.parse().map_err(GlobeliseError::bad_request)?;
     if password.len() < 8 {
         return Err(GlobeliseError::bad_request(
             "Password must be at least 8 characters long",
         ));
     }
+
     if password != confirm_password {
         return Err(GlobeliseError::bad_request("Passwords do not match"));
     }
@@ -63,8 +62,8 @@ pub async fn signup(
         hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG).map_err(GlobeliseError::internal)?;
 
     let user = User {
-        email,
-        password_hash: Some(hash),
+        email: body.email,
+        password: Some(hash),
         is_google: false,
         is_outlook: false,
         is_entity: user_type == UserType::Entity,
@@ -84,25 +83,22 @@ pub async fn signup(
 
 /// Logs a user in.
 pub async fn login(
-    Json(request): Json<LoginRequest>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<Json<LoginRequest>, FORM_DATA_LENGTH_LIMIT>,
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    // Credentials should be normalized for maximum compatibility.
-    let email: String = request.email.trim().nfc().collect();
-    let password: String = request.password.nfc().collect();
-
-    let email: EmailAddress = email.parse().map_err(GlobeliseError::bad_request)?;
+    let password: String = body.password.nfc().collect();
 
     // NOTE: A timing attack can detect registered emails.
     // Mitigating this is not strictly necessary, as attackers can still find out
     // if an email is registered by using the sign-up page.
     let database = database.lock().await;
-    if let Some((ulid, user_type)) = database.user_id(&email).await? {
+    if let Some((ulid, user_type)) = database.user_id(&body.email).await? {
+        let user = database.find_one_user(ulid, Some(user_type)).await?;
         if let Some(User {
-            password_hash: Some(hash),
+            password: Some(hash),
             ..
-        }) = database.find_one_user(ulid, Some(user_type)).await?
+        }) = user
         {
             if let Ok(true) = verify_encoded(&hash, password.as_bytes()) {
                 let mut shared_state = shared_state.lock().await;
@@ -173,7 +169,7 @@ pub async fn access_token(
         };
         let access_token = UserAccessToken {
             ulid,
-            email: email.to_string(),
+            email,
             user_type,
             user_roles,
         };
@@ -195,7 +191,7 @@ pub async fn public_key() -> String {
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct CreateAccountRequest {
-    email: String,
+    email: EmailWrapper,
     password: String,
     confirm_password: String,
 }
@@ -204,7 +200,7 @@ pub struct CreateAccountRequest {
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct LoginRequest {
-    email: String,
+    email: EmailWrapper,
     password: String,
 }
 

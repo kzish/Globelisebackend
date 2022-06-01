@@ -1,13 +1,14 @@
 //! Types for user data.
 
-use email_address::EmailAddress;
+use common_utils::custom_serde::EmailWrapper;
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 
 /// Stores information associated with a user id.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, FromRow, Deserialize, Serialize)]
 pub struct User {
-    pub email: EmailAddress,
-    pub password_hash: Option<String>,
+    pub email: EmailWrapper,
+    pub password: Option<String>,
     pub is_google: bool,
     pub is_outlook: bool,
     pub is_entity: bool,

@@ -6,7 +6,7 @@ use common_utils::{
 };
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 use uuid::Uuid;
 
@@ -100,7 +100,7 @@ pub async fn get_onboard_entity_contractor_account_details(
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct EntityClientAccountDetails {
     pub company_name: String,
@@ -119,26 +119,8 @@ pub struct EntityClientAccountDetails {
     pub logo: Option<ImageData>,
 }
 
-impl FromRow<'_, PgRow> for EntityClientAccountDetails {
-    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        let maybe_logo: Option<Vec<u8>> = row.try_get("logo")?;
-        Ok(EntityClientAccountDetails {
-            company_name: row.try_get("company_name")?,
-            country: row.try_get("country")?,
-            entity_type: row.try_get("entity_type")?,
-            registration_number: row.try_get("registration_number")?,
-            tax_id: row.try_get("tax_id")?,
-            company_address: row.try_get("company_address")?,
-            city: row.try_get("city")?,
-            postal_code: row.try_get("postal_code")?,
-            time_zone: row.try_get("time_zone")?,
-            logo: maybe_logo.map(ImageData),
-        })
-    }
-}
-
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct EntityContractorAccountDetails {
     pub company_name: String,
@@ -158,25 +140,6 @@ pub struct EntityContractorAccountDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub company_profile: Option<Vec<u8>>,
-}
-
-impl FromRow<'_, PgRow> for EntityContractorAccountDetails {
-    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        let maybe_logo: Option<Vec<u8>> = row.try_get("logo")?;
-        Ok(EntityContractorAccountDetails {
-            company_name: row.try_get("company_name")?,
-            country: row.try_get("country")?,
-            entity_type: row.try_get("entity_type")?,
-            registration_number: row.try_get("registration_number")?,
-            tax_id: row.try_get("tax_id")?,
-            company_address: row.try_get("company_address")?,
-            city: row.try_get("city")?,
-            postal_code: row.try_get("postal_code")?,
-            time_zone: row.try_get("time_zone")?,
-            logo: maybe_logo.map(ImageData),
-            company_profile: row.try_get("profile_picture")?,
-        })
-    }
 }
 
 #[serde_as]
@@ -260,8 +223,7 @@ impl Database {
             .bind(details.time_zone)
             .bind(details.logo.map(|b| b.as_ref().to_owned()))
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }
@@ -332,8 +294,7 @@ impl Database {
             .bind(details.logo.map(|b| b.as_ref().to_owned()))
             .bind(details.company_profile)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }

@@ -1,5 +1,5 @@
 use common_utils::{
-    custom_serde::OffsetDateWrapper,
+    custom_serde::{EmailWrapper, OffsetDateWrapper},
     error::{GlobeliseError, GlobeliseResult},
     DaprAppId,
 };
@@ -63,7 +63,7 @@ pub struct OnboardedUserIndex {
     pub name: String,
     pub user_role: UserRole,
     pub user_type: UserType,
-    pub email: String,
+    pub email: EmailWrapper,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub created_at: sqlx::types::time::OffsetDateTime,
 }
@@ -74,7 +74,7 @@ pub struct OnboardedUserIndex {
 #[serde(rename_all = "kebab-case")]
 pub struct UserIndex {
     pub ulid: Uuid,
-    pub email: String,
+    pub email: EmailWrapper,
     pub user_type: UserType,
     pub is_google: bool,
     pub is_outlook: bool,

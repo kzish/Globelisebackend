@@ -6,7 +6,7 @@ use common_utils::{
 };
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use user_management_microservice_sdk::{
     token::UserAccessToken,
     user::{UserRole, UserType},
@@ -55,7 +55,7 @@ pub async fn get_onboard_entity_pic_details(
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct EntityPicDetails {
     pub first_name: String,
@@ -66,20 +66,6 @@ pub struct EntityPicDetails {
     pub phone_number: String,
     #[serde_as(as = "Option<Base64>")]
     pub profile_picture: Option<ImageData>,
-}
-
-impl FromRow<'_, PgRow> for EntityPicDetails {
-    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
-        let maybe_profile_picture: Option<Vec<u8>> = row.try_get("profile_picture")?;
-        Ok(EntityPicDetails {
-            first_name: row.try_get("first_name")?,
-            last_name: row.try_get("last_name")?,
-            dob: row.try_get("dob")?,
-            dial_code: row.try_get("dial_code")?,
-            phone_number: row.try_get("phone_number")?,
-            profile_picture: maybe_profile_picture.map(ImageData),
-        })
-    }
 }
 
 impl Database {

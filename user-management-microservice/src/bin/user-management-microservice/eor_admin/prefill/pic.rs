@@ -2,11 +2,9 @@ use crate::database::Database;
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
     custom_serde::{EmailWrapper, ImageData, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
-    error::{GlobeliseError, GlobeliseResult},
+    error::GlobeliseResult,
     token::Token,
 };
-
-use email_address::EmailAddress;
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as, TryFromInto};
@@ -17,8 +15,7 @@ use crate::database::SharedDatabase;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillEntityClientPicDetails {
-    #[serde_as(as = "TryFromInto<EmailWrapper>")]
-    pub email: EmailAddress,
+    pub email: EmailWrapper,
     pub first_name: String,
     pub last_name: String,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
@@ -70,7 +67,7 @@ impl Database {
             profile_picture = $7";
 
         sqlx::query(query)
-            .bind(details.email.to_string())
+            .bind(details.email)
             .bind(details.first_name)
             .bind(details.last_name)
             .bind(details.dob)
@@ -78,8 +75,7 @@ impl Database {
             .bind(details.phone_number)
             .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
 
         Ok(())
     }

@@ -1,11 +1,10 @@
-use axum::extract::{Extension, Json, Query};
+use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
     calc_limit_and_offset,
-    custom_serde::OptionOffsetDateWrapper,
+    custom_serde::{EmailWrapper, OptionOffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
-use email_address::EmailAddress;
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
@@ -72,30 +71,33 @@ pub async fn eor_admin_onboarded_user_index(
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct AddUserRequest {
-    email: String,
-    debug: Option<bool>,
+    pub email: EmailWrapper,
+    pub debug: Option<bool>,
 }
 
 pub async fn add_individual_contractor(
     // Only for validation
     _: Token<AdminAccessToken>,
-    Json(request): Json<AddUserRequest>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<AddUserRequest>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    let email_address: EmailAddress = request.email.parse().map_err(GlobeliseError::bad_request)?;
-
     let database = database.lock().await;
 
-    if (database.user_id(&email_address).await?).is_some() {
+    if (database.user_id(body.email.as_ref()).await?).is_some() {
         return Err(GlobeliseError::UnavailableEmail);
     };
 
     // If  in debug mode, skip sending emails
-    if let Some(true) = request.debug {
+    if let Some(true) = body.debug {
         return Ok(());
     }
 
-    let receiver_email = email_address
+    let receiver_email = body
+        .email
+        .0
         // TODO: Get the name of the person associated to this email address
         .to_display("")
         .parse()?;
