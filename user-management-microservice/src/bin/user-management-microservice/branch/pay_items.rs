@@ -11,7 +11,7 @@ use common_utils::{
 };
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::{FromRow, Row};
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 use uuid::Uuid;
 
@@ -344,6 +344,35 @@ impl PayItemType {
         }
     }
 }
+
+impl sqlx::Type<sqlx::Postgres> for PayItemType {
+    fn type_info() -> sqlx::postgres::PgTypeInfo {
+        sqlx::postgres::PgTypeInfo::with_name("text")
+    }
+}
+
+impl sqlx::Decode<'_, sqlx::Postgres> for PayItemType {
+    fn decode(value: sqlx::postgres::PgValueRef<'_>) -> Result<Self, sqlx::error::BoxDynError> {
+        let pay_item_type_str: &'_ str = sqlx::decode::Decode::decode(value)?;
+        let pay_item_type = PayItemType::from_str(pay_item_type_str).ok_or(format!(
+            "Cannot convert {} into a PayItemType",
+            pay_item_type_str
+        ))?;
+        Ok(pay_item_type)
+    }
+}
+
+impl sqlx::encode::Encode<'_, sqlx::Postgres> for PayItemType {
+    fn encode_by_ref(&self, buf: &mut sqlx::postgres::PgArgumentBuffer) -> sqlx::encode::IsNull {
+        let val = self.as_str();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::encode(val, buf)
+    }
+    fn size_hint(&self) -> std::primitive::usize {
+        let val = self.as_str();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::size_hint(&val)
+    }
+}
+
 //Rules:
 //-When statement only is selected, this pay item will be reflected on payroll table and payroll report. but not included in total earning, total deductions and net pay. Also not reflected on payslip.
 //-When employer's contribution is selected, this pay item will be reflected on payroll table, payroll report as well as payslip, but not included in total earning, total deductions and net pay
@@ -367,7 +396,7 @@ impl PayItemMethod {
         }
     }
 
-    pub fn fr_str(string: &str) -> Option<PayItemMethod> {
+    pub fn from_str(string: &str) -> Option<PayItemMethod> {
         match string {
             "addition" => Some(PayItemMethod::Addition),
             "deduction" => Some(PayItemMethod::Deduction),
@@ -375,6 +404,34 @@ impl PayItemMethod {
             "statement_only" => Some(PayItemMethod::StatementOnly),
             _ => None,
         }
+    }
+}
+
+impl sqlx::Type<sqlx::Postgres> for PayItemMethod {
+    fn type_info() -> sqlx::postgres::PgTypeInfo {
+        sqlx::postgres::PgTypeInfo::with_name("text")
+    }
+}
+
+impl sqlx::Decode<'_, sqlx::Postgres> for PayItemMethod {
+    fn decode(value: sqlx::postgres::PgValueRef<'_>) -> Result<Self, sqlx::error::BoxDynError> {
+        let pay_item_type_str: &'_ str = sqlx::decode::Decode::decode(value)?;
+        let pay_item_type = PayItemMethod::from_str(pay_item_type_str).ok_or(format!(
+            "Cannot convert {} into a PayItemMethod",
+            pay_item_type_str
+        ))?;
+        Ok(pay_item_type)
+    }
+}
+
+impl sqlx::encode::Encode<'_, sqlx::Postgres> for PayItemMethod {
+    fn encode_by_ref(&self, buf: &mut sqlx::postgres::PgArgumentBuffer) -> sqlx::encode::IsNull {
+        let val = self.as_str();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::encode(val, buf)
+    }
+    fn size_hint(&self) -> std::primitive::usize {
+        let val = self.as_str();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::size_hint(&val)
     }
 }
 
@@ -392,7 +449,7 @@ pub struct CreatePayItem {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PayItem {
     pub ulid: Uuid,
@@ -405,26 +462,4 @@ pub struct PayItem {
     pub require_employee_id: bool,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub created_at: sqlx::types::time::OffsetDateTime,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub updated_at: sqlx::types::time::OffsetDateTime,
-}
-
-impl<'r> FromRow<'r, PgRow> for PayItem {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        let _pay_item_type: String = row.try_get("pay_item_type")?;
-        let _pay_item_method: String = row.try_get("pay_item_method")?;
-
-        Ok(PayItem {
-            ulid: row.try_get("ulid")?,
-            branch_ulid: row.try_get("branch_ulid")?,
-            pay_item_type: PayItemType::from_str(_pay_item_type.as_str()).unwrap(),
-            pay_item_custom_name: row.try_get("pay_item_custom_name")?,
-            use_pay_item_type_name: row.try_get("use_pay_item_type_name")?,
-            pay_item_method: PayItemMethod::fr_str(_pay_item_method.as_str()).unwrap(),
-            employers_contribution: row.try_get("employers_contribution")?,
-            require_employee_id: row.try_get("require_employee_id")?,
-            created_at: row.try_get("created_at")?,
-            updated_at: row.try_get("updated_at")?,
-        })
-    }
 }

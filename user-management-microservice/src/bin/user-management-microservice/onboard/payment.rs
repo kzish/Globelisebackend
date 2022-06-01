@@ -26,8 +26,6 @@ pub struct OnboardClientPaymentDetails {
     pub cutoff_date: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub created_at: sqlx::types::time::OffsetDateTime,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub updated_at: sqlx::types::time::OffsetDateTime,
 }
 
 pub async fn get_onboard_client_payment_details(
@@ -118,8 +116,7 @@ impl Database {
         let query = format!(
             "
             SELECT
-                ulid, currency, payment_date, cutoff_date, updated_at,
-                created_at
+                ulid, currency, payment_date, cutoff_date, created_at
             FROM 
                 {target_table}
             WHERE

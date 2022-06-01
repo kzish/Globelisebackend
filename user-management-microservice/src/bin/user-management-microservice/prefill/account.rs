@@ -98,8 +98,6 @@ pub struct PrefillIndividualContractorAccountDetails {
     pub time_zone: String,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub created_at: sqlx::types::time::OffsetDateTime,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub updated_at: sqlx::types::time::OffsetDateTime,
 }
 
 impl Database {

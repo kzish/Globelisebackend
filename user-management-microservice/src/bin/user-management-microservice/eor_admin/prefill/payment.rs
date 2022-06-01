@@ -36,8 +36,6 @@ pub struct PrefillEntityClientPaymentDetails {
     pub cutoff_date: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub created_at: sqlx::types::time::OffsetDateTime,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub updated_at: sqlx::types::time::OffsetDateTime,
 }
 
 pub async fn entity_client_post_one(
