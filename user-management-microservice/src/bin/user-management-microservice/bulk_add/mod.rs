@@ -371,8 +371,7 @@ impl Database {
             .bind(details.other_pay_item_1)
             .bind(details.other_pay_item_2)
             .execute(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
         Ok(())
     }
 
@@ -398,8 +397,7 @@ impl Database {
         let result = sqlx::query_as(query)
             .bind(email.to_string())
             .fetch_optional(&self.0)
-            .await
-            .map_err(|e| GlobeliseError::Database(e.to_string()))?;
+            .await?;
         Ok(result)
     }
 }
