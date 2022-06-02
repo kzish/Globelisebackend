@@ -28,6 +28,7 @@ mod department;
 mod employee_contractors;
 mod env;
 mod eor_admin;
+mod notification;
 mod onboard;
 mod prefill;
 
@@ -191,6 +192,11 @@ async fn main() {
         .route(
             "/onboard/fully_onboarded/:role",
             get(onboard::fully_onboarded),
+        )
+        .route(
+            "/users/notifications",
+            get(notification::get_many).
+            put(notification::put_one),
         )
         // ========== contractor account settings (contractors routes) ==========
         .route(
