@@ -34,8 +34,6 @@ pub struct PrefillIndividualContractorBankDetails {
     pub bank_account_number: String,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub created_at: sqlx::types::time::OffsetDateTime,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub updated_at: sqlx::types::time::OffsetDateTime,
 }
 
 pub async fn individual_contractor_post_one(
