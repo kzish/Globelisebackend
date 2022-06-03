@@ -410,6 +410,10 @@ async fn main() {
             "/eor-admin/sap/upload_payroll_to_s4hana",
             post(eor_admin::sap::s4_hana::post_one),
         )
+        .route(
+            "/eor-admin/sap/journal_template.xlsx",
+            get(eor_admin::sap::s4_hana::download),
+        )
         // ========== PUBSUB PAGES ==========
         .route("/dapr/subscribe", get(dapr_subscription_list))
         // ========== DEBUG PAGES ==========
