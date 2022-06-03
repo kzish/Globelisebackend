@@ -1,6 +1,10 @@
 use std::io::Cursor;
 
-use axum::extract::{ContentLengthLimit, Extension, Json};
+use axum::{
+    extract::{ContentLengthLimit, Extension, Json},
+    http::{header::CONTENT_TYPE, HeaderValue},
+    response::IntoResponse,
+};
 use calamine::Reader;
 use common_utils::{
     custom_serde::{EmailWrapper, FORM_DATA_LENGTH_LIMIT},
@@ -79,6 +83,19 @@ pub struct PostPayrollJournalS4Hana {
 #[serde(rename_all = "kebab-case")]
 pub struct GetPrefillIndividualContractorDetailsForBulkUpload {
     pub email: EmailWrapper,
+}
+
+pub async fn download() -> impl IntoResponse {
+    let bytes = include_bytes!("journal_template.xlsx").to_vec();
+    (
+        [(
+            CONTENT_TYPE,
+            HeaderValue::from_static(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ),
+        )],
+        bytes,
+    )
 }
 
 pub async fn post_one(
