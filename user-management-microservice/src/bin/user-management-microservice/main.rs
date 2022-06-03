@@ -89,32 +89,12 @@ async fn main() {
                 .post(onboard::individual::post_onboard_individual_contractor_account_details),
         )
         .route(
-            "/onboard/individual-detail/client",
-            get(onboard::individual::get_onboard_individual_client_account_details)
-                .post(onboard::individual::post_onboard_individual_client_account_details),
-        )
-        .route(
-            "/onboard/individual-detail/contractor",
-            get(onboard::individual::get_onboard_individual_contractor_account_details)
-                .post(onboard::individual::post_onboard_individual_contractor_account_details),
-        )
-        .route(
             "/onboard/entity-details/client",
             get(onboard::entity::get_onboard_entity_client_account_details)
                 .post(onboard::entity::post_onboard_entity_client_account_details),
         )
         .route(
             "/onboard/entity-details/contractor",
-            get(onboard::entity::get_onboard_entity_contractor_account_details)
-                .post(onboard::entity::post_onboard_entity_contractor_account_details),
-        )
-        .route(
-            "/onboard/entity-detail/client",
-            get(onboard::entity::get_onboard_entity_client_account_details)
-                .post(onboard::entity::post_onboard_entity_client_account_details),
-        )
-        .route(
-            "/onboard/entity-detail/contractor",
             get(onboard::entity::get_onboard_entity_contractor_account_details)
                 .post(onboard::entity::post_onboard_entity_contractor_account_details),
         )
