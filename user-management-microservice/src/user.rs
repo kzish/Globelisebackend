@@ -17,13 +17,6 @@ pub enum UserType {
 }
 
 impl UserType {
-    pub fn db_auth_name(&self) -> &'static str {
-        match self {
-            UserType::Individual => "auth_individuals",
-            UserType::Entity => "auth_entities",
-        }
-    }
-
     pub fn db_onboard_details_prefix(&self, role: UserRole) -> String {
         UserTypeAndRole::from((*self, role)).to_string() + "s"
     }

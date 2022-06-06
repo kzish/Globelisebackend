@@ -4,13 +4,12 @@ use std::num::NonZeroU32;
 
 use argon2::verify_encoded;
 use axum::extract::{Extension, Json, Path, Query};
-use common_utils::custom_serde::OffsetDateWrapper;
 use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, TryFromInto};
+use serde_with::serde_as;
 use sqlx::{FromRow, Row};
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 use uuid::Uuid;
@@ -460,6 +459,4 @@ pub struct PayItem {
     pub pay_item_method: PayItemMethod,
     pub employers_contribution: String,
     pub require_employee_id: bool,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub created_at: sqlx::types::time::OffsetDateTime,
 }

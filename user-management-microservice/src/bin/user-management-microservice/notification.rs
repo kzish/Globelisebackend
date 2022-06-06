@@ -1,12 +1,11 @@
 use axum::{extract::Query, Extension, Json};
 use common_utils::{
     calc_limit_and_offset,
-    custom_serde::OffsetDateWrapper,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, TryFromInto};
+use serde_with::serde_as;
 use sqlx::FromRow;
 use user_management_microservice_sdk::{
     token::UserAccessToken,
@@ -42,8 +41,6 @@ pub struct Notification {
     user_ulid: Uuid,
     message: String,
     read: bool,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub created_at: sqlx::types::time::OffsetDateTime,
 }
 
 pub async fn get_many(
@@ -148,7 +145,7 @@ impl Database {
         let query = format!(
             "
         SELECT
-            ulid, user_ulid, message, read, created_at
+            ulid, user_ulid, message, read
         FROM
             {table}
         WHERE

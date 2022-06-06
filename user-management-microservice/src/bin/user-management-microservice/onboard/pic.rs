@@ -65,6 +65,7 @@ pub struct EntityPicDetails {
     pub dial_code: String,
     pub phone_number: String,
     #[serde_as(as = "Option<Base64>")]
+    #[serde(default)]
     pub profile_picture: Option<ImageData>,
 }
 
@@ -75,33 +76,32 @@ impl Database {
         role: UserRole,
         details: EntityPicDetails,
     ) -> GlobeliseResult<()> {
-        if self
-            .find_one_user(ulid, Some(UserType::Entity))
-            .await?
-            .is_none()
-        {
-            return Err(GlobeliseError::Forbidden);
-        }
+        let table = match role {
+            UserRole::Client => "entity_clients_pic_details",
+            UserRole::Contractor => "entity_contractors_pic_details",
+        };
 
-        let target_table = UserType::Entity.db_onboard_details_prefix(role) + "_pic_details";
         let query = format!(
             "
-            INSERT INTO {target_table}
-            (ulid, first_name, last_name, dob, dial_code, phone_number, profile_picture)
-            VALUES ($7, $1, $2, $3, $4, $5, $6)
-            ON CONFLICT(ulid) DO UPDATE SET 
-            first_name = $1, last_name = $2, dob = $3, dial_code = $4, phone_number = $5,
-            profile_picture = $6",
+            INSERT INTO {table} (
+                ulid, first_name, last_name, dob, dial_code, 
+                phone_number, profile_picture
+            ) VALUES (
+                $1, $2, $3, $4, $5, 
+                $6, $7
+            ) ON CONFLICT(ulid) DO UPDATE SET 
+                first_name = $2, last_name = $3, dob = $4, dial_code = $5, 
+                phone_number = $6, profile_picture = $7",
         );
 
         sqlx::query(&query)
+            .bind(ulid)
             .bind(details.first_name)
             .bind(details.last_name)
             .bind(details.dob)
             .bind(details.dial_code)
             .bind(details.phone_number)
-            .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
-            .bind(ulid)
+            .bind(details.profile_picture)
             .execute(&self.0)
             .await?;
 
@@ -113,14 +113,6 @@ impl Database {
         ulid: Uuid,
         role: UserRole,
     ) -> GlobeliseResult<Option<EntityPicDetails>> {
-        if self
-            .find_one_user(ulid, Some(UserType::Entity))
-            .await?
-            .is_none()
-        {
-            return Err(GlobeliseError::Forbidden);
-        }
-
         let result = match role {
             UserRole::Client => {
                 let query = "

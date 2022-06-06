@@ -96,8 +96,6 @@ pub struct PrefillIndividualContractorAccountDetails {
     #[serde(default)]
     pub tax_id: Option<String>,
     pub time_zone: String,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub created_at: sqlx::types::time::OffsetDateTime,
 }
 
 impl Database {

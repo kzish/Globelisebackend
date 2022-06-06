@@ -1,11 +1,10 @@
 use axum::{extract::Extension, Json};
 use common_utils::{
-    custom_serde::OffsetDateWrapper,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, TryFromInto};
+use serde_with::{serde_as};
 use sqlx::{types::Uuid, FromRow};
 use user_management_microservice_sdk::token::UserAccessToken;
 
@@ -29,8 +28,6 @@ pub struct BankDetailsRequest {
 #[derive(Debug, FromRow, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BankDetailsResponse {
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub created_at: sqlx::types::time::OffsetDateTime,
     pub ulid: Uuid,
     pub bank_name: String,
     pub bank_account_name: String,
