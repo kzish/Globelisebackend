@@ -7,10 +7,7 @@ use common_utils::{
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 use sqlx::FromRow;
-use user_management_microservice_sdk::{
-    token::UserAccessToken,
-    user::{UserRole, UserType},
-};
+use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
@@ -24,8 +21,6 @@ pub struct OnboardClientPaymentDetails {
     pub payment_date: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub cutoff_date: sqlx::types::time::OffsetDateTime,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub created_at: sqlx::types::time::OffsetDateTime,
 }
 
 pub async fn get_onboard_client_payment_details(
@@ -76,21 +71,21 @@ impl Database {
         user_type: UserType,
         details: InsertOneOnboardClientPaymentDetails,
     ) -> GlobeliseResult<()> {
-        if self.find_one_user(ulid, Some(user_type)).await?.is_none() {
-            return Err(GlobeliseError::Forbidden);
-        }
+        let table = match user_type {
+            UserType::Individual => "individual_clients_payment_details",
+            UserType::Entity => "entity_clients_payment_details",
+        };
 
-        let target_table =
-            user_type.db_onboard_details_prefix(UserRole::Client) + "_payment_details";
         let query = format!(
             "
-            INSERT INTO {target_table} (
+            INSERT INTO {table} (
                 ulid, currency, payment_date, cutoff_date
             ) VALUES (
                 $1, $2, $3, $4
             ) ON CONFLICT(ulid) DO UPDATE SET 
                 currency = $2, payment_date = $3, cutoff_date = $4",
         );
+
         sqlx::query(&query)
             .bind(ulid)
             .bind(details.currency)
@@ -107,18 +102,17 @@ impl Database {
         ulid: Uuid,
         user_type: UserType,
     ) -> GlobeliseResult<Option<OnboardClientPaymentDetails>> {
-        if self.find_one_user(ulid, Some(user_type)).await?.is_none() {
-            return Err(GlobeliseError::Forbidden);
-        }
+        let table = match user_type {
+            UserType::Individual => "individual_clients_payment_details",
+            UserType::Entity => "entity_clients_payment_details",
+        };
 
-        let target_table =
-            user_type.db_onboard_details_prefix(UserRole::Client) + "_payment_details";
         let query = format!(
             "
             SELECT
-                ulid, currency, payment_date, cutoff_date, created_at
+                ulid, currency, payment_date, cutoff_date
             FROM 
-                {target_table}
+                {table}
             WHERE
                 ulid = $1",
         );

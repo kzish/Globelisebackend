@@ -1,12 +1,12 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
-    custom_serde::{EmailWrapper, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{EmailWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, TryFromInto};
+use serde_with::serde_as;
 use sqlx::FromRow;
 use uuid::Uuid;
 
@@ -32,8 +32,6 @@ pub struct PrefillIndividualContractorBankDetails {
     pub bank_name: String,
     pub bank_account_name: String,
     pub bank_account_number: String,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub created_at: sqlx::types::time::OffsetDateTime,
 }
 
 pub async fn individual_contractor_post_one(

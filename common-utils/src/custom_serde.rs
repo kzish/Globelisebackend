@@ -228,7 +228,7 @@ const BASE64_ENCODED_IMAGE_SIZE_LIMIT: u64 = IMAGE_SIZE_LIMIT * 4 / 3 + 1;
 
 /// Maximum size of an uploaded image.
 /// 8MB
-const IMAGE_SIZE_LIMIT: u64 = 8 * 1024 * 1024;
+const IMAGE_SIZE_LIMIT: u64 = 25 * 1024 * 1024;
 
 /// Maximum dimensions of an uploaded image.
 const IMAGE_DIMENSION_LIMIT: u32 = 10000;

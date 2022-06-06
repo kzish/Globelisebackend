@@ -49,8 +49,6 @@ pub struct IndividualContractorProfileSettingsRequest {
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct IndividualContractorProfileSettingsResponse {
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub created_at: sqlx::types::time::OffsetDateTime,
     pub ulid: Uuid,
     pub first_name: String,
     pub last_name: String,
@@ -109,8 +107,6 @@ pub struct EntityContractorProfileSettingsRequest {
 #[derive(Debug, FromRow, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct EntityContractorProfileSettingsResponse {
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub created_at: sqlx::types::time::OffsetDateTime,
     pub ulid: Uuid,
     pub company_name: String,
     pub country: String,
