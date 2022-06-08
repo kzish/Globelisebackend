@@ -328,6 +328,9 @@ async fn main() {
         ).route(
             "/eor-admin/citibank/search-clients-branches",
             get(eor_admin::bank_transfer::citi_bank::search_clients_branches),
+        ).route(
+            "/eor-admin/citibank/update-transaction-status",
+            get(eor_admin::bank_transfer::citi_bank::update_transaction_status),
         )
         .route(
             "/eor-admin/onboarded-users",

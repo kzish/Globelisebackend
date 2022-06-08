@@ -25,20 +25,19 @@ ALTER TABLE IF EXISTS public.uploaded_citibank_transfer_initiation_files
 CREATE TABLE IF NOT EXISTS public.uploaded_citibank_transfer_initiation_files_records
 (
     ulid uuid NOT NULL,
-    company_name text COLLATE pg_catalog."default" NOT NULL,
     currency_code text COLLATE pg_catalog."default" NOT NULL,
     country_code text COLLATE pg_catalog."default" NOT NULL,
-    employee_id text COLLATE pg_catalog."default" NOT NULL,
+    employee_id uuid NOT NULL,
     employee_name text COLLATE pg_catalog."default" NOT NULL,
-    bank_name_creditor text COLLATE pg_catalog."default" NOT NULL,
-    bic_swift_code_creditor text COLLATE pg_catalog."default" NOT NULL,
+    bank_name text COLLATE pg_catalog."default" NOT NULL,
+    bank_account_number text COLLATE pg_catalog."default" NOT NULL,
+    bank_code text COLLATE pg_catalog."default" NOT NULL,
+    swift_code text COLLATE pg_catalog."default" NOT NULL,
     amount double precision NOT NULL,
     file_ulid uuid NOT NULL,
-    bank_account_number_creditor text COLLATE pg_catalog."default" NOT NULL,
-    bank_account_number_debitor text COLLATE pg_catalog."default" NOT NULL,
     transaction_status text COLLATE pg_catalog."default" NOT NULL,
     CONSTRAINT uploaded_citibank_transfer_initiation_files_records_pkey PRIMARY KEY (ulid),
-    CONSTRAINT uploaded_citibank_transfer_initiation_file_ulid_fkey FOREIGN KEY (file_ulid)
+    CONSTRAINT uploaded_citibank_transfer_initiation_files_records_fkey FOREIGN KEY (file_ulid)
         REFERENCES public.uploaded_citibank_transfer_initiation_files (ulid) MATCH SIMPLE
         ON UPDATE CASCADE
         ON DELETE CASCADE
@@ -48,7 +47,6 @@ TABLESPACE pg_default;
 
 ALTER TABLE IF EXISTS public.uploaded_citibank_transfer_initiation_files_records
     OWNER to postgres;
-
 
 
 ---
@@ -69,10 +67,9 @@ ALTER TABLE public.search_client_branches
 
 
 
----- contractor_account_details_citibank_template
+---- contractor_bank_account_details_citibank_template
 
-
-CREATE OR REPLACE VIEW public.contractor_account_details_citibank_template
+CREATE OR REPLACE VIEW public.contractor_bank_account_details_citibank_template
  AS
  WITH contractor_account_details AS (
          SELECT entity_contractors_account_details.ulid AS contractor_ulid,
@@ -97,17 +94,16 @@ CREATE OR REPLACE VIEW public.contractor_account_details_citibank_template
             entity_contractors_bank_details.branch_code
            FROM entity_contractors_bank_details
         )
- SELECT contractor_account_details.contractor_ulid,
-    contractor_account_details.name AS contractor_name,
-    contractor_bank_details.bank_name AS contractor_bank_name,
-    contractor_bank_details.bank_account_number AS contractor_bank_account_number,
-    contractor_bank_details.bank_code AS contractor_bank_code,
-    contractor_bank_details.branch_code AS contractor_bank_branch_code,
+ SELECT contractor_account_details.contractor_ulid AS employee_id,
+    contractor_account_details.name AS employee_name,
+    contractor_bank_details.bank_name,
+    contractor_bank_details.bank_account_number,
+    contractor_bank_details.bank_code,
+    contractor_bank_details.branch_code AS bank_branch_code,
     contractor_branch_pairs.branch_ulid
    FROM contractor_account_details
      JOIN contractor_bank_details ON contractor_account_details.contractor_ulid = contractor_bank_details.ulid
      JOIN contractor_branch_pairs ON contractor_branch_pairs.contractor_ulid = contractor_account_details.contractor_ulid;
 
-ALTER TABLE public.contractor_account_details_citibank_template
+ALTER TABLE public.contractor_bank_account_details_citibank_template
     OWNER TO postgres;
-

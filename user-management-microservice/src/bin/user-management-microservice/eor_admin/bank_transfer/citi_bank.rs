@@ -124,13 +124,13 @@ pub struct SearchClientsBranchesResponse {
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 #[serde(rename_all = "kebab-case")]
 pub struct GetContractorAccountDetailsCitibankTemplateResponse {
-    pub contractor_ulid: Uuid,
-    pub contractor_name: String,
-    pub contractor_bank_name: String,
-    pub contractor_bank_code: String,
-    pub contractor_bank_branch_code: String,
-    pub branch_ulid: Uuid, //client's branch ulid
-    pub contractor_bank_account_number: String,
+    pub employee_id: Uuid,// employee id
+    pub employee_name: String, //employee name
+    pub bank_name: String, //bank name
+    pub bank_account_number: String,
+    pub bank_code: String,
+    pub bank_branch_code: String,
+    pub branch_ulid: Uuid, //client's branch ulid this contractor belongs too
 }
 
 #[serde_as]
@@ -155,15 +155,14 @@ pub struct ListCitiBankTransferInitiationFiles {
 #[serde(rename_all = "kebab-case")]
 pub struct CitiBankPayRollRecord {
     pub ulid: Uuid,
-    pub company_name: String,
     pub currency_code: String,
     pub country_code: String,
-    pub employee_id: String,
+    pub employee_id: Uuid,
     pub employee_name: String,
-    pub bank_name_creditor: String,
-    pub bank_account_number_creditor: String,
-    pub bic_swift_code_creditor: String,
-    pub bank_account_number_debitor: String,
+    pub bank_name: String,
+    pub bank_account_number: String,
+    pub bank_code: String,
+    pub swift_code: String,
     pub amount: f64,
     pub file_ulid: Uuid,
     pub transaction_status: String,
@@ -207,16 +206,16 @@ pub struct StsRsnInf {
 //sftp_list_remote_files(sftp_root_dir) -> Vec<String>
 //sftp_delete_remote_file(remote_file)
 //generate_xml(template.xml, local_file, record);
-//list_available_templates() -> ['citi_bank_sg.xml']
+//list_available_templates() -> Vec<String>
 //download_citibank_transfer_initiation_template() -> FILE.xlxs
-//upload_citibank_transfer_initiation_template(UploadCitiBankTransferInitiationFiles)
+//upload_citibank_transfer_initiation_template(UploadCitiBankTransferInitiationFiles.xlxs)
 
 //init_citibank_transfer(file_ulid) -> pushes transction.xml file to citibank ftp folder
 //refresh_citibank_transfers() -> checks transaction status and updates the records
 //xml_to_citibank_transaction_response(raw_xml_string: String) -> CitiBankTransactionResponse
 
 pub async fn search_clients(
-    _: Token<AdminAccessToken>,
+    //_: Token<AdminAccessToken>,
     Query(request): Query<SearchClientsQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<SearchClientsResponse>>> {
@@ -228,7 +227,7 @@ pub async fn search_clients(
 }
 
 pub async fn search_clients_branches(
-    _: Token<AdminAccessToken>,
+    //_: Token<AdminAccessToken>,
     Query(request): Query<SearchClientsBranchesQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<SearchClientsBranchesResponse>>> {
@@ -240,7 +239,7 @@ pub async fn search_clients_branches(
 }
 
 pub async fn update_transaction_status(
-    _: Token<AdminAccessToken>,
+    //_: Token<AdminAccessToken>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let sftp_root_dir = std::env::var("CITIBANK_SFTP_ROOT_DIR").expect("failed to get root dir");
@@ -315,6 +314,7 @@ async fn encrypt(raw_data: String) -> GlobeliseResult<String> {
     fs::remove_file(Path::new(&path_raw_data))?;
     fs::remove_file(Path::new(&path_enc_data))?;
 
+    // Ok(raw_data)
     Ok(encrypted_data)
 }
 
@@ -424,7 +424,7 @@ async fn sftp_list_remote_files(sftp_root_dir: String) -> GlobeliseResult<Vec<St
 }
 
 pub async fn list_available_templates(
-    _: Token<AdminAccessToken>,
+    //_: Token<AdminAccessToken>,
 ) -> GlobeliseResult<Json<Vec<String>>> {
     let mut available_templates = Vec::new();
     let root_dir = std::env::var("CITIBANK_BASE_PATH").expect("failed to get root dir");
@@ -459,13 +459,13 @@ async fn sftp_delete_remote_file(remote_file: String) {
 }
 
 async fn generate_xml(template_name: String, local_file: String, record: CitiBankPayRollRecord) {
-    //
+
     let base_path = std::env::var("CITIBANK_BASE_PATH").expect("base path not set");
     //max 35 chars
     let guid = Uuid::parse_str(&record.ulid.to_string())
         .unwrap()
         .to_simple()
-        .to_string();
+        .to_string().to_uppercase();
     //
     let transfer_amount: f64 = record.amount;
     //
@@ -474,8 +474,8 @@ async fn generate_xml(template_name: String, local_file: String, record: CitiBan
         &base_path, &template_name
     )))
     .unwrap();
+    //
     data = str::replace(&data, "{{MsgId}}", &guid); //unique ID
-                                                    //
     data = str::replace(
         &data,
         "{{CreDtTm}}",
@@ -483,35 +483,20 @@ async fn generate_xml(template_name: String, local_file: String, record: CitiBan
             .format("%Y-%m-%dT%H:%M:%S")
             .to_string(),
     );
-    //
-    data = str::replace(&data, "{{CtgyPurp_Cd}}", "SALA"); //salary
     data = str::replace(&data, "{{CtrlSum}}", &transfer_amount.to_string()); //transfer amount
-    data = str::replace(&data, "{{InitgPty_Nm}}", &record.company_name.to_string()); //initiating party
     data = str::replace(&data, "{{PmtInfId}}", &guid); //unique ID
-    data = str::replace(&data, "{{debit_bank_bic}}", &record.bic_swift_code_creditor);
     data = str::replace(
         &data,
         "{{creditor_bank_bic}}",
-        &record.bic_swift_code_creditor,
+        &record.swift_code,
     );
-    data = str::replace(&data, "{{CtgyPurp_Cd}}", "SALA");
     data = str::replace(
         &data,
         "{{ReqdExctnDt}}",
         &chrono::offset::Local::now().format("%Y-%m-%d").to_string(),
-    ); //date clreaing agent required to process payment YYYY-MM-DD
-    data = str::replace(&data, "{{Dbtr_Nm}}", &"globelise".to_string()); //ordering party name / client name
-    data = str::replace(
-        &data,
-        "{{DbtrAcct_Id_Othr_Id}}",
-        &record.bank_account_number_debitor.to_string(),
-    ); //debit account number without any leading zero.
-    data = str::replace(&data, "{{FinInstnId_BIC}}", "CITISGSG"); //bank identification number
+    ); //date clearing agent required to process payment YYYY-MM-DD
     data = str::replace(&data, "{{EndToEndId}}", &guid); //guid
-    data = str::replace(&data, "{{Ccy}}", &record.currency_code.to_string()); //Currency
     data = str::replace(&data, "{{InstdAmt}}", &transfer_amount.to_string());
-    data = str::replace(&data, "{{Ctry}}", &record.country_code.to_string()); //SG - singapor
-    data = str::replace(&data, "{{BrnchId}}", "7214"); //
     data = str::replace(&data, "{{Cdtr_Nm}}", &record.employee_name.to_string()); //beneficiary name
     data = str::replace(
         &data,
@@ -521,9 +506,9 @@ async fn generate_xml(template_name: String, local_file: String, record: CitiBan
     data = str::replace(
         &data,
         "{{CdtrAcct_Id}}",
-        &record.bank_account_number_creditor.to_string(),
+        &record.bank_account_number.to_string(),
     ); //creditor account number
-    data = str::replace(&data, "{{RmtInf_Ustrd}}", "globelise salary payment"); //payment reference
+    data = str::replace(&data, "{{RmtInf_Ustrd}}", "Globelise salary payment"); //payment reference
 
     std::fs::write(local_file, data.as_bytes()).expect("failed to write to file");
 }
@@ -532,7 +517,7 @@ async fn generate_xml(template_name: String, local_file: String, record: CitiBan
  *  download_citibank_transfer_initiation_template.xlxs
  */
 pub async fn download_citibank_transfer_initiation_template(
-    _: Token<AdminAccessToken>,
+    //_: Token<AdminAccessToken>,
     Json(request): Json<DownloadCitibankTransferInitiationTemplateRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> (HeaderMap, Vec<u8>) {
@@ -565,42 +550,38 @@ pub async fn download_citibank_transfer_initiation_template(
     book.get_sheet_by_name_mut("Sheet1")
         .unwrap()
         .get_cell_mut("A1")
-        .set_value("Company Name");
-    book.get_sheet_by_name_mut("Sheet1")
-        .unwrap()
-        .get_cell_mut("B1")
         .set_value("Currency Code");
     book.get_sheet_by_name_mut("Sheet1")
         .unwrap()
-        .get_cell_mut("C1")
+        .get_cell_mut("B1")
         .set_value("Country Code");
     book.get_sheet_by_name_mut("Sheet1")
         .unwrap()
-        .get_cell_mut("D1")
+        .get_cell_mut("C1")
         .set_value("Employee ID");
     book.get_sheet_by_name_mut("Sheet1")
         .unwrap()
-        .get_cell_mut("E1")
+        .get_cell_mut("D1")
         .set_value("Employee Name");
     book.get_sheet_by_name_mut("Sheet1")
         .unwrap()
-        .get_cell_mut("F1")
+        .get_cell_mut("E1")
         .set_value("Bank Name");
     book.get_sheet_by_name_mut("Sheet1")
         .unwrap()
+        .get_cell_mut("F1")
+        .set_value("Bank Account Number");
+    book.get_sheet_by_name_mut("Sheet1")
+        .unwrap()
         .get_cell_mut("G1")
-        .set_value("Creditor Bank Account Number");
+        .set_value("Bank Code");
     book.get_sheet_by_name_mut("Sheet1")
         .unwrap()
         .get_cell_mut("H1")
-        .set_value("Bank Account Number Debitor");
+        .set_value("Swift code");
     book.get_sheet_by_name_mut("Sheet1")
         .unwrap()
         .get_cell_mut("I1")
-        .set_value("Contractor Bank Code");
-    book.get_sheet_by_name_mut("Sheet1")
-        .unwrap()
-        .get_cell_mut("J1")
         .set_value("Amount");
 
     //set color
@@ -640,53 +621,53 @@ pub async fn download_citibank_transfer_initiation_template(
         .unwrap()
         .get_style_mut("I1")
         .set_background_color(Color::COLOR_YELLOW);
-    book.get_sheet_by_name_mut("Sheet1")
-        .unwrap()
-        .get_style_mut("J1")
-        .set_background_color(Color::COLOR_YELLOW);
 
-    let mut row_index = 2; //start at 2
+
+//     pub employee_id: Uuid,// employee id
+//     pub employee_name: String, //employee name
+//     pub bank_name: String, //bank name
+//     pub bank_account_number: String,
+//     pub bank_code: String,
+//     pub bank_branch_code: String,
+//     pub branch_ulid: Uuid, //client's branch ulid this contractor belongs too
+// }
+
+
+    let mut row_index = 2; //start at 2 because of headers
     for contractor in contractors {
         book.get_sheet_by_name_mut("Sheet1")
             .unwrap()
             .get_cell_mut(&format!("A{}", row_index))
-            .set_value(&contractor.contractor_name);
-        book.get_sheet_by_name_mut("Sheet1")
-            .unwrap()
-            .get_cell_mut(&format!("B{}", row_index))
             .set_value(&request.currency);
         book.get_sheet_by_name_mut("Sheet1")
             .unwrap()
-            .get_cell_mut(&format!("C{}", row_index))
+            .get_cell_mut(&format!("B{}", row_index))
             .set_value(&request.country);
         book.get_sheet_by_name_mut("Sheet1")
             .unwrap()
+            .get_cell_mut(&format!("C{}", row_index))
+            .set_value(&contractor.employee_id.to_string());
+        book.get_sheet_by_name_mut("Sheet1")
+            .unwrap()
             .get_cell_mut(&format!("D{}", row_index))
-            .set_value(&contractor.contractor_ulid.to_string());
+            .set_value(&contractor.employee_name);
         book.get_sheet_by_name_mut("Sheet1")
             .unwrap()
             .get_cell_mut(&format!("E{}", row_index))
-            .set_value(&contractor.contractor_name);
+            .set_value(&contractor.bank_name);
         book.get_sheet_by_name_mut("Sheet1")
             .unwrap()
             .get_cell_mut(&format!("F{}", row_index))
-            .set_value(&contractor.contractor_bank_name);
+            .set_value(&contractor.bank_account_number);
         book.get_sheet_by_name_mut("Sheet1")
             .unwrap()
             .get_cell_mut(&format!("G{}", row_index))
-            .set_value(&contractor.contractor_bank_account_number);
+            .set_value(&contractor.bank_code);
         book.get_sheet_by_name_mut("Sheet1")
             .unwrap()
             .get_cell_mut(&format!("H{}", row_index))
-            .set_value("bank account number debitor");
-        book.get_sheet_by_name_mut("Sheet1")
-            .unwrap()
-            .get_cell_mut(&format!("I{}", row_index))
-            .set_value(&contractor.contractor_bank_code);
-        book.get_sheet_by_name_mut("Sheet1")
-            .unwrap()
-            .get_cell_mut(&format!("J{}", row_index))
-            .set_value("");
+            .set_value(&contractor.bank_code);//should be swift code
+        
 
         row_index += 1;
     }
@@ -702,7 +683,7 @@ pub async fn download_citibank_transfer_initiation_template(
  *  upload_citibank_transfer_initiation_template
  */
 pub async fn upload_citibank_transfer_initiation_template(
-    _: Token<AdminAccessToken>,
+    //_: Token<AdminAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<UploadCitiBankTransferInitiationFiles>,
         FORM_DATA_LENGTH_LIMIT,
@@ -735,37 +716,38 @@ pub async fn upload_citibank_transfer_initiation_template(
 
         //read records and save into db
         for row in r.rows() {
+
             //skip first row with titles
             if index != 0 {
-                // let employee_id_ulid_str  =  Uuid::parse_str(&row[3].get_string().unwrap().to_string()).unwrap();
+                
+                let employee_id_ulid  =  Uuid::parse_str(&row[2].get_string().unwrap_or_default().to_string()).unwrap();
 
                 let record = CitiBankPayRollRecord {
                     ulid: Uuid::new_v4(),
-                    company_name: row[0].get_string().unwrap_or_default().to_string(),
-                    currency_code: row[1].get_string().unwrap_or_default().to_string(),
-                    country_code: row[2].get_string().unwrap_or_default().to_string(),
-                    employee_id: row[3].get_string().unwrap_or_default().to_string(), //employee_id_ulid_str,
-                    employee_name: row[4].get_string().unwrap_or_default().to_string(),
-                    bank_name_creditor: row[5].get_string().unwrap_or_default().to_string(),
-                    bank_account_number_creditor: row[6]
+                    currency_code: row[0].get_string().unwrap_or_default().to_string(),
+                    country_code: row[1].get_string().unwrap_or_default().to_string(),
+                    employee_id: employee_id_ulid,
+                    employee_name: row[3].get_string().unwrap_or_default().to_string(),
+                    bank_name: row[4].get_string().unwrap_or_default().to_string(),
+                    bank_account_number: row[5]
+                        .get_string()
+                        .unwrap_or(&row[5].get_float().unwrap_or_default().to_string())
+                        .to_string()
+                        .parse()
+                        .unwrap(),
+                    bank_code: row[6]
                         .get_string()
                         .unwrap_or(&row[6].get_float().unwrap_or_default().to_string())
                         .to_string()
                         .parse()
                         .unwrap(),
-                    bank_account_number_debitor: row[7]
+                    swift_code: row[7]
                         .get_string()
                         .unwrap_or(&row[7].get_float().unwrap_or_default().to_string())
-                        .to_string()
-                        .parse()
-                        .unwrap(),
-                    bic_swift_code_creditor: row[8]
+                        .to_string(),
+                    amount: row[8]
                         .get_string()
                         .unwrap_or(&row[8].get_float().unwrap_or_default().to_string())
-                        .to_string(),
-                    amount: row[9]
-                        .get_string()
-                        .unwrap_or(&row[9].get_float().unwrap_or_default().to_string())
                         .to_string()
                         .parse()
                         .unwrap(),
@@ -791,7 +773,7 @@ pub async fn upload_citibank_transfer_initiation_template(
  * push the file to citibank
  */
 pub async fn init_citibank_transfer(
-    _: Token<AdminAccessToken>,
+    //_: Token<AdminAccessToken>,
     Json(request): Json<InitCitibankTransferRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
@@ -850,7 +832,7 @@ pub async fn init_citibank_transfer(
 
 //list all files for a client
 pub async fn list_all_uploaded_citibank_transfer_initiation_files_for_client(
-    _: Token<AdminAccessToken>,
+    //_: Token<AdminAccessToken>,
     Query(request): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<ListCitiBankTransferInitiationFiles>>> {
@@ -865,7 +847,7 @@ pub async fn list_all_uploaded_citibank_transfer_initiation_files_for_client(
 
 //all rocords for a file
 pub async fn list_uploaded_citibank_transfer_initiation_files_records(
-    _: Token<AdminAccessToken>,
+    //_: Token<AdminAccessToken>,
     Query(request): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<CitiBankPayRollRecord>>> {
@@ -880,7 +862,7 @@ pub async fn list_uploaded_citibank_transfer_initiation_files_records(
 
 //update single uploaded file record
 pub async fn update_uploaded_citibank_transfer_initiation_file_record(
-    _: Token<AdminAccessToken>,
+    //_: Token<AdminAccessToken>,
     Json(record): Json<CitiBankPayRollRecord>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
@@ -894,7 +876,7 @@ pub async fn update_uploaded_citibank_transfer_initiation_file_record(
 
 //delete single uploaded file record
 pub async fn delete_uploaded_citibank_transfer_initiation_file_record(
-    _: Token<AdminAccessToken>,
+    //_: Token<AdminAccessToken>,
     axum::extract::Path(ulid): axum::extract::Path<Uuid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
@@ -956,7 +938,7 @@ impl Database {
     ) -> GlobeliseResult<Vec<GetContractorAccountDetailsCitibankTemplateResponse>> {
         let result = sqlx::query_as(
             "SELECT * FROM 
-                        contractor_account_details_citibank_template
+                        contractor_bank_account_details_citibank_template
                     WHERE 
                         branch_ulid = $1
                     ",
@@ -1097,23 +1079,23 @@ impl Database {
         &self,
         record: CitiBankPayRollRecord,
     ) -> GlobeliseResult<()> {
+
         sqlx::query(
                 "INSERT INTO
                             uploaded_citibank_transfer_initiation_files_records
-                    (ulid, company_name, currency_code, country_code, employee_id, employee_name, bank_name_creditor, bank_account_number_creditor, 
-                     bic_swift_code_creditor, bank_account_number_debitor, amount, file_ulid, transaction_status)
-                    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);"
+                    (ulid, currency_code, country_code, employee_id, employee_name, bank_name, bank_account_number, 
+                     bank_code, swift_code, amount, file_ulid, transaction_status)
+                    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);"
             )
             .bind(&record.ulid)
-            .bind(&record.company_name)
             .bind(&record.currency_code)
             .bind(&record.country_code)
             .bind(&record.employee_id)
             .bind(&record.employee_name)
-            .bind(&record.bank_name_creditor)
-            .bind(&record.bank_account_number_creditor)
-            .bind(&record.bic_swift_code_creditor)
-            .bind(&record.bank_account_number_debitor)
+            .bind(&record.bank_name)
+            .bind(&record.bank_account_number)
+            .bind(&record.bank_code)
+            .bind(&record.swift_code)
             .bind(&record.amount)
             .bind(&record.file_ulid)
             .bind(&record.transaction_status)
@@ -1131,30 +1113,28 @@ impl Database {
             "UPDATE 
                         uploaded_citibank_transfer_initiation_files_records
                     SET 
-                        company_name = $2, 
                         currency_code = $3, 
                         country_code = $4, 
                         employee_id = $5, 
                         employee_name = $6, 
-                        bank_name_creditor = $7, 
-                        bank_account_number_creditor = $8, 
-                        bic_swift_code_creditor = $9, 
-                        bank_account_number_debitor = $10, 
+                        bank_name = $7, 
+                        bank_account_number = $8, 
+                        bank_code = $9, 
+                        swift_code = $10, 
                         amount = $11, 
                         file_ulid =  $12, 
                         transaction_status = $13
                    WHERE ulid = $1",
         )
         .bind(&record.ulid)
-        .bind(&record.company_name)
         .bind(&record.currency_code)
         .bind(&record.country_code)
         .bind(&record.employee_id)
         .bind(&record.employee_name)
-        .bind(&record.bank_name_creditor)
-        .bind(&record.bank_account_number_creditor)
-        .bind(&record.bic_swift_code_creditor)
-        .bind(&record.bank_account_number_debitor)
+        .bind(&record.bank_name)
+        .bind(&record.bank_account_number)
+        .bind(&record.bank_code)
+        .bind(&record.swift_code)
         .bind(&record.amount)
         .bind(&record.file_ulid)
         .bind(&record.transaction_status)

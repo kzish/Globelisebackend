@@ -7,7 +7,7 @@
 			<NbOfTxs>1</NbOfTxs>
 			<CtrlSum>{{CtrlSum}}</CtrlSum>
 			<InitgPty>
-				<Nm>{{InitgPty_Nm}}</Nm>
+				<Nm>Globelise</Nm>
 			</InitgPty>
 		</GrpHdr>
 		<PmtInf>
@@ -21,23 +21,23 @@
 					<Prtry>CITI422</Prtry>
 				</LclInstrm>
 				<CtgyPurp>
-					<Cd>{{CtgyPurp_Cd}}</Cd>
+					<Cd>SALA</Cd>
 				</CtgyPurp>
 			</PmtTpInf>
 			<ReqdExctnDt>{{ReqdExctnDt}}</ReqdExctnDt>
 			<Dbtr>
-				<Nm>{{Dbtr_Nm}}</Nm>
+				<Nm>Gronext Technologies Pte. Ltd.</Nm>
 			</Dbtr>
 			<DbtrAcct>
 				<Id>
 					<Othr>
-						<Id>{{DbtrAcct_Id_Othr_Id}}</Id>
+						<Id>41721006</Id>
 					</Othr>
 				</Id>
 			</DbtrAcct>
 			<DbtrAgt>
 				<FinInstnId>
-					<BIC>{{FinInstnId_BIC}}</BIC>
+					<BIC>CITISGSG</BIC>
 					<PstlAdr>
 						<Ctry>SG</Ctry>
 					</PstlAdr>
@@ -60,7 +60,7 @@
 						</PstlAdr>
 					</FinInstnId>
 					<BrnchId>
-						<Id>{{BrnchId}}</Id>
+						<Id>7214</Id>
 					</BrnchId>
 				</CdtrAgt>
 				<Cdtr>
