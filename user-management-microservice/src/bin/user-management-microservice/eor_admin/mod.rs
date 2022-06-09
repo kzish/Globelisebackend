@@ -87,7 +87,11 @@ pub async fn add_individual_contractor(
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
 
-    if (database.user_id(body.email.as_ref()).await?).is_some() {
+    if database
+        .find_one_user(None, Some(&body.email), None)
+        .await?
+        .is_some()
+    {
         return Err(GlobeliseError::UnavailableEmail);
     };
 

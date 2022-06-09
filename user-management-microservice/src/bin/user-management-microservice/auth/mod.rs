@@ -61,18 +61,19 @@ pub async fn signup(
     let hash =
         hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG).map_err(GlobeliseError::internal)?;
 
-    let user = User {
-        email: body.email,
-        password: Some(hash),
-        is_google: false,
-        is_outlook: false,
-        is_entity: user_type == UserType::Entity,
-        is_individual: user_type == UserType::Individual,
-        is_client: false,
-        is_contractor: false,
-    };
     let database = database.lock().await;
-    let ulid = database.create_user(user).await?;
+    let ulid = database
+        .create_user(
+            body.email,
+            Some(hash),
+            false,
+            false,
+            user_type == UserType::Entity,
+            user_type == UserType::Individual,
+            false,
+            false,
+        )
+        .await?;
 
     let mut shared_state = shared_state.lock().await;
     let refresh_token = shared_state
@@ -93,27 +94,28 @@ pub async fn login(
     // Mitigating this is not strictly necessary, as attackers can still find out
     // if an email is registered by using the sign-up page.
     let database = database.lock().await;
-    if let Some((ulid, user_type)) = database.user_id(&body.email).await? {
-        let user = database.find_one_user(ulid, Some(user_type)).await?;
-        if let Some(User {
-            password: Some(hash),
-            ..
-        }) = user
-        {
-            if let Ok(true) = verify_encoded(&hash, password.as_bytes()) {
+    if let Some(user) = database
+        .find_one_user(None, Some(&body.email), None)
+        .await?
+    {
+        if let Some(hash) = &user.password {
+            if let Ok(true) = verify_encoded(hash, password.as_bytes()) {
                 let mut shared_state = shared_state.lock().await;
+
+                let user_type = user.user_type()?;
+
                 let refresh_token = shared_state
-                    .open_session(&database, ulid, user_type)
+                    .open_session(&database, user.ulid, user_type)
                     .await?;
                 Ok(refresh_token)
             } else {
                 Err(GlobeliseError::unauthorized(
-                    "Entered the wrong the password",
+                    "User entered the wrong the password",
                 ))
             }
         } else {
             Err(GlobeliseError::unauthorized(
-                "Cannot find user with that ulid",
+                "User was not signed up using password authentication",
             ))
         }
     } else {
@@ -153,7 +155,10 @@ pub async fn access_token(
     }
 
     let database = database.lock().await;
-    if let Some(User { email, .. }) = database.find_one_user(ulid, Some(user_type)).await? {
+    if let Some(User { email, .. }) = database
+        .find_one_user(Some(ulid), None, Some(user_type))
+        .await?
+    {
         let mut user_roles = vec![];
         if database
             .get_is_user_fully_onboarded(ulid, user_type, UserRole::Client)

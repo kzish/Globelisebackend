@@ -1,44 +1,11 @@
 //! Endpoint for handling Google authentication.
 
-use axum::extract::{Extension, Form, Path};
+use axum::extract::{Extension, Form};
 use common_utils::error::{GlobeliseError, GlobeliseResult};
 use google_auth::IdToken;
 use once_cell::sync::Lazy;
-use user_management_microservice_sdk::user::UserType;
 
-use super::{user::User, SharedDatabase, SharedState};
-
-/// Sign up as a Google user.
-pub async fn signup(
-    Form(id_token): Form<IdToken>,
-    Path(user_type): Path<UserType>,
-    Extension(database): Extension<SharedDatabase>,
-    Extension(shared_state): Extension<SharedState>,
-) -> GlobeliseResult<String> {
-    let claims = id_token.decode(&*CLIENT_ID).await.map_err(|e| match e {
-        google_auth::Error::Decoding(_) => GlobeliseError::unauthorized("Google login failed"),
-        _ => GlobeliseError::Internal("Failed to decode Google ID token".into()),
-    })?;
-
-    let user = User {
-        email: claims.email,
-        password: None,
-        is_google: true,
-        is_outlook: false,
-        is_entity: user_type == UserType::Entity,
-        is_individual: user_type == UserType::Individual,
-        is_client: false,
-        is_contractor: false,
-    };
-    let database = database.lock().await;
-    let ulid = database.create_user(user).await?;
-
-    let mut shared_state = shared_state.lock().await;
-    let refresh_token = shared_state
-        .open_session(&database, ulid, user_type)
-        .await?;
-    Ok(refresh_token)
-}
+use super::{SharedDatabase, SharedState};
 
 /// Log in as a Google user.
 pub async fn login(
@@ -53,13 +20,14 @@ pub async fn login(
 
     let database = database.lock().await;
     let mut shared_state = shared_state.lock().await;
-    if let Some((ulid, user_type)) = database.user_id(&claims.email).await? {
-        if let Some(User {
-            is_google: true, ..
-        }) = database.find_one_user(ulid, Some(user_type)).await?
-        {
+    if let Some(user) = database
+        .find_one_user(None, Some(&claims.email), None)
+        .await?
+    {
+        if user.is_google {
+            let user_type = user.user_type()?;
             let refresh_token = shared_state
-                .open_session(&database, ulid, user_type)
+                .open_session(&database, user.ulid, user_type)
                 .await?;
 
             Ok(refresh_token)
@@ -85,7 +53,7 @@ pub async fn login_page() -> Error {
 #[cfg(debug_assertions)]
 // Use absolute namespace to silence errors about unused imports.
 pub async fn login_page() -> axum::response::Html<String> {
-    use crate::env::LISTENING_ADDRESS;
+    use crate::env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL;
 
     axum::response::Html(format!(
         r##"
@@ -99,7 +67,7 @@ pub async fn login_page() -> axum::response::Html<String> {
             <div
               id="g_id_onload"
               data-client_id="{}"
-              data-login_uri="http://{}/auth/google/login/individual"
+              data-login_uri="{}/auth/google/login"
               data-auto_prompt="false"
             ></div>
             <div
@@ -115,6 +83,6 @@ pub async fn login_page() -> axum::response::Html<String> {
         </html>
         "##,
         (*CLIENT_ID),
-        (*LISTENING_ADDRESS)
+        (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL)
     ))
 }

@@ -64,7 +64,7 @@ impl State {
     ) -> GlobeliseResult<String> {
         // Validate that the user and role are correct.
         if database
-            .find_one_user(ulid, Some(user_type))
+            .find_one_user(Some(ulid), None, Some(user_type))
             .await?
             .is_none()
         {
@@ -123,7 +123,7 @@ impl State {
     {
         // Validate that the user and role are correct.
         if database
-            .find_one_user(ulid, Some(user_type))
+            .find_one_user(Some(ulid), None, Some(user_type))
             .await?
             .is_none()
         {

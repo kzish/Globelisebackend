@@ -41,10 +41,14 @@ pub async fn send_email(
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
-    let (user_ulid, user_type, is_valid_attempt) = match database.user_id(&body.email).await {
-        Ok(Some((ulid, user_type))) => (ulid, user_type, true),
-        _ => (Uuid::new_v4(), UserType::Individual, false),
-    };
+    let (user_ulid, user_type, is_valid_attempt) =
+        match database.find_one_user(None, Some(&body.email), None).await {
+            Ok(Some(user)) => {
+                let user_type = user.user_type()?;
+                (user.ulid, user_type, true)
+            }
+            _ => (Uuid::new_v4(), UserType::Individual, false),
+        };
 
     let mut shared_state = shared_state.lock().await;
     let (one_time_token, created_valid_token) = match shared_state
