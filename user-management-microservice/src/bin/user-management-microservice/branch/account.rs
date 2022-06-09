@@ -1,4 +1,4 @@
-use axum::extract::{ContentLengthLimit, Extension, Json};
+use axum::extract::{ContentLengthLimit, Extension, Json, Path};
 use common_utils::{
     custom_serde::{Country, ImageData, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
@@ -16,6 +16,7 @@ use crate::database::{Database, SharedDatabase};
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchAccountDetails {
+    pub ulid: Uuid,
     pub branch_name: String,
     pub country: Country,
     pub entity_type: String,
@@ -35,7 +36,8 @@ pub struct BranchAccountDetails {
 
 pub async fn post_branch_account_details(
     claims: Token<UserAccessToken>,
-    ContentLengthLimit(Json(request)): ContentLengthLimit<
+    Path(branch_ulid): Path<Uuid>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<BranchAccountDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
@@ -49,18 +51,18 @@ pub async fn post_branch_account_details(
 
     database
         .post_branch_account_details(
-            claims.payload.ulid,
-            request.branch_name,
-            request.country,
-            request.entity_type,
-            request.registration_number,
-            request.tax_id,
-            request.statutory_contribution_submission_number,
-            request.company_address,
-            request.city,
-            request.postal_code,
-            request.time_zone,
-            request.logo,
+            branch_ulid,
+            body.branch_name,
+            body.country,
+            body.entity_type,
+            body.registration_number,
+            body.tax_id,
+            body.statutory_contribution_submission_number,
+            body.company_address,
+            body.city,
+            body.postal_code,
+            body.time_zone,
+            body.logo,
         )
         .await?;
 
@@ -69,10 +71,7 @@ pub async fn post_branch_account_details(
 
 pub async fn get_branch_account_details(
     claims: Token<UserAccessToken>,
-    ContentLengthLimit(Json(request)): ContentLengthLimit<
-        Json<BranchAccountDetailsRequest>,
-        FORM_DATA_LENGTH_LIMIT,
-    >,
+    Path(branch_ulid): Path<Uuid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<BranchAccountDetails>> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -82,18 +81,18 @@ pub async fn get_branch_account_details(
     let database = database.lock().await;
 
     if !database
-        .client_owns_branch(claims.payload.ulid, request.branch_ulid)
+        .client_owns_branch(claims.payload.ulid, branch_ulid)
         .await?
     {
         return Err(GlobeliseError::Forbidden);
     }
 
-    Ok(Json(
-        database
-            .get_one_branch_account_details(request.branch_ulid)
-            .await?
-            .ok_or(GlobeliseError::NotFound)?,
-    ))
+    let result = database
+        .get_one_branch_account_details(branch_ulid)
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
+
+    Ok(Json(result))
 }
 
 impl Database {
@@ -153,8 +152,7 @@ impl Database {
     ) -> GlobeliseResult<Option<BranchAccountDetails>> {
         let query = "
             SELECT
-                ulid, branch_name, country, entity_type, registration_number, tax_id, company_address,
-                city, postal_code, time_zone, logo
+                *
             FROM
                 entity_clients_branch_account_details
             WHERE
@@ -167,11 +165,4 @@ impl Database {
 
         Ok(result)
     }
-}
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct BranchAccountDetailsRequest {
-    branch_ulid: Uuid,
 }

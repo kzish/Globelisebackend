@@ -1,4 +1,4 @@
-use axum::extract::{ContentLengthLimit, Extension, Json};
+use axum::extract::{ContentLengthLimit, Extension, Json, Path};
 use common_utils::{
     custom_serde::{Currency, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
@@ -79,6 +79,7 @@ impl Database {
 
 pub async fn post_branch_bank_details(
     claims: Token<UserAccessToken>,
+    Path(branch_ulid): Path<Uuid>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<BranchBankDetails>,
         FORM_DATA_LENGTH_LIMIT,
@@ -93,7 +94,7 @@ pub async fn post_branch_bank_details(
 
     database
         .post_branch_bank_details(
-            claims.payload.ulid,
+            branch_ulid,
             body.currency,
             body.bank_name,
             body.bank_account_name,
@@ -109,10 +110,7 @@ pub async fn post_branch_bank_details(
 
 pub async fn get_branch_bank_details(
     claims: Token<UserAccessToken>,
-    ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<BranchBankDetailsRequest>,
-        FORM_DATA_LENGTH_LIMIT,
-    >,
+    Path(branch_ulid): Path<Uuid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<BranchBankDetails>> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -122,23 +120,24 @@ pub async fn get_branch_bank_details(
     let database = database.lock().await;
 
     if !database
-        .client_owns_branch(claims.payload.ulid, body.branch_ulid)
+        .client_owns_branch(claims.payload.ulid, branch_ulid)
         .await?
     {
         return Err(GlobeliseError::Forbidden);
     }
 
-    Ok(Json(
-        database
-            .get_one_branch_bank_details(body.branch_ulid)
-            .await?
-            .ok_or(GlobeliseError::NotFound)?,
-    ))
+    let result = database
+        .get_one_branch_bank_details(branch_ulid)
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
+
+    Ok(Json(result))
 }
 
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchBankDetails {
+    pub ulid: Uuid,
     pub currency: Currency,
     pub bank_name: String,
     pub bank_account_name: String,

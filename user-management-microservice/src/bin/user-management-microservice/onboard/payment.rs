@@ -59,9 +59,10 @@ pub async fn post_onboard_client_payment_details(
         .insert_one_onboard_client_payment_details(
             claims.payload.ulid,
             claims.payload.user_type,
-            body,
+            &body,
         )
-        .await
+        .await?;
+    Ok(())
 }
 
 impl Database {
@@ -69,7 +70,7 @@ impl Database {
         &self,
         ulid: Uuid,
         user_type: UserType,
-        details: InsertOneOnboardClientPaymentDetails,
+        details: &InsertOneOnboardClientPaymentDetails,
     ) -> GlobeliseResult<()> {
         let table = match user_type {
             UserType::Individual => "individual_clients_payment_details",
