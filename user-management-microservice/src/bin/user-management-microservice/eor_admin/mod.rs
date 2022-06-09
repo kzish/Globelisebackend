@@ -22,6 +22,7 @@ use crate::{
     },
 };
 
+pub mod bank_transfer;
 pub mod client_contractor_pair;
 pub mod entity_contractor_branch_pair;
 pub mod individual_contractor_branch_pair;

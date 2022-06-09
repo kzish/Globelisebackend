@@ -292,6 +292,47 @@ async fn main() {
         )
         // ========== ADMIN APIS ==========
         .route(
+            "/eor-admin/citibank/download-citibank-transfer-initiation-template",
+            post(eor_admin::bank_transfer::citi_bank::download_citibank_transfer_initiation_template),
+        )
+        .route(
+            "/eor-admin/citibank/upload-citibank-transfer-initiation-template",
+            post(eor_admin::bank_transfer::citi_bank::upload_citibank_transfer_initiation_template),
+        )
+        .route(
+            "/eor-admin/citibank/init-citibank-transfer",
+            post(eor_admin::bank_transfer::citi_bank::init_citibank_transfer),
+        )
+        .route(
+            "/eor-admin/citibank/list-all-uploaded-citibank-transfer-initiation-files-for-client",
+            get(eor_admin::bank_transfer::citi_bank::list_all_uploaded_citibank_transfer_initiation_files_for_client),
+        )
+        .route(
+            "/eor-admin/citibank/list-uploaded-citibank-transfer-initiation-files-records",
+            get(eor_admin::bank_transfer::citi_bank::list_uploaded_citibank_transfer_initiation_files_records),
+        )
+        .route(
+            "/eor-admin/citibank/list-available-templates",
+            get(eor_admin::bank_transfer::citi_bank::list_available_templates),
+        )
+        .route(
+            "/eor-admin/citibank/update-uploaded-citibank-transfer-initiation-file-record",
+            post(eor_admin::bank_transfer::citi_bank::update_uploaded_citibank_transfer_initiation_file_record),
+        )
+        .route(
+            "/eor-admin/citibank/delete-uploaded-citibank-transfer-initiation-file-record/:ulid",
+            post(eor_admin::bank_transfer::citi_bank::delete_uploaded_citibank_transfer_initiation_file_record),
+        ).route(
+            "/eor-admin/citibank/search-clients",
+            get(eor_admin::bank_transfer::citi_bank::search_clients),
+        ).route(
+            "/eor-admin/citibank/search-clients-branches",
+            get(eor_admin::bank_transfer::citi_bank::search_clients_branches),
+        ).route(
+            "/eor-admin/citibank/update-transaction-status",
+            get(eor_admin::bank_transfer::citi_bank::update_transaction_status),
+        )
+        .route(
             "/eor-admin/onboarded-users",
             get(eor_admin::eor_admin_onboarded_user_index),
         )
