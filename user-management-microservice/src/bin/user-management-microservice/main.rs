@@ -124,16 +124,16 @@ async fn main() {
             get(branch::user::get_one_branch_by_ulid),
         )
         .route(
-            "/client/branch/branch-details",
+            "/client/branch/:branch_ulid/branch-details",
             get(branch::account::get_branch_account_details)
                 .post(branch::account::post_branch_account_details),
         )
         .route(
-            "/client/branch/bank-details",
+            "/client/branch/:branch_ulid/bank-details",
             get(branch::bank::get_branch_bank_details).post(branch::bank::post_branch_bank_details),
         )
         .route(
-            "/client/branch/payroll-details",
+            "/client/branch/:branch_ulid/payroll-details",
             get(branch::payroll::get_branch_payroll_details)
                 .post(branch::payroll::post_branch_payroll_details),
         )

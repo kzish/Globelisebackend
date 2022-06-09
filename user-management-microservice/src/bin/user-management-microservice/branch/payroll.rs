@@ -1,4 +1,4 @@
-use axum::extract::{ContentLengthLimit, Extension, Json, Query};
+use axum::extract::{ContentLengthLimit, Extension, Json, Path};
 use common_utils::{
     custom_serde::{OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
@@ -16,21 +16,16 @@ use crate::database::{Database, SharedDatabase};
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchPayrollDetails {
+    pub ulid: Uuid,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub payment_date: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub cutoff_date: sqlx::types::time::OffsetDateTime,
 }
 
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct BranchPaymentDetailsRequest {
-    pub branch_ulid: Uuid,
-}
-
 pub async fn post_branch_payroll_details(
     claims: Token<UserAccessToken>,
+    Path(branch_ulid): Path<Uuid>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<BranchPayrollDetails>,
         FORM_DATA_LENGTH_LIMIT,
@@ -44,13 +39,13 @@ pub async fn post_branch_payroll_details(
     let database = database.lock().await;
 
     database
-        .post_branch_payroll_details(claims.payload.ulid, body.payment_date, body.cutoff_date)
+        .post_branch_payroll_details(branch_ulid, body.payment_date, body.cutoff_date)
         .await
 }
 
 pub async fn get_branch_payroll_details(
     claims: Token<UserAccessToken>,
-    Query(query): Query<BranchPaymentDetailsRequest>,
+    Path(branch_ulid): Path<Uuid>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<BranchPayrollDetails>> {
     if !matches!(claims.payload.user_type, UserType::Entity) {
@@ -60,18 +55,18 @@ pub async fn get_branch_payroll_details(
     let database = database.lock().await;
 
     if !database
-        .client_owns_branch(claims.payload.ulid, query.branch_ulid)
+        .client_owns_branch(claims.payload.ulid, branch_ulid)
         .await?
     {
         return Err(GlobeliseError::Forbidden);
     }
 
-    Ok(Json(
-        database
-            .get_one_branch_payroll_details(query.branch_ulid)
-            .await?
-            .ok_or(GlobeliseError::NotFound)?,
-    ))
+    let result = database
+        .get_one_branch_payroll_details(branch_ulid)
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
+
+    Ok(Json(result))
 }
 
 impl Database {
