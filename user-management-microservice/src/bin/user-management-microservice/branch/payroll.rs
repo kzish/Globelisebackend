@@ -16,7 +16,6 @@ use crate::database::{Database, SharedDatabase};
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchPayrollDetails {
-    pub ulid: Uuid,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub payment_date: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]

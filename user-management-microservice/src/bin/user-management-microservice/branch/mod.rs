@@ -19,18 +19,18 @@ pub mod payroll;
 pub struct BranchDetails {
     pub ulid: Uuid,
     pub client_ulid: Uuid,
-    pub account: BranchAccountDetails,
-    pub bank: BranchBankDetails,
-    pub payroll: BranchPayrollDetails,
+    pub account: Option<BranchAccountDetails>,
+    pub bank: Option<BranchBankDetails>,
+    pub payroll: Option<BranchPayrollDetails>,
 }
 
 impl FromRow<'_, PgRow> for BranchDetails {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
         let ulid = row.try_get("ulid")?;
         let client_ulid = row.try_get("client_ulid")?;
-        let account = BranchAccountDetails::from_row(row)?;
-        let bank = BranchBankDetails::from_row(row)?;
-        let payroll = BranchPayrollDetails::from_row(row)?;
+        let account = BranchAccountDetails::from_row(row).ok();
+        let bank = BranchBankDetails::from_row(row).ok();
+        let payroll = BranchPayrollDetails::from_row(row).ok();
         Ok(BranchDetails {
             ulid,
             client_ulid,
