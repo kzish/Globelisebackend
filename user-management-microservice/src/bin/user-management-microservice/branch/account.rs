@@ -16,7 +16,6 @@ use crate::database::{Database, SharedDatabase};
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchAccountDetails {
-    pub ulid: Uuid,
     pub branch_name: String,
     pub country: Country,
     pub entity_type: String,

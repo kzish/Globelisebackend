@@ -121,9 +121,7 @@ impl Database {
     ) -> GlobeliseResult<Option<EntityClientAccountDetails>> {
         let query = "
             SELECT
-                ulid, company_name, country, entity_type, registration_number, 
-                tax_id, company_address, city, postal_code, time_zone, 
-                logo
+                *
             FROM
                 entity_clients_account_details 
             WHERE

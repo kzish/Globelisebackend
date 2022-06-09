@@ -137,7 +137,6 @@ pub async fn get_branch_bank_details(
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BranchBankDetails {
-    pub ulid: Uuid,
     pub currency: Currency,
     pub bank_name: String,
     pub bank_account_name: String,
