@@ -1,8 +1,4 @@
-use common_utils::{
-    custom_serde::EmailWrapper,
-    error::{GlobeliseError, GlobeliseResult},
-};
-use sqlx::Row;
+use common_utils::{custom_serde::EmailWrapper, error::GlobeliseResult};
 use user_management_microservice_sdk::user::UserType;
 use uuid::Uuid;
 
@@ -12,12 +8,18 @@ use super::Database;
 
 impl Database {
     /// Creates and stores a new user.
-    pub async fn create_user(&self, user: User) -> GlobeliseResult<Uuid> {
-        // Avoid overwriting an existing user.
-        if self.user_id(&user.email).await?.is_some() {
-            return Err(GlobeliseError::UnavailableEmail);
-        }
-
+    #[allow(clippy::too_many_arguments)]
+    pub async fn create_user(
+        &self,
+        email: EmailWrapper,
+        password: Option<String>,
+        is_google: bool,
+        is_outlook: bool,
+        is_entity: bool,
+        is_individual: bool,
+        is_client: bool,
+        is_contractor: bool,
+    ) -> GlobeliseResult<Uuid> {
         let ulid = Uuid::new_v4();
 
         sqlx::query(
@@ -30,14 +32,14 @@ impl Database {
             )",
         )
         .bind(ulid)
-        .bind(user.email.as_ref())
-        .bind(user.password)
-        .bind(user.is_google)
-        .bind(user.is_outlook)
-        .bind(user.is_entity)
-        .bind(user.is_individual)
-        .bind(user.is_client)
-        .bind(user.is_contractor)
+        .bind(email)
+        .bind(password)
+        .bind(is_google)
+        .bind(is_outlook)
+        .bind(is_entity)
+        .bind(is_individual)
+        .bind(is_client)
+        .bind(is_contractor)
         .execute(&self.0)
         .await?;
 
@@ -79,7 +81,8 @@ impl Database {
     /// Otherwise, it searches all user tables.
     pub async fn find_one_user(
         &self,
-        ulid: Uuid,
+        ulid: Option<Uuid>,
+        email: Option<&EmailWrapper>,
         user_type: Option<UserType>,
     ) -> GlobeliseResult<Option<User>> {
         let maybe_user = sqlx::query_as(
@@ -90,37 +93,18 @@ impl Database {
             FROM 
                 users
             WHERE 
-                ulid = $1 AND
-                ($2 IS NULL OR is_entity = $2) AND
-                ($3 IS NULL OR is_individual = $3)",
+                ($1 IS NULL OR ulid = $1) AND
+                ($2 IS NULL OR email = $2) AND
+                ($3 IS NULL OR is_entity = $3) AND
+                ($4 IS NULL OR is_individual = $4)",
         )
         .bind(ulid)
+        .bind(email)
         .bind(user_type.map(|t| t == UserType::Entity))
         .bind(user_type.map(|t| t == UserType::Individual))
         .fetch_optional(&self.0)
         .await?;
 
         Ok(maybe_user)
-    }
-
-    /// Gets a user's id and user type.
-    pub async fn user_id(&self, email: &EmailWrapper) -> GlobeliseResult<Option<(Uuid, UserType)>> {
-        if let Some(row) = sqlx::query(
-            "
-                SELECT 
-                    ulid, email, user_type
-                FROM 
-                    users_index
-                WHERE 
-                    email = $1",
-        )
-        .bind(email.as_ref())
-        .fetch_optional(&self.0)
-        .await?
-        {
-            Ok(Some((row.try_get("ulid")?, row.try_get("user_type")?)))
-        } else {
-            Ok(None)
-        }
     }
 }

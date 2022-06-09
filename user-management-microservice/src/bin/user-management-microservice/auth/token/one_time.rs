@@ -130,7 +130,7 @@ where
         // Make sure the user actually exists.
         let database = database.lock().await;
         if database
-            .find_one_user(ulid, Some(user_type))
+            .find_one_user(Some(ulid), None, Some(user_type))
             .await?
             .is_none()
         {
@@ -197,7 +197,7 @@ where
         // Make sure the user actually exists.
         let database = database.lock().await;
         if database
-            .find_one_user(ulid, Some(user_type))
+            .find_one_user(Some(ulid), None, Some(user_type))
             .await?
             .is_none()
         {
