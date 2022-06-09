@@ -62,6 +62,54 @@ pub async fn post_onboard_client_payment_details(
             &body,
         )
         .await?;
+
+    // ADDITIONAL SIDE-EFFECTS FROM SIGNING UP ENTITY CLIENT
+    // Since this is the last step for the onboarding of entity clients
+    let branch_ulid = database
+        .insert_one_entity_client_branch(claims.payload.ulid)
+        .await?;
+    if let Some(entity_client_details) = database
+        .get_onboard_entity_client_account_details(claims.payload.ulid)
+        .await?
+    {
+        database
+            .post_branch_account_details(
+                branch_ulid,
+                entity_client_details.company_name,
+                entity_client_details.country,
+                entity_client_details.entity_type,
+                entity_client_details.registration_number,
+                entity_client_details.tax_id,
+                None,
+                entity_client_details.company_address,
+                entity_client_details.city,
+                entity_client_details.postal_code,
+                entity_client_details.time_zone,
+                entity_client_details.logo,
+            )
+            .await?;
+    }
+    // Entity client does not have bank information?
+    /*
+    database
+    .post_branch_bank_details(
+        branch_ulid,
+        branch_name,
+        country,
+        entity_type,
+        registration_number,
+        tax_id,
+        statutory_contribution_submission_number,
+        company_address,
+        city,
+        postal_code,
+    )
+    .await?;
+    */
+    database
+        .post_branch_payroll_details(branch_ulid, body.payment_date, body.cutoff_date)
+        .await?;
+
     Ok(())
 }
 
