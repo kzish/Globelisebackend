@@ -1,0 +1,27 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ '/^(development|main|production|devops01)$/'
+
+variables:
+  CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
+
+default:
+  image: rust:latest
+  cache:
+    paths:
+      - ${CI_PROJECT_DIR}/.cargo/registry/index/
+      - ${CI_PROJECT_DIR}/.cargo/registry/cache/
+      - ${CI_PROJECT_DIR}/.cargo/git/db/
+      - ${CI_PROJECT_DIR}/target/
+
+stages:
+  - build
+
+build:
+  stage: build
+  script:
+    - rustup component add rustfmt llvm-tools-preview
+    - export RUSTFLAGS="-Cinstrument-coverage"
+    - cargo build
+    - ls $CI_PROJECT_DIR/target/debug

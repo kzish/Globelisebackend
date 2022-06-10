@@ -1,0 +1,43 @@
+[package]
+name = "user-management-microservice"
+version = "1.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "user_management_microservice_sdk"
+path = "src/lib.rs"
+
+[dependencies]
+# Local crates
+common-utils = { path = "../common-utils" }
+eor-admin-microservice = { path = "../eor-admin-microservice" }
+google_auth = { path = "../google_auth" }
+calamine = { git = "https://github.com/hbina/calamine.git", branch = "hbina-fork" }
+
+# Remote crates
+axum = { version = "0.5.1", features = ["headers"] }
+csv = "1.1.6"
+dapr = "0.7.2"
+dotenv = "0.15.0"
+email_address = "0.2.1"
+jsonwebtoken = "8.0.1"
+lettre = "0.10.0-rc.5"
+once_cell = "1.10.0"
+rand = "0.8.5"
+reqwest = { version = "0.11.10", features = ["json"] }
+rust-argon2 = "1.0.0"
+serde = { version = "1.0.136", features = ["derive"] }
+serde_json = "1.0.79"
+serde_with = { version = "1.12.0", features = ["base64"] }
+sqlx = { version = "0.5.11", features = ["runtime-tokio-native-tls", "postgres", "uuid", "time", "decimal"] }
+strum = { version = "0.24.0", features = ["derive"] }
+time = "0.2.27"
+tokio = { version = "1.17.0", features = ["full"] }
+tonic = "0.5.2"
+tower = { version = "0.4.12", features = ["timeout", "load-shed", "limit"] }
+tower-http = { version = "0.2.5", features = ["cors"] }
+unicode-normalization = "0.1.19"
+uuid = { version = "0.8", features = ["serde", "v4"] }
+lexical = "6.1.1"
+itertools = "0.10.3"
