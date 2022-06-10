@@ -146,21 +146,23 @@ pub async fn get_pay_item_by_id(
 }
 
 impl Database {
-    //verify_password_for_delete_operation
+    // verify_password_for_delete_operation
     pub async fn verify_password(&self, ulid: Uuid, password: String) -> GlobeliseResult<bool> {
-        let query = "SELECT 
-                    password 
-                FROM 
-                    users
-                WHERE
-                    ulid = $1";
-        let password_hash: Option<String> = sqlx::query(query)
+        let query = "
+            SELECT 
+                password 
+            FROM 
+                users
+            WHERE
+                ulid = $1";
+        let password_hash: String = sqlx::query(query)
             .bind(ulid)
             .map(|row| row.get("password"))
             .fetch_optional(&self.0)
-            .await?;
+            .await?
+            .ok_or_else(|| GlobeliseError::not_found("Cannot find password for user"))?;
 
-        let res = verify_encoded(&password_hash.unwrap(), password.as_bytes()).unwrap();
+        let res = verify_encoded(&password_hash, password.as_bytes())?;
 
         Ok(res)
     }
@@ -169,26 +171,20 @@ impl Database {
         let ulid = Uuid::new_v4();
 
         let query = "
-            INSERT INTO 
-                entity_clients_branch_pay_items (
-                ulid,
-                branch_ulid,
-                pay_item_type,
-                pay_item_custom_name,
-                use_pay_item_type_name,
-                pay_item_method,
-                employers_contribution,
-                require_employee_id
+            INSERT INTO entity_clients_branch_pay_items (
+                ulid, branch_ulid, pay_item_type, pay_item_custom_name, use_pay_item_type_name,
+                pay_item_method, employers_contribution, require_employee_id
             ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8
+                $1, $2, $3, $4, $5, 
+                $6, $7, $8
             )";
         sqlx::query(query)
             .bind(ulid)
             .bind(pay_item.branch_ulid)
-            .bind(pay_item.pay_item_type.as_str())
+            .bind(pay_item.pay_item_type)
             .bind(pay_item.pay_item_custom_name)
             .bind(pay_item.use_pay_item_type_name)
-            .bind(pay_item.pay_item_method.as_str())
+            .bind(pay_item.pay_item_method)
             .bind(pay_item.employers_contribution)
             .bind(pay_item.require_employee_id)
             .execute(&self.0)
@@ -213,10 +209,10 @@ impl Database {
             ";
         sqlx::query(query)
             .bind(pay_item.ulid)
-            .bind(pay_item.pay_item_type.as_str())
+            .bind(pay_item.pay_item_type)
             .bind(pay_item.pay_item_custom_name)
             .bind(pay_item.use_pay_item_type_name)
-            .bind(pay_item.pay_item_method.as_str())
+            .bind(pay_item.pay_item_method)
             .bind(pay_item.employers_contribution)
             .bind(pay_item.require_employee_id)
             .execute(&self.0)
@@ -239,7 +235,9 @@ impl Database {
 
     pub async fn get_pay_item_by_id(&self, ulid: Uuid) -> GlobeliseResult<Option<PayItem>> {
         let query = "
-            SELECT * FROM 
+            SELECT 
+                *
+            FROM 
                 entity_clients_branch_pay_items 
             WHERE 
                 ulid = $1";
@@ -255,26 +253,19 @@ impl Database {
         &self,
         request: PayItemsIndexQuery,
     ) -> GlobeliseResult<Vec<PayItem>> {
-        let mut search_param = String::from("");
-        if request.search_param != None {
-            search_param = format!(
-                "AND pay_item_custom_name LIKE '%{}%'",
-                request.search_param.unwrap()
-            );
-        }
-        let query = format!(
-            "
-            SELECT * FROM 
+        let query = "
+            SELECT 
+                * 
+            FROM 
                 entity_clients_branch_pay_items 
             WHERE 
-                branch_ulid = $1
-            {}
-            LIMIT $2 
-            OFFSET $3",
-            search_param
-        );
+                branch_ulid = $1 AND
+                ($2 IS NULL OR pay_item_custom_name LIKE '%$2%')
+            LIMIT $3 
+            OFFSET $4";
         let pay_items = sqlx::query_as(&query)
             .bind(request.branch_ulid)
+            .bind(request.search_param)
             .bind(request.per_page.get())
             .bind((request.page.get() - 1) * request.per_page.get())
             .fetch_all(&self.0)

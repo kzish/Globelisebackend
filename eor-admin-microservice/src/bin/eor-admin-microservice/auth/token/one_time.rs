@@ -33,7 +33,7 @@ where
         })?;
 
     let claims = OneTimeToken::<T> {
-        sub: ulid.to_string(),
+        sub: ulid,
         aud: T::name().into(),
         iss: ISSUER.into(),
         exp: expiration as usize,
@@ -54,7 +54,7 @@ pub struct OneTimeToken<T>
 where
     T: OneTimeTokenAudience,
 {
-    pub sub: String,
+    pub sub: Uuid,
     aud: String,
     iss: String,
     exp: usize,
@@ -69,7 +69,7 @@ where
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_audience(&[T::name()]);
         validation.set_issuer(&[ISSUER]);
-        validation.set_required_spec_claims(&["aud", "iss", "exp"]);
+        validation.set_required_spec_claims(&["sub", "aud", "iss", "exp"]);
         let validation = validation;
 
         let TokenData { claims, .. } =
@@ -120,11 +120,10 @@ where
             .ok_or_else(|| GlobeliseError::unauthorized("No one-time token provided"))?;
 
         let claims = OneTimeToken::<T>::decode(token)?;
-        let ulid: Uuid = claims.sub.parse().map_err(GlobeliseError::unauthorized)?;
 
         // Make sure the admin actually exists.
         let database = database.lock().await;
-        if database.admin(ulid).await?.is_none() {
+        if database.admin(claims.sub).await?.is_none() {
             return Err(GlobeliseError::unauthorized(
                 "One-time token rejected: admin does not exist",
             ));
@@ -133,7 +132,7 @@ where
         // Do not authorize if the token has already been used.
         let mut shared_state = shared_state.lock().await;
         if shared_state
-            .check_one_time_token_valid::<T>(ulid, token.as_bytes())
+            .check_one_time_token_valid::<T>(claims.sub, token.as_bytes())
             .await?
         {
             Ok(OneTimeTokenParam(claims))
@@ -182,11 +181,10 @@ where
             .await
             .map_err(GlobeliseError::internal)?;
         let claims = OneTimeToken::<T>::decode(bearer.token())?;
-        let ulid: Uuid = claims.sub.parse().map_err(GlobeliseError::unauthorized)?;
 
         // Make sure the admin actually exists.
         let database = database.lock().await;
-        if database.admin(ulid).await?.is_none() {
+        if database.admin(claims.sub).await?.is_none() {
             return Err(GlobeliseError::unauthorized(
                 "One-time token rejected: admin does not exist",
             ));
@@ -195,7 +193,7 @@ where
         // Do not authorize if the token has already been used.
         let mut shared_state = shared_state.lock().await;
         if shared_state
-            .check_one_time_token_valid::<T>(ulid, bearer.token().as_bytes())
+            .check_one_time_token_valid::<T>(claims.sub, bearer.token().as_bytes())
             .await?
         {
             Ok(OneTimeTokenBearer(claims))
