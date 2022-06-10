@@ -213,6 +213,42 @@ pub mod user {
 
         Ok(())
     }
+
+    #[serde_as]
+    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    pub struct GetManyBranchesIndividualContractorQuery {
+        pub branch_ulid: Uuid,
+        pub page: Option<u32>,
+        pub per_page: Option<u32>,
+    }
+
+    pub async fn get_many_individual_contractors(
+        claims: Token<UserAccessToken>,
+        Query(query): Query<GetManyBranchesIndividualContractorQuery>,
+        Extension(database): Extension<SharedDatabase>,
+    ) -> GlobeliseResult<Json<Vec<BranchDetails>>> {
+        let database = database.lock().await;
+
+        if !database
+            .client_owns_branch(claims.payload.ulid, query.branch_ulid)
+            .await?
+        {
+            return Err(GlobeliseError::unauthorized(
+                "This client does not own this branch",
+            ));
+        }
+
+        let result = database
+            .select_many_entity_client_branch_individual_contractors(
+                Some(query.branch_ulid),
+                query.page,
+                query.per_page,
+            )
+            .await?;
+
+        Ok(Json(result))
+    }
 }
 
 pub mod eor_admin {

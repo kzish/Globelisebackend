@@ -137,6 +137,10 @@ async fn main() {
                 .post(branch::payroll::post_branch_payroll_details),
         )
         .route(
+            "/client/branch/individual-contractors",
+            get(branch::user::get_many_individual_contractors)
+        )
+        .route(
             "/client/department",
             get(department::user_get_departments).post(department::user_post_department),
         )
