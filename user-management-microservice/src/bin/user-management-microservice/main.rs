@@ -437,6 +437,14 @@ async fn main() {
             post(eor_admin::sap::s4_hana::post_one),
         )
         .route(
+            "/eor-admin/sap/mulesoft/payroll_journal/entries",
+            get(eor_admin::sap::s4_hana::get_many_entries),
+        )
+        .route(
+            "/eor-admin/sap/mulesoft/payroll_journal/rows",
+            get(eor_admin::sap::s4_hana::get_many_rows),
+        )
+        .route(
             "/eor-admin/sap/journal_template.xlsx",
             get(eor_admin::sap::s4_hana::download),
         )
