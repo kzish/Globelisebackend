@@ -62,6 +62,17 @@ pub async fn signup(
         hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG).map_err(GlobeliseError::internal)?;
 
     let database = database.lock().await;
+
+    if database
+        .find_one_user(None, Some(&body.email), None)
+        .await?
+        .is_some()
+    {
+        return Err(GlobeliseError::bad_request(
+            "User with that email already exists. Did you forgot the password?",
+        ));
+    }
+
     let ulid = database
         .create_user(
             body.email,
