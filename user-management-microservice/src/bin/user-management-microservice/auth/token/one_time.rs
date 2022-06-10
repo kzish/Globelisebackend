@@ -32,8 +32,8 @@ where
         })?;
 
     let claims = OneTimeToken::<T> {
-        sub: ulid.to_string(),
-        user_type: user_type.to_string(),
+        sub: ulid,
+        user_type,
         aud: T::name().into(),
         iss: ISSUER.into(),
         exp: expiration as usize,
@@ -54,11 +54,12 @@ pub struct OneTimeToken<T>
 where
     T: OneTimeTokenAudience,
 {
-    pub sub: String,
-    pub user_type: String,
+    pub sub: Uuid,
+    pub user_type: UserType,
     aud: String,
     iss: String,
     exp: usize,
+    #[serde(skip)]
     one_time_audience: PhantomData<T>,
 }
 
@@ -70,7 +71,7 @@ where
         let mut validation = Validation::new(Algorithm::EdDSA);
         validation.set_audience(&[T::name()]);
         validation.set_issuer(&[ISSUER]);
-        validation.set_required_spec_claims(&["aud", "iss", "exp"]);
+        validation.set_required_spec_claims(&["sub", "aud", "iss", "exp"]);
         let validation = validation;
 
         let TokenData { claims, .. } =
@@ -121,16 +122,11 @@ where
             .ok_or_else(|| GlobeliseError::unauthorized("No one-time token provided"))?;
 
         let claims = OneTimeToken::<T>::decode(token)?;
-        let ulid: Uuid = claims.sub.parse().map_err(GlobeliseError::unauthorized)?;
-        let user_type: UserType = claims
-            .user_type
-            .parse()
-            .map_err(GlobeliseError::unauthorized)?;
 
         // Make sure the user actually exists.
         let database = database.lock().await;
         if database
-            .find_one_user(Some(ulid), None, Some(user_type))
+            .find_one_user(Some(claims.sub), None, Some(claims.user_type))
             .await?
             .is_none()
         {
@@ -142,7 +138,7 @@ where
         // Do not authorize if the token has already been used.
         let mut shared_state = shared_state.lock().await;
         if shared_state
-            .check_one_time_token_valid::<T>(ulid, token.as_bytes())
+            .check_one_time_token_valid::<T>(claims.sub, token.as_bytes())
             .await?
         {
             Ok(OneTimeTokenParam(claims))
@@ -191,13 +187,11 @@ where
             .await
             .map_err(GlobeliseError::internal)?;
         let claims = OneTimeToken::<T>::decode(bearer.token())?;
-        let ulid: Uuid = claims.sub.parse().map_err(GlobeliseError::internal)?;
-        let user_type: UserType = claims.user_type.parse().map_err(GlobeliseError::internal)?;
 
         // Make sure the user actually exists.
         let database = database.lock().await;
         if database
-            .find_one_user(Some(ulid), None, Some(user_type))
+            .find_one_user(Some(claims.sub), None, Some(claims.user_type))
             .await?
             .is_none()
         {
@@ -209,7 +203,7 @@ where
         // Do not authorize if the token has already been used.
         let mut shared_state = shared_state.lock().await;
         if shared_state
-            .check_one_time_token_valid::<T>(ulid, bearer.token().as_bytes())
+            .check_one_time_token_valid::<T>(claims.sub, bearer.token().as_bytes())
             .await?
         {
             Ok(OneTimeTokenBearer(claims))

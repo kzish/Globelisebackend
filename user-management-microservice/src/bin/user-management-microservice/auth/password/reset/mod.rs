@@ -117,13 +117,10 @@ pub async fn initiate(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<Redirect> {
-    let ulid: Uuid = claims.sub.parse().unwrap();
-    let user_type: UserType = claims.user_type.parse().unwrap();
-
     let mut shared_state = shared_state.lock().await;
     let database = database.lock().await;
     let change_password_token = shared_state
-        .open_one_time_session::<ChangePasswordToken>(&database, ulid, user_type)
+        .open_one_time_session::<ChangePasswordToken>(&database, claims.sub, claims.user_type)
         .await?;
 
     let redirect_url = format!(
@@ -141,9 +138,6 @@ pub async fn execute(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<()> {
-    let ulid: Uuid = claims.sub.parse().unwrap();
-    let user_type: UserType = claims.user_type.parse().unwrap();
-
     let new_password: String = request.new_password.nfc().collect();
     let confirm_new_password: String = request.new_password.nfc().collect();
 
@@ -161,9 +155,9 @@ pub async fn execute(
         .map_err(GlobeliseError::internal)?;
 
     database
-        .update_user_password_hash(ulid, user_type, Some(hash))
+        .update_user_password_hash(claims.sub, claims.user_type, Some(hash))
         .await?;
-    shared_state.revoke_all_sessions(ulid).await?;
+    shared_state.revoke_all_sessions(claims.sub).await?;
 
     Ok(())
 }

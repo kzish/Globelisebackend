@@ -110,11 +110,9 @@ pub async fn initiate(
     OneTimeTokenParam(claims): OneTimeTokenParam<OneTimeToken<LostPasswordToken>>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<Redirect> {
-    let ulid: Uuid = claims.sub.parse().unwrap();
-
     let mut shared_state = shared_state.lock().await;
     let change_password_token = shared_state
-        .open_one_time_session::<ChangePasswordToken>(ulid)
+        .open_one_time_session::<ChangePasswordToken>(claims.sub)
         .await?;
 
     let redirect_url = format!(
@@ -131,8 +129,6 @@ pub async fn execute(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<()> {
-    let ulid: Uuid = claims.sub.parse().unwrap();
-
     if request.new_password != request.confirm_new_password {
         return Err(GlobeliseError::bad_request("Passwords do not match"));
     }
@@ -146,8 +142,8 @@ pub async fn execute(
     let hash = hash_encoded(request.new_password.as_bytes(), &salt, &HASH_CONFIG)
         .map_err(GlobeliseError::internal)?;
 
-    database.update_password(ulid, Some(hash)).await?;
-    shared_state.revoke_all_sessions(ulid).await?;
+    database.update_password(claims.sub, Some(hash)).await?;
+    shared_state.revoke_all_sessions(claims.sub).await?;
 
     Ok(())
 }
