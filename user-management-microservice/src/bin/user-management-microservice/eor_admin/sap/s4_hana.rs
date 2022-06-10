@@ -7,7 +7,7 @@ use axum::{
 };
 use calamine::Reader;
 use common_utils::{
-    custom_serde::{EmailWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{Country, EmailWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -16,6 +16,7 @@ use itertools::Itertools;
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
+use sqlx::{FromRow, Row};
 use strum::IntoStaticStr;
 use uuid::Uuid;
 
@@ -74,8 +75,6 @@ pub struct PostPayrollJournalS4Hana {
     #[serde_as(as = "Base64")]
     pub file: Vec<u8>,
     pub client_ulid: Uuid,
-    pub country_code: String,
-    pub company_code: String,
 }
 
 #[serde_as]
@@ -98,6 +97,80 @@ pub async fn download() -> impl IntoResponse {
     )
 }
 
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct SapMulesoftPayrollJournalRowQuery {
+    pub entry_ulid: Option<Uuid>,
+}
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct SapMulesoftPayrollJournalRow {
+    pub ulid: Uuid,
+    pub entry_ulid: Uuid,
+    pub posting_date: String,
+    pub doc_type: String,
+    pub company_code: String,
+    pub currency_code: String,
+    pub reference: String,
+    pub debit_credit_code: String,
+    pub document_header_text: String,
+    pub gl_account: String,
+    pub amount: sqlx::types::Decimal,
+    pub cost_center: String,
+    pub uploaded: bool,
+}
+
+pub async fn get_many_rows(
+    // Only for validation
+    _: Token<AdminAccessToken>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<SapMulesoftPayrollJournalRowQuery>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<SapMulesoftPayrollJournalRow>>> {
+    let database = database.lock().await;
+    let result = database
+        .select_many_sap_mulesoft_payroll_journal_rows(body.entry_ulid)
+        .await?;
+    Ok(Json(result))
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct SapMulesoftPayrollJournalEntryQuery {
+    pub client_ulid: Option<Uuid>,
+    pub country_code: Option<Country>,
+}
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct SapMulesoftPayrollJournalEntry {
+    pub client_ulid: Uuid,
+    pub country_code: Country,
+}
+
+pub async fn get_many_entries(
+    // Only for validation
+    _: Token<AdminAccessToken>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<SapMulesoftPayrollJournalEntryQuery>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<SapMulesoftPayrollJournalEntry>>> {
+    let database = database.lock().await;
+    let result = database
+        .select_many_sap_mulesoft_payroll_journal_entries(body.client_ulid, body.country_code)
+        .await?;
+    Ok(Json(result))
+}
+
 pub async fn post_one(
     // Only for validation
     _: Token<AdminAccessToken>,
@@ -109,26 +182,6 @@ pub async fn post_one(
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<String> {
     let database = database.lock().await;
-
-    if !database
-        .sap_mulesoft_payroll_journal_validate_country_code(&body.country_code)
-        .await?
-    {
-        return Err(GlobeliseError::bad_request(format!(
-            "Unknown country code {}",
-            body.country_code
-        )));
-    }
-
-    if !database
-        .sap_mulesoft_payroll_journal_validate_company_code(&body.company_code, &body.country_code)
-        .await?
-    {
-        return Err(GlobeliseError::bad_request(format!(
-            "Company code '{}' and country code '{}' does not match",
-            body.company_code, body.country_code
-        )));
-    }
 
     let mut workbook = calamine::open_workbook_auto_from_rs(Cursor::new(body.file))?;
     if let Some((_, data)) = workbook.worksheets().get(0) {
@@ -246,13 +299,73 @@ pub async fn post_one(
 
         if raw_payroll_journals
             .iter()
-            .map(|v| v.posting_date.clone())
+            .map(|v| &v.company_code)
+            .unique()
+            .count()
+            != 1
+        {
+            return Err(GlobeliseError::bad_request(
+                "All country codes must be the same",
+            ));
+        };
+
+        let inferred_company_code = raw_payroll_journals
+            .get(0)
+            .expect("We already checked that there are at least 1 element in the vector")
+            .company_code
+            .clone();
+
+        if !database
+            .sap_mulesoft_payroll_journal_validate_company_code(&inferred_company_code)
+            .await?
+        {
+            return Err(GlobeliseError::bad_request(format!(
+                "The company code '{}' does not exist in the database",
+                inferred_company_code
+            )));
+        }
+
+        let inferred_country_code = database
+            .sap_mulesoft_payroll_journal_get_country_code_from_company_code(&inferred_company_code)
+            .await?
+            .ok_or_else(|| {
+                GlobeliseError::not_found(format!(
+                    "The company code '{}' does not correspond to any countries",
+                    inferred_company_code
+                ))
+            })?;
+
+        if !database
+            .sap_mulesoft_payroll_journal_validate_country_code(&inferred_country_code)
+            .await?
+        {
+            return Err(GlobeliseError::bad_request(format!(
+                "The country code '{}' does not exist in the database",
+                inferred_country_code
+            )));
+        }
+
+        if raw_payroll_journals
+            .iter()
+            .map(|v| &v.posting_date)
             .unique()
             .count()
             != 1
         {
             return Err(GlobeliseError::bad_request(
                 "All posting dates should be the same",
+            ));
+        };
+
+        if raw_payroll_journals
+            .iter()
+            .map(|v| &v.currency_code)
+            .unique()
+            .count()
+            != 1
+        {
+            return Err(GlobeliseError::bad_request(
+                "All rows must use the same currency",
             ));
         };
 
@@ -287,24 +400,27 @@ pub async fn post_one(
             .iter()
             .filter_map(|v| v.cost_center_code.as_ref())
             .unique()
-            .cloned()
             .collect::<Vec<_>>();
 
         if !database
             .sap_mulesoft_payroll_journal_validate_cost_center_code(
-                &body.company_code,
+                &inferred_company_code,
                 &cost_center_codes,
             )
             .await?
         {
             return Err(GlobeliseError::bad_request(format!(
                 "Company code '{}' and one of the cost center codes in '{:?}' does not match",
-                body.company_code, cost_center_codes
+                inferred_company_code, cost_center_codes
             )));
         }
 
         let ulid = database
-            .insert_sap_mulesoft_payroll_journal(&body.country_code, &raw_payroll_journals)
+            .insert_sap_mulesoft_payroll_journal(
+                body.client_ulid,
+                &inferred_country_code,
+                &raw_payroll_journals,
+            )
             .await?;
 
         let posting_date = raw_payroll_journals
@@ -334,8 +450,8 @@ pub async fn post_one(
                 id: ulid.to_string(),
                 name: "payroll".to_string(),
             },
-            country_iso: body.country_code,
-            company_code: body.company_code,
+            country_iso: inferred_country_code,
+            company_code: inferred_company_code,
             posting_date,
             details: payroll_journals,
         };
@@ -378,8 +494,54 @@ pub struct InsertPayrollJournalRowData {
 }
 
 impl Database {
+    pub async fn select_many_sap_mulesoft_payroll_journal_rows(
+        &self,
+        entry_ulid: Option<Uuid>,
+    ) -> GlobeliseResult<Vec<SapMulesoftPayrollJournalRow>> {
+        let result = sqlx::query_as(
+            "
+        SELECT
+            ulid, entry_ulid, posting_date, doc_type, company_code, currency_code, 
+            reference, debit_credit_code, document_header_text, gl_account, amount, 
+            cost_center, uploaded
+        FROM
+            sap_mulesoft_payroll_journals_rows
+        WHERE
+            (entry_ulid IS NULL OR entry_ulid = $1)",
+        )
+        .bind(entry_ulid)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(result)
+    }
+
+    pub async fn select_many_sap_mulesoft_payroll_journal_entries(
+        &self,
+        client_ulid: Option<Uuid>,
+        country_code: Option<Country>,
+    ) -> GlobeliseResult<Vec<SapMulesoftPayrollJournalEntry>> {
+        let result = sqlx::query_as(
+            "
+        SELECT
+            ulid, client_ulid, country_code
+        FROM
+            sap_mulesoft_payroll_journals_entries
+        WHERE
+            (client_ulid IS NULL OR client_ulid = $1) AND
+            (country_code IS NULL OR country_code = $2)",
+        )
+        .bind(client_ulid)
+        .bind(country_code)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(result)
+    }
+
     pub async fn insert_sap_mulesoft_payroll_journal(
         &self,
+        client_ulid: Uuid,
         country_code: &String,
         rows: &[InsertPayrollJournalRowData],
     ) -> GlobeliseResult<Uuid> {
@@ -388,12 +550,13 @@ impl Database {
         sqlx::query(
             "
         INSERT INTO sap_mulesoft_payroll_journals_entries (
-            ulid, country_code
+            ulid, client_ulid, country_code
         ) VALUES (
-            $1, $2
+            $1, $2, $3
         )",
         )
         .bind(ulid)
+        .bind(client_ulid)
         .bind(country_code)
         .execute(&self.0)
         .await?;
@@ -510,11 +673,10 @@ impl Database {
         Ok(result)
     }
 
-    pub async fn sap_mulesoft_payroll_journal_validate_company_code(
+    pub async fn sap_mulesoft_payroll_journal_get_country_code_from_company_code(
         &self,
         company_code: &String,
-        country_code: &String,
-    ) -> GlobeliseResult<bool> {
+    ) -> GlobeliseResult<Option<String>> {
         let result = sqlx::query(
             "
             SELECT
@@ -522,11 +684,31 @@ impl Database {
             FROM
                 sap_mulesoft_payroll_journal_company_codes
             WHERE
-                code = $1 AND
-                country_code = $2",
+                code = $1",
         )
         .bind(company_code)
-        .bind(country_code)
+        .fetch_optional(&self.0)
+        .await?
+        .map(|row| row.try_get("country_code"))
+        .transpose()?;
+
+        Ok(result)
+    }
+
+    pub async fn sap_mulesoft_payroll_journal_validate_company_code(
+        &self,
+        company_code: &String,
+    ) -> GlobeliseResult<bool> {
+        let result = sqlx::query(
+            "
+            SELECT
+                code
+            FROM
+                sap_mulesoft_payroll_journal_company_codes
+            WHERE
+                code = $1",
+        )
+        .bind(company_code)
         .fetch_optional(&self.0)
         .await?
         .is_some();
@@ -537,24 +719,29 @@ impl Database {
     pub async fn sap_mulesoft_payroll_journal_validate_cost_center_code(
         &self,
         company_code: &String,
-        cost_center_code: &[String],
+        cost_center_codes: &[&String],
     ) -> GlobeliseResult<bool> {
-        let result = sqlx::query(
-            "
+        for cost_center_code in cost_center_codes {
+            let result = sqlx::query(
+                "
             SELECT
                 code, company_code
             FROM
                 sap_mulesoft_payroll_journal_cost_centers
             WHERE
                 company_code = $1 AND
-                code = ANY($2::text[])",
-        )
-        .bind(company_code)
-        .bind(cost_center_code)
-        .fetch_optional(&self.0)
-        .await?
-        .is_some();
+                code = $2",
+            )
+            .bind(company_code)
+            .bind(cost_center_code)
+            .fetch_optional(&self.0)
+            .await?;
 
-        Ok(result)
+            if result.is_none() {
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
     }
 }
