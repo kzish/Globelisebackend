@@ -4,7 +4,7 @@ use axum::{
 };
 use common_utils::{
     custom_serde::{OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
-    error::GlobeliseResult,
+    error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
@@ -18,47 +18,121 @@ use crate::{common::PaginatedQuery, database::SharedDatabase};
 
 mod database;
 
-/// List the payslips.
-pub async fn user_payslips_index(
+pub async fn user_find_many_payslips(
     claims: Token<UserAccessToken>,
     Path(role): Path<UserRole>,
-    Query(mut query): Query<PaginatedQuery>,
+    Query(query): Query<PaginatedQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<PayslipsIndex>>> {
     let database = shared_database.lock().await;
 
-    match role {
-        UserRole::Client => query.client_ulid = Some(claims.payload.ulid),
-        UserRole::Contractor => query.contractor_ulid = Some(claims.payload.ulid),
+    let result = match role {
+        UserRole::Client => {
+            database
+                .select_many_payslips(
+                    query.page,
+                    query.per_page,
+                    query.query,
+                    query.contractor_ulid,
+                    Some(claims.payload.ulid),
+                )
+                .await?
+        }
+        UserRole::Contractor => {
+            database
+                .select_many_payslips(
+                    query.page,
+                    query.per_page,
+                    query.query,
+                    Some(claims.payload.ulid),
+                    query.client_ulid,
+                )
+                .await?
+        }
     };
 
-    let result = database.payslips_index(query).await?;
     Ok(Json(result))
 }
 
-/// List the payslips.
-pub async fn eor_admin_payslips_index(
+pub async fn user_get_one_payslip(
+    claims: Token<UserAccessToken>,
+    Path((user_role, payslip_ulid)): Path<(UserRole, Uuid)>,
+    Extension(shared_database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<PayslipsIndex>> {
+    let database = shared_database.lock().await;
+
+    let result = match user_role {
+        UserRole::Client => {
+            database
+                .select_one_payslip(payslip_ulid, Some(claims.payload.ulid), None)
+                .await?
+        }
+        UserRole::Contractor => {
+            database
+                .select_one_payslip(payslip_ulid, None, Some(claims.payload.ulid))
+                .await?
+        }
+    }
+    .ok_or_else(|| GlobeliseError::not_found("Cannot find a payslip with that UUID"))?;
+
+    Ok(Json(result))
+}
+
+pub async fn admin_get_many_payslips(
     _: Token<AdminAccessToken>,
     Query(query): Query<PaginatedQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<PayslipsIndex>>> {
     let database = shared_database.lock().await;
-    let result = database.payslips_index(query).await?;
+    let result = database
+        .select_many_payslips(
+            query.page,
+            query.per_page,
+            query.query,
+            query.contractor_ulid,
+            query.client_ulid,
+        )
+        .await?;
     Ok(Json(result))
 }
 
-/// Create a payslip.
-pub async fn eor_admin_create_payslip(
+pub async fn admin_get_one_payslip(
     _: Token<AdminAccessToken>,
-    ContentLengthLimit(Json(request)): ContentLengthLimit<
+    Path(payslip_ulid): Path<Uuid>,
+    Extension(shared_database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<PayslipsIndex>> {
+    let database = shared_database.lock().await;
+
+    let result = database
+        .select_one_payslip(payslip_ulid, None, None)
+        .await?
+        .ok_or_else(|| GlobeliseError::not_found("Cannot find a payslip with that UUID"))?;
+
+    Ok(Json(result))
+}
+
+pub async fn admin_post_one_payslip(
+    _: Token<AdminAccessToken>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<CreatePayslipsIndex>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(shared_database): Extension<SharedDatabase>,
-) -> GlobeliseResult<()> {
+) -> GlobeliseResult<String> {
     let database = shared_database.lock().await;
-    database.create_payslip(request).await?;
-    Ok(())
+    let result = database
+        .insert_one_payslip(
+            body.client_ulid,
+            body.contractor_ulid,
+            body.contract_ulid,
+            body.payslip_title,
+            body.payment_date,
+            body.begin_period,
+            body.end_period,
+            body.payslip_file,
+        )
+        .await?;
+    Ok(result.to_string())
 }
 
 #[serde_as]
@@ -66,23 +140,6 @@ pub async fn eor_admin_create_payslip(
 #[serde(rename_all = "kebab-case")]
 pub struct PayslipsIndex {
     payslip_ulid: Uuid,
-    client_name: String,
-    contractor_name: String,
-    #[serde(default)]
-    contract_name: Option<String>,
-    payslip_title: String,
-    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
-    payment_date: sqlx::types::time::OffsetDateTime,
-    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
-    begin_period: sqlx::types::time::OffsetDateTime,
-    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
-    end_period: sqlx::types::time::OffsetDateTime,
-}
-
-#[serde_as]
-#[derive(Debug, FromRow, Serialize)]
-#[serde(rename_all = "kebab-case")]
-struct PayslipsIndexSqlHelper {
     client_name: String,
     contractor_name: String,
     #[serde(default)]
