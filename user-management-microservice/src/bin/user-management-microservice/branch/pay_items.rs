@@ -263,7 +263,7 @@ impl Database {
                 ($2 IS NULL OR pay_item_custom_name LIKE '%$2%')
             LIMIT $3 
             OFFSET $4";
-        let pay_items = sqlx::query_as(&query)
+        let pay_items = sqlx::query_as(query)
             .bind(request.branch_ulid)
             .bind(request.search_param)
             .bind(request.per_page.get())
