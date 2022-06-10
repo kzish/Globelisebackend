@@ -6,7 +6,7 @@ use common_utils::{
     token::Token,
 };
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
+use serde_with::{serde_as};
 use sqlx::FromRow;
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 use uuid::Uuid;
