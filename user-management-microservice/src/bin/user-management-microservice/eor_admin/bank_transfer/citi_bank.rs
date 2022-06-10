@@ -1,31 +1,51 @@
-use axum::extract::ContentLengthLimit;
 use axum::extract::{Extension, Json, Query};
-use calamine::{open_workbook, Reader, Xlsx};
-use chrono;
-use common_utils::{
-    calc_limit_and_offset,
-    custom_serde::FORM_DATA_LENGTH_LIMIT,
-    error::{GlobeliseError, GlobeliseResult},
-};
-use reqwest::header::HeaderMap;
-use reqwest::header::{HeaderName, HeaderValue};
-use serde::{Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as};
-use sqlx::FromRow;
-use ssh2::Session;
-use std::process::Command;
+use common_utils::custom_serde::Currency;
+use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
+use csv::{ReaderBuilder, StringRecord};
+use email_address::EmailAddress;
+use eor_admin_microservice_sdk::token::AdminAccessToken;
+use lettre::{Message, SmtpTransport, Transport};
+use serde_with::{base64::Base64, serde_as, TryFromInto};
+use sqlx::{postgres::PgRow, FromRow, Row};
 use std::{
-    fs::{self},
-    io::{prelude::*, Write},
-    net::TcpStream,
+    env,
+    fs::{self, File},
     path::Path,
-    str,
 };
 use umya_spreadsheet::*;
 use user_management_microservice_sdk::user::UserType;
-use uuid::Uuid;
+
+use axum::{body::StreamBody, http::header};
+use serde_with::base64;
+use std::net::SocketAddr;
+
+use common_utils::{error::GlobeliseError, token::Token};
+// use eor_admin_microservice_sdk::token::AdminAccessToken;
+use chrono;
+use chrono::Date;
+use rand::Rng;
+use rand070::thread_rng;
+use serde::{Deserialize, Serialize};
+use ssh2::Session;
+use std::io::prelude::*;
+use std::io::Write;
+use std::net::TcpStream;
+use std::process::Command;
+use std::str;
+//
+use axum::{http::StatusCode, response::IntoResponse, routing::get, Router};
+
+use common_utils::custom_serde::{EmailWrapper, FORM_DATA_LENGTH_LIMIT};
 
 use crate::database::{Database, SharedDatabase};
+
+use reqwest::header::HeaderMap;
+// use tonic::codegen::http::HeaderMap;
+use axum::extract::ContentLengthLimit;
+use reqwest::header::{HeaderName, HeaderValue};
+// use sqlx::types::Uuid;
+use calamine::{open_workbook, DataType, Error, RangeDeserializerBuilder, Reader, Xlsx};
+use uuid::Uuid;
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
@@ -104,9 +124,9 @@ pub struct SearchClientsBranchesResponse {
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 #[serde(rename_all = "kebab-case")]
 pub struct GetContractorAccountDetailsCitibankTemplateResponse {
-    pub employee_id: Uuid,     // employee id
+    pub employee_id: Uuid,// employee id
     pub employee_name: String, //employee name
-    pub bank_name: String,     //bank name
+    pub bank_name: String, //bank name
     pub bank_account_number: String,
     pub bank_code: String,
     pub bank_branch_code: String,
@@ -152,40 +172,30 @@ pub struct CitiBankPayRollRecord {
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CitiBankTransactionResponse {
-    #[serde(rename = "CstmrPmtStsRpt")]
-    pub cstmr_pmt_sts_rpt: CstmrPmtStsRpt,
+    pub CstmrPmtStsRpt: CstmrPmtStsRpt,
 }
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CstmrPmtStsRpt {
-    #[serde(rename = "OrgnlGrpInfAndSts")]
-    pub orgnl_grp_inf_and_sts: OrgnlGrpInfAndSts,
+    pub OrgnlGrpInfAndSts: OrgnlGrpInfAndSts,
 }
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OrgnlGrpInfAndSts {
-    #[serde(rename = "OrgnlMsgId")]
-    pub orgnl_msg_id: Uuid,
-    #[serde(rename = "OrgnlMsgNmId")]
-    pub orgnl_msg_nm_id: String,
-    #[serde(rename = "OrgnlCreDtTm")]
-    pub orgnl_cre_dt_tm: String,
-    #[serde(rename = "OrgnlNbOfTxs")]
-    pub orgnl_nb_of_txs: String,
-    #[serde(rename = "OrgnlCtrlSum")]
-    pub orgnl_ctrl_sum: String,
-    #[serde(rename = "GrpSts")]
-    pub grp_sts: String,
-    #[serde(rename = "StsRsnInf")]
-    pub sts_rsn_inf: StsRsnInf,
+    pub OrgnlMsgId: Uuid,
+    pub OrgnlMsgNmId: String,
+    pub OrgnlCreDtTm: String,
+    pub OrgnlNbOfTxs: String,
+    pub OrgnlCtrlSum: String,
+    pub GrpSts: String,
+    pub StsRsnInf: StsRsnInf,
 }
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StsRsnInf {
-    #[serde(rename = "AddtlInf")]
-    pub addtl_inf: String,
+    pub AddtlInf: String,
 }
 
 // ================ SUMMARY =========================
@@ -248,7 +258,7 @@ pub async fn update_transaction_status(
         let enc_data =
             std::fs::read_to_string(Path::new(&local_file)).expect("failed to read file");
         let raw_data = enc_data; //decrypt(enc_data).await?;
-        sftp_delete_remote_file(file.to_string()).await?;
+        sftp_delete_remote_file(file.to_string()).await;
         fs::remove_file(Path::new(&local_file)).expect("error removing file");
         let citibank_response = xml_to_citibank_transaction_response(raw_data).await?;
         database.update_uploaded_citibank_transfer_initiation_file_record_by_cititbank_transaction_response(citibank_response).await?;
@@ -297,7 +307,7 @@ async fn encrypt(raw_data: String) -> GlobeliseResult<String> {
         .arg(Path::new(&path_raw_data))
         .spawn()
         .expect("failed to encrypt file");
-    cmd.wait()?;
+    cmd.wait();
     //
     let encrypted_data = fs::read_to_string(Path::new(&path_enc_data))?;
     //delete these files
@@ -333,7 +343,7 @@ async fn decrypt(enc_data: String) -> GlobeliseResult<String> {
         .arg(Path::new(&path_enc_data))
         .spawn()
         .expect("failed to decrypt file");
-    cmd.wait()?;
+    cmd.wait();
     //
     let decrypted_data = fs::read_to_string(Path::new(&path_raw_data))?;
     //delete these files
@@ -343,7 +353,7 @@ async fn decrypt(enc_data: String) -> GlobeliseResult<String> {
     Ok(decrypted_data)
 }
 
-async fn sftp_upload(local_file: String, remote_file: String) -> GlobeliseResult<()> {
+async fn sftp_upload(local_file: String, remote_file: String) {
     // Connect to the SSH server
     let sftp_username = std::env::var("CITIBANK_SFTP_USERNAME").unwrap();
     let sftp_password = std::env::var("CITIBANK_SFTP_PASSWORD").unwrap();
@@ -361,9 +371,7 @@ async fn sftp_upload(local_file: String, remote_file: String) -> GlobeliseResult
     //
     let sftp_client = sess.sftp().unwrap();
     let mut sftp_file = sftp_client.create(Path::new(&remote_file)).unwrap();
-    sftp_file.write_all(data.as_bytes())?;
-
-    Ok(())
+    sftp_file.write_all(data.as_bytes());
 }
 
 async fn sftp_download(local_file: String, remote_file: String) {
@@ -415,7 +423,8 @@ async fn sftp_list_remote_files(sftp_root_dir: String) -> GlobeliseResult<Vec<St
     Ok(remote_files)
 }
 
-pub async fn list_available_templates(//_: Token<AdminAccessToken>,
+pub async fn list_available_templates(
+    //_: Token<AdminAccessToken>,
 ) -> GlobeliseResult<Json<Vec<String>>> {
     let mut available_templates = Vec::new();
     let root_dir = std::env::var("CITIBANK_BASE_PATH").expect("failed to get root dir");
@@ -433,7 +442,7 @@ pub async fn list_available_templates(//_: Token<AdminAccessToken>,
     Ok(Json(available_templates))
 }
 
-async fn sftp_delete_remote_file(remote_file: String) -> GlobeliseResult<()> {
+async fn sftp_delete_remote_file(remote_file: String) {
     // Connect to the SSH server
     let sftp_username = std::env::var("CITIBANK_SFTP_USERNAME").unwrap();
     let sftp_password = std::env::var("CITIBANK_SFTP_PASSWORD").unwrap();
@@ -446,19 +455,17 @@ async fn sftp_delete_remote_file(remote_file: String) -> GlobeliseResult<()> {
     sess.userauth_password(&sftp_username, &sftp_password)
         .unwrap();
     let sftp_client = sess.sftp().unwrap();
-    sftp_client.unlink(Path::new(&remote_file))?;
-
-    Ok(())
+    sftp_client.unlink(Path::new(&remote_file));
 }
 
 async fn generate_xml(template_name: String, local_file: String, record: CitiBankPayRollRecord) {
+
     let base_path = std::env::var("CITIBANK_BASE_PATH").expect("base path not set");
     //max 35 chars
     let guid = Uuid::parse_str(&record.ulid.to_string())
         .unwrap()
         .to_simple()
-        .to_string()
-        .to_uppercase();
+        .to_string().to_uppercase();
     //
     let transfer_amount: f64 = record.amount;
     //
@@ -478,7 +485,11 @@ async fn generate_xml(template_name: String, local_file: String, record: CitiBan
     );
     data = str::replace(&data, "{{CtrlSum}}", &transfer_amount.to_string()); //transfer amount
     data = str::replace(&data, "{{PmtInfId}}", &guid); //unique ID
-    data = str::replace(&data, "{{creditor_bank_bic}}", &record.swift_code);
+    data = str::replace(
+        &data,
+        "{{creditor_bank_bic}}",
+        &record.swift_code,
+    );
     data = str::replace(
         &data,
         "{{ReqdExctnDt}}",
@@ -611,14 +622,16 @@ pub async fn download_citibank_transfer_initiation_template(
         .get_style_mut("I1")
         .set_background_color(Color::COLOR_YELLOW);
 
-    //     pub employee_id: Uuid,// employee id
-    //     pub employee_name: String, //employee name
-    //     pub bank_name: String, //bank name
-    //     pub bank_account_number: String,
-    //     pub bank_code: String,
-    //     pub bank_branch_code: String,
-    //     pub branch_ulid: Uuid, //client's branch ulid this contractor belongs too
-    // }
+
+//     pub employee_id: Uuid,// employee id
+//     pub employee_name: String, //employee name
+//     pub bank_name: String, //bank name
+//     pub bank_account_number: String,
+//     pub bank_code: String,
+//     pub bank_branch_code: String,
+//     pub branch_ulid: Uuid, //client's branch ulid this contractor belongs too
+// }
+
 
     let mut row_index = 2; //start at 2 because of headers
     for contractor in contractors {
@@ -653,7 +666,8 @@ pub async fn download_citibank_transfer_initiation_template(
         book.get_sheet_by_name_mut("Sheet1")
             .unwrap()
             .get_cell_mut(&format!("H{}", row_index))
-            .set_value(&contractor.bank_code); //should be swift code
+            .set_value(&contractor.bank_code);//should be swift code
+        
 
         row_index += 1;
     }
@@ -702,10 +716,11 @@ pub async fn upload_citibank_transfer_initiation_template(
 
         //read records and save into db
         for row in r.rows() {
+
             //skip first row with titles
             if index != 0 {
-                let employee_id_ulid =
-                    Uuid::parse_str(&row[2].get_string().unwrap_or_default().to_string()).unwrap();
+                
+                let employee_id_ulid  =  Uuid::parse_str(&row[2].get_string().unwrap_or_default().to_string()).unwrap();
 
                 let record = CitiBankPayRollRecord {
                     ulid: Uuid::new_v4(),
@@ -793,28 +808,24 @@ pub async fn init_citibank_transfer(
         let raw_data =
             std::fs::read_to_string(Path::new(&local_file)).expect("failed to read file");
         let enc_data = encrypt(raw_data).await?;
-        std::fs::write(Path::new(&local_file), enc_data.as_bytes())?;
+        std::fs::write(Path::new(&local_file), enc_data.as_bytes());
         let sftp_drop_dir = std::env::var("CITIBANK_SFTP_DROP_DIR").expect("path not set");
         let remote_file = format!("{}GRONEXT_PAYROLL_{}.xml", &sftp_drop_dir, &guid);
-        sftp_upload(local_file.to_string(), remote_file).await?;
+        sftp_upload(local_file.to_string(), remote_file).await;
         //remove local_file after upload
         fs::remove_file(Path::new(&local_file))?;
         //TODO change status to sent
-        database
-            .update_status_uploaded_citibank_transfer_initiation_file_record(
-                record.ulid,
-                "sent".to_string(),
-            )
-            .await?;
+        database.update_status_uploaded_citibank_transfer_initiation_file_record(
+            record.ulid,
+            "sent".to_string(),
+        );
     }
 
     //update status
-    database
-        .update_status_uploaded_citibank_transfer_initiation_file(
-            request.file_ulid,
-            "sent".to_string(),
-        )
-        .await?;
+    database.update_status_uploaded_citibank_transfer_initiation_file(
+        request.file_ulid,
+        "sent".to_string(),
+    );
 
     Ok(())
 }
@@ -1068,6 +1079,7 @@ impl Database {
         &self,
         record: CitiBankPayRollRecord,
     ) -> GlobeliseResult<()> {
+
         sqlx::query(
                 "INSERT INTO
                             uploaded_citibank_transfer_initiation_files_records
@@ -1209,15 +1221,9 @@ impl Database {
                     trasaction_status_description = $3
                 WHERE ulid = $1",
         )
-        .bind(&record.cstmr_pmt_sts_rpt.orgnl_grp_inf_and_sts.orgnl_msg_id)
-        .bind(&record.cstmr_pmt_sts_rpt.orgnl_grp_inf_and_sts.grp_sts)
-        .bind(
-            &record
-                .cstmr_pmt_sts_rpt
-                .orgnl_grp_inf_and_sts
-                .sts_rsn_inf
-                .addtl_inf,
-        )
+        .bind(&record.CstmrPmtStsRpt.OrgnlGrpInfAndSts.OrgnlMsgId)
+        .bind(&record.CstmrPmtStsRpt.OrgnlGrpInfAndSts.GrpSts)
+        .bind(&record.CstmrPmtStsRpt.OrgnlGrpInfAndSts.StsRsnInf.AddtlInf)
         .execute(&self.0)
         .await?;
 
