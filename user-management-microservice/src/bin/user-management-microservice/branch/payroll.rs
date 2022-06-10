@@ -4,6 +4,7 @@ use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
+use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 use sqlx::FromRow;
@@ -22,7 +23,7 @@ pub struct BranchPayrollDetails {
     pub cutoff_date: sqlx::types::time::OffsetDateTime,
 }
 
-pub async fn post_branch_payroll_details(
+pub async fn user_post_branch_payroll_details(
     claims: Token<UserAccessToken>,
     Path(branch_ulid): Path<Uuid>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
@@ -42,7 +43,7 @@ pub async fn post_branch_payroll_details(
         .await
 }
 
-pub async fn get_branch_payroll_details(
+pub async fn user_get_branch_payroll_details(
     claims: Token<UserAccessToken>,
     Path(branch_ulid): Path<Uuid>,
     Extension(database): Extension<SharedDatabase>,
@@ -59,6 +60,37 @@ pub async fn get_branch_payroll_details(
     {
         return Err(GlobeliseError::Forbidden);
     }
+
+    let result = database
+        .get_one_branch_payroll_details(branch_ulid)
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
+
+    Ok(Json(result))
+}
+
+pub async fn admin_post_branch_payroll_details(
+    _: Token<AdminAccessToken>,
+    Path(branch_ulid): Path<Uuid>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<BranchPayrollDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    let database = database.lock().await;
+
+    database
+        .post_branch_payroll_details(branch_ulid, body.payment_date, body.cutoff_date)
+        .await
+}
+
+pub async fn admin_get_branch_payroll_details(
+    _: Token<AdminAccessToken>,
+    Path(branch_ulid): Path<Uuid>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<BranchPayrollDetails>> {
+    let database = database.lock().await;
 
     let result = database
         .get_one_branch_payroll_details(branch_ulid)
