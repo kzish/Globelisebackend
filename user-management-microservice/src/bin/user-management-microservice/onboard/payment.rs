@@ -122,8 +122,8 @@ impl Database {
         details: &InsertOneOnboardClientPaymentDetails,
     ) -> GlobeliseResult<()> {
         let table = match user_type {
-            UserType::Individual => "individual_clients_payment_details",
-            UserType::Entity => "entity_clients_payment_details",
+            UserType::Individual => "individual_client_payment_details",
+            UserType::Entity => "entity_client_payment_details",
         };
 
         let query = format!(
@@ -153,8 +153,8 @@ impl Database {
         user_type: UserType,
     ) -> GlobeliseResult<Option<OnboardClientPaymentDetails>> {
         let table = match user_type {
-            UserType::Individual => "individual_clients_payment_details",
-            UserType::Entity => "entity_clients_payment_details",
+            UserType::Individual => "individual_client_payment_details",
+            UserType::Entity => "entity_client_payment_details",
         };
 
         let query = format!(

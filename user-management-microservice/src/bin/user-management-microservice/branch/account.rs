@@ -112,7 +112,7 @@ impl Database {
         logo: Option<ImageData>,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO entity_clients_branch_account_details (
+            INSERT INTO entity_client_branch_account_details (
                 ulid, branch_name, country, entity_type, registration_number, 
                 tax_id, statutory_contribution_submission_number, company_address, city, postal_code, 
                 time_zone, logo
@@ -153,7 +153,7 @@ impl Database {
             SELECT
                 *
             FROM
-                entity_clients_branch_account_details
+                entity_client_branch_account_details
             WHERE
                 ulid = $1";
 

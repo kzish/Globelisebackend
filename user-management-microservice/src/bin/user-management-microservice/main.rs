@@ -133,8 +133,12 @@ async fn main() {
         )
         .route(
             "/client/branch/:branch_ulid/payroll-details",
-            get(branch::payroll::get_branch_payroll_details)
-                .post(branch::payroll::post_branch_payroll_details),
+            get(branch::payroll::user_get_branch_payroll_details)
+                .post(branch::payroll::user_post_branch_payroll_details),
+        )
+        .route(
+            "/client/branch/individual-contractors",
+            get(branch::user::get_many_individual_contractors)
         )
         .route(
             "/client/department",
@@ -386,6 +390,11 @@ async fn main() {
         .route(
             "/eor-admin/branch/:branch_ulid",
             get(branch::eor_admin::get_one_branch_by_ulid),
+        )
+        .route(
+            "/eor-admin/branch/:branch_ulid/payroll-details",
+            get(branch::payroll::admin_get_branch_payroll_details)
+                .post(branch::payroll::admin_post_branch_payroll_details),
         )
         .route(
             "/eor-admin/client-contractors/search",
