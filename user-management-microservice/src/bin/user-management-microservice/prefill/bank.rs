@@ -6,23 +6,12 @@ use common_utils::{
     token::Token,
 };
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as};
+use serde_with::serde_as;
 use sqlx::FromRow;
 use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
 use uuid::Uuid;
 
 use crate::database::SharedDatabase;
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct InsertOnePrefillIndividualContractorBankDetails {
-    pub email: EmailWrapper,
-    pub client_ulid: Uuid,
-    pub bank_name: String,
-    pub bank_account_name: String,
-    pub bank_account_number: String,
-}
 
 #[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize)]
@@ -33,12 +22,14 @@ pub struct PrefillIndividualContractorBankDetails {
     pub bank_name: String,
     pub bank_account_name: String,
     pub bank_account_number: String,
+    pub bank_code: String,
+    pub branch_code: String,
 }
 
 pub async fn individual_contractor_post_one(
     token: Token<UserAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<InsertOnePrefillIndividualContractorBankDetails>,
+        Json<PrefillIndividualContractorBankDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
@@ -48,7 +39,15 @@ pub async fn individual_contractor_post_one(
     }
     let database = database.lock().await;
     database
-        .insert_one_client_prefill_individual_contractor_bank_details(token.payload.ulid, body)
+        .insert_one_client_prefill_individual_contractor_bank_details(
+            token.payload.ulid,
+            body.email,
+            body.bank_name,
+            body.bank_account_name,
+            body.bank_account_number,
+            body.bank_code,
+            body.branch_code,
+        )
         .await?;
     Ok(())
 }
@@ -80,25 +79,36 @@ pub async fn individual_contractor_get_one(
 }
 
 impl Database {
+    #[allow(clippy::too_many_arguments)]
     pub async fn insert_one_client_prefill_individual_contractor_bank_details(
         &self,
         client_ulid: Uuid,
-        details: InsertOnePrefillIndividualContractorBankDetails,
+        email: EmailWrapper,
+        bank_name: String,
+        bank_account_name: String,
+        bank_account_number: String,
+        bank_code: String,
+        branch_code: String,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO prefilled_individual_contractors_bank_details (
-                email, client_ulid, bank_name, bank_account_name, bank_account_number
+            INSERT INTO prefilled_individual_contractor_bank_details (
+                email, client_ulid, bank_name, bank_account_name, bank_account_number,
+                bank_code, branch_code
             ) VALUES (
-                $1, $2, $3, $4, $5
+                $1, $2, $3, $4, $5,
+                $6, $7
             ) ON CONFLICT(email, client_ulid) DO UPDATE SET 
-                bank_name = $2, bank_account_name = $3, bank_account_number = $4";
+                bank_name = $3, bank_account_name = $4, bank_account_number = $5,
+                bank_code = $6, branch_code = $7";
 
         sqlx::query(query)
-            .bind(details.email)
+            .bind(email)
             .bind(client_ulid)
-            .bind(details.bank_name)
-            .bind(details.bank_account_name)
-            .bind(details.bank_account_number)
+            .bind(bank_name)
+            .bind(bank_account_name)
+            .bind(bank_account_number)
+            .bind(bank_code)
+            .bind(branch_code)
             .execute(&self.0)
             .await?;
 
@@ -112,9 +122,9 @@ impl Database {
     ) -> GlobeliseResult<Option<PrefillIndividualContractorBankDetails>> {
         let query = "
             SELECT
-                email, client_ulid, bank_name, bank_account_name, bank_account_number
+                *
             FROM
-                prefilled_individual_contractors_bank_details
+                prefilled_individual_contractor_bank_details
             WHERE
                 email = $1 AND
                 client_ulid = $2";
