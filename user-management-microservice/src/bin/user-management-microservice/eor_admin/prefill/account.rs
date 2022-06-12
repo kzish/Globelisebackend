@@ -17,7 +17,6 @@ use crate::database::{Database, SharedDatabase};
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillEntityClientAccountDetails {
     pub email: EmailWrapper,
-    pub client_ulid: Option<Uuid>,
     pub company_name: String,
     pub country: Country,
     pub entity_type: String,
@@ -32,9 +31,6 @@ pub struct PrefillEntityClientAccountDetails {
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
     pub logo: Option<ImageData>,
-    #[serde_as(as = "Option<Base64>")]
-    #[serde(default)]
-    pub company_profile: Option<Vec<u8>>,
 }
 
 pub async fn entity_client_post_one(
@@ -48,7 +44,19 @@ pub async fn entity_client_post_one(
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
     database
-        .insert_one_prefill_entity_client_account_details(body)
+        .insert_one_prefilled_entity_client_account_details(
+            body.email,
+            body.company_name,
+            body.country,
+            body.entity_type,
+            body.registration_number,
+            body.tax_id,
+            body.company_address,
+            body.city,
+            body.postal_code,
+            body.time_zone,
+            body.logo,
+        )
         .await?;
     Ok(())
 }
@@ -68,37 +76,16 @@ pub async fn entity_client_get_one(
 ) -> GlobeliseResult<Json<PrefillEntityClientAccountDetails>> {
     let database = database.lock().await;
     let result = database
-        .select_one_prefill_entity_client_account_details(query.email)
+        .select_one_prefilled_entity_client_account_details(query.email)
         .await?
         .ok_or(GlobeliseError::NotFound)?;
     Ok(Json(result))
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct InsertOnePrefillIndividualContractorAccountDetails {
-    pub email: EmailWrapper,
-    pub client_ulid: Uuid,
-    pub first_name: String,
-    pub last_name: String,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub dob: sqlx::types::time::OffsetDateTime,
-    pub dial_code: String,
-    pub phone_number: String,
-    pub country: Country,
-    pub city: String,
-    pub address: String,
-    pub postal_code: String,
-    #[serde(default)]
-    pub tax_id: Option<String>,
-    pub time_zone: String,
-}
-
-#[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct PrefillIndividualContractorAccountDetails {
+pub struct PrefilledIndividualContractorAccountDetails {
     pub email: EmailWrapper,
     pub client_ulid: Uuid,
     pub first_name: String,
@@ -120,14 +107,28 @@ pub async fn individual_contractor_post_one(
     // Only needed for validation
     _: Token<AdminAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<InsertOnePrefillIndividualContractorAccountDetails>,
+        Json<PrefilledIndividualContractorAccountDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
     database
-        .insert_one_prefilled_individual_contractors_account_details_by_admin(body)
+        .insert_one_prefilled_individual_contractor_account_details(
+            body.email,
+            body.client_ulid,
+            body.first_name,
+            body.last_name,
+            body.dob,
+            body.dial_code,
+            body.phone_number,
+            body.country,
+            body.city,
+            body.address,
+            body.postal_code,
+            body.tax_id,
+            body.time_zone,
+        )
         .await?;
     Ok(())
 }
@@ -145,22 +146,32 @@ pub async fn individual_contractor_get_one(
     _: Token<AdminAccessToken>,
     Query(query): Query<IndividualContractorGetOneQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<PrefillIndividualContractorAccountDetails>> {
+) -> GlobeliseResult<Json<PrefilledIndividualContractorAccountDetails>> {
     let database = database.lock().await;
     let result = database
-        .select_one_prefilled_individual_contractors_account_details_by_admin(
-            query.email,
-            query.client_ulid,
-        )
+        .select_one_prefilled_individual_contractor_account_details(query.email, query.client_ulid)
         .await?
         .ok_or(GlobeliseError::NotFound)?;
     Ok(Json(result))
 }
 
 impl Database {
-    pub async fn insert_one_prefilled_individual_contractors_account_details_by_admin(
+    #[allow(clippy::too_many_arguments)]
+    pub async fn insert_one_prefilled_individual_contractor_account_details(
         &self,
-        details: InsertOnePrefillIndividualContractorAccountDetails,
+        email: EmailWrapper,
+        client_ulid: Uuid,
+        first_name: String,
+        last_name: String,
+        dob: sqlx::types::time::OffsetDateTime,
+        dial_code: String,
+        phone_number: String,
+        country: Country,
+        city: String,
+        address: String,
+        postal_code: String,
+        tax_id: Option<String>,
+        time_zone: String,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO prefilled_individual_contractors_account_details (
@@ -177,35 +188,33 @@ impl Database {
                 postal_code = $11, tax_id = $12, time_zone = $13";
 
         sqlx::query(query)
-            .bind(details.email)
-            .bind(details.client_ulid)
-            .bind(details.first_name)
-            .bind(details.last_name)
-            .bind(details.dob)
-            .bind(details.dial_code)
-            .bind(details.phone_number)
-            .bind(details.country)
-            .bind(details.city)
-            .bind(details.address)
-            .bind(details.postal_code)
-            .bind(details.tax_id)
-            .bind(details.time_zone)
+            .bind(email)
+            .bind(client_ulid)
+            .bind(first_name)
+            .bind(last_name)
+            .bind(dob)
+            .bind(dial_code)
+            .bind(phone_number)
+            .bind(country)
+            .bind(city)
+            .bind(address)
+            .bind(postal_code)
+            .bind(tax_id)
+            .bind(time_zone)
             .execute(&self.0)
             .await?;
 
         Ok(())
     }
 
-    pub async fn select_one_prefilled_individual_contractors_account_details_by_admin(
+    pub async fn select_one_prefilled_individual_contractor_account_details(
         &self,
         email: EmailWrapper,
         client_ulid: Uuid,
-    ) -> GlobeliseResult<Option<PrefillIndividualContractorAccountDetails>> {
+    ) -> GlobeliseResult<Option<PrefilledIndividualContractorAccountDetails>> {
         let query = "
             SELECT
-                email, first_name, last_name, dob, dial_code, 
-                phone_number, country, city, address, postal_code, 
-                tax_id, time_zone
+                *
             FROM
                 prefilled_individual_contractors_account_details
             WHERE
@@ -221,9 +230,20 @@ impl Database {
         Ok(result)
     }
 
-    pub async fn insert_one_prefill_entity_client_account_details(
+    #[allow(clippy::too_many_arguments)]
+    pub async fn insert_one_prefilled_entity_client_account_details(
         &self,
-        details: PrefillEntityClientAccountDetails,
+        email: EmailWrapper,
+        company_name: String,
+        country: Country,
+        entity_type: String,
+        registration_number: Option<String>,
+        tax_id: Option<String>,
+        company_address: String,
+        city: String,
+        postal_code: String,
+        time_zone: String,
+        logo: Option<ImageData>,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO prefilled_entity_clients_account_details (
@@ -240,24 +260,24 @@ impl Database {
                 logo = $11";
 
         sqlx::query(query)
-            .bind(details.email)
-            .bind(details.company_name)
-            .bind(details.country)
-            .bind(details.entity_type)
-            .bind(details.registration_number)
-            .bind(details.tax_id)
-            .bind(details.company_address)
-            .bind(details.city)
-            .bind(details.postal_code)
-            .bind(details.time_zone)
-            .bind(details.logo.map(|b| b.as_ref().to_owned()))
+            .bind(email)
+            .bind(company_name)
+            .bind(country)
+            .bind(entity_type)
+            .bind(registration_number)
+            .bind(tax_id)
+            .bind(company_address)
+            .bind(city)
+            .bind(postal_code)
+            .bind(time_zone)
+            .bind(logo)
             .execute(&self.0)
             .await?;
 
         Ok(())
     }
 
-    pub async fn select_one_prefill_entity_client_account_details(
+    pub async fn select_one_prefilled_entity_client_account_details(
         &self,
         email: EmailWrapper,
     ) -> GlobeliseResult<Option<PrefillEntityClientAccountDetails>> {
