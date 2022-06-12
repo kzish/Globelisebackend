@@ -35,12 +35,10 @@ impl Database {
         user_role: UserRole,
     ) -> GlobeliseResult<bool> {
         let table_name = match (user_type, user_role) {
-            (UserType::Individual, UserRole::Client) => "individual_clients_fully_onboarded",
-            (UserType::Individual, UserRole::Contractor) => {
-                "individual_contractors_fully_onboarded"
-            }
-            (UserType::Entity, UserRole::Client) => "entity_clients_fully_onboarded",
-            (UserType::Entity, UserRole::Contractor) => "entity_contractors_fully_onboarded",
+            (UserType::Individual, UserRole::Client) => "individual_client_fully_onboarded",
+            (UserType::Individual, UserRole::Contractor) => "individual_contractor_fully_onboarded",
+            (UserType::Entity, UserRole::Client) => "entity_client_fully_onboarded",
+            (UserType::Entity, UserRole::Contractor) => "entity_contractor_fully_onboarded",
         };
         let query = format!(
             "

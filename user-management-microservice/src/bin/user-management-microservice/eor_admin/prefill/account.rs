@@ -174,7 +174,7 @@ impl Database {
         time_zone: String,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO prefilled_individual_contractors_account_details (
+            INSERT INTO prefilled_individual_contractor_account_details (
                 email, client_ulid, first_name, last_name, dob, 
                 dial_code, phone_number, country, city, address, 
                 postal_code, tax_id, time_zone
@@ -216,7 +216,7 @@ impl Database {
             SELECT
                 *
             FROM
-                prefilled_individual_contractors_account_details
+                prefilled_individual_contractor_account_details
             WHERE
                 email = $1 AND
                 client_ulid = $2";
@@ -246,7 +246,7 @@ impl Database {
         logo: Option<ImageData>,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO prefilled_entity_clients_account_details (
+            INSERT INTO prefilled_entity_client_account_details (
                 email, company_name, country, entity_type, registration_number, 
                 tax_id, company_address, city, postal_code, time_zone, 
                 logo
@@ -287,7 +287,7 @@ impl Database {
                 tax_id, company_address, city, postal_code, time_zone,
                 logo
             FROM
-                prefilled_entity_clients_account_details
+                prefilled_entity_client_account_details
             WHERE
                 email = $1";
 

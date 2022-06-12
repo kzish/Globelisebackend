@@ -138,7 +138,7 @@ impl Database {
         branch_code: String,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO prefilled_individual_contractors_bank_details (
+            INSERT INTO prefilled_individual_contractor_bank_details (
                 email, client_ulid, bank_name, bank_account_name, bank_account_number,
                 bank_code, branch_code
             ) VALUES (
@@ -171,7 +171,7 @@ impl Database {
             SELECT
                *
             FROM
-                prefilled_individual_contractors_bank_details
+                prefilled_individual_contractor_bank_details
             WHERE
                 email = $1 AND
                 client_ulid = $2";
@@ -195,7 +195,7 @@ impl Database {
         branch_code: String,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO prefilled_entity_clients_bank_details (
+            INSERT INTO prefilled_entity_client_bank_details (
                 email, bank_name, bank_account_name, bank_account_number, bank_code, 
                 branch_code
             ) VALUES (
@@ -226,7 +226,7 @@ impl Database {
             SELECT
                *
             FROM
-                prefilled_individual_contractors_bank_details
+                prefilled_individual_contractor_bank_details
             WHERE
                 email = $1";
 

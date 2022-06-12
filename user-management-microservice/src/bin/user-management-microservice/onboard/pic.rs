@@ -77,8 +77,8 @@ impl Database {
         details: EntityPicDetails,
     ) -> GlobeliseResult<()> {
         let table = match role {
-            UserRole::Client => "entity_clients_pic_details",
-            UserRole::Contractor => "entity_contractors_pic_details",
+            UserRole::Client => "entity_client_pic_details",
+            UserRole::Contractor => "entity_contractor_pic_details",
         };
 
         let query = format!(
@@ -120,7 +120,7 @@ impl Database {
                         ulid, first_name, last_name, dob, dial_code,
                         phone_number, profile_picture
                     FROM
-                        entity_contractors_pic_details
+                        entity_contractor_pic_details
                     WHERE
                         ulid = $1";
 
@@ -135,7 +135,7 @@ impl Database {
                         ulid, first_name, last_name, dob, dial_code,
                         phone_number, profile_picture
                     FROM
-                        entity_clients_pic_details
+                        entity_client_pic_details
                     WHERE
                         ulid = $1";
 
