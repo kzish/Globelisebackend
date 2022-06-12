@@ -84,7 +84,7 @@ impl Database {
         details: EntityClientAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO entity_clients_account_details (
+            INSERT INTO entity_client_account_details (
                 ulid, company_name, country, entity_type, registration_number, 
                 tax_id, company_address, city, postal_code, time_zone, 
                 logo
@@ -123,7 +123,7 @@ impl Database {
             SELECT
                 *
             FROM
-                entity_clients_account_details 
+                entity_client_account_details 
             WHERE
                 ulid = $1";
 
@@ -210,7 +210,7 @@ impl Database {
         details: EntityContractorAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO entity_contractors_account_details (
+            INSERT INTO entity_contractor_account_details (
                 ulid, company_name, country, entity_type, registration_number, 
                 tax_id, company_address, city, postal_code, time_zone, 
                 logo, company_profile
@@ -251,7 +251,7 @@ impl Database {
                 tax_id, company_address, city, postal_code, time_zone, 
                 logo, company_profile
             FROM
-                entity_contractors_account_details
+                entity_contractor_account_details
             WHERE
                 ulid = $1";
         let result = sqlx::query_as(query)

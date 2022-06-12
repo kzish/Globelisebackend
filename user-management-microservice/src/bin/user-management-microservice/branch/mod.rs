@@ -514,7 +514,7 @@ impl Database {
                 -- payment details
                 cutoff_date, payment_date
             FROM
-                entity_clients_branch_details
+                entity_client_branch_details
             WHERE
                 $1 IS NULL OR (client_ulid = $1)
             LIMIT $2 OFFSET $3";
@@ -539,12 +539,11 @@ impl Database {
 
         let query = "
             SELECT
-                ulid, branch_ulid, branch_name, department_ulid, department_name,
-                classification
+                *
             FROM
-                entity_client_branch_deparment_individual_contractors_index
+                entity_client_branch_department_individual_contractors_index
             WHERE
-                $1 IS NULL OR (branch_ulid = $1)
+                ($1 IS NULL OR branch_ulid = $1)
             LIMIT 
                 $2 
             OFFSET 
@@ -578,7 +577,7 @@ impl Database {
                 -- payment details
                 cutoff_date, payment_date
             FROM
-                entity_clients_branch_details
+                entity_client_branch_details
             WHERE
                 ulid = $1";
 

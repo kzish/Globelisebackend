@@ -109,7 +109,7 @@ impl Database {
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "
-        INSERT INTO entity_clients_branch_payroll_details (
+        INSERT INTO entity_client_branch_payroll_details (
             ulid, cutoff_date, payment_date
         ) VALUES (
             $1, $2, $3
@@ -135,7 +135,7 @@ impl Database {
         SELECT 
             ulid, cutoff_date, payment_date
         FROM
-            entity_clients_branch_payroll_details
+            entity_client_branch_payroll_details
         WHERE
             ulid = $1
         ",

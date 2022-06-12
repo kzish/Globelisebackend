@@ -4,7 +4,7 @@ use common_utils::{
     token::Token,
 };
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as};
+use serde_with::serde_as;
 use sqlx::{types::Uuid, FromRow};
 use user_management_microservice_sdk::token::UserAccessToken;
 
@@ -112,7 +112,7 @@ impl Database {
             "SELECT
                 *
             FROM
-                entity_contractors_bank_details 
+                entity_contractor_bank_details 
             WHERE ulid = $1",
         )
         .bind(ulid)
@@ -128,7 +128,7 @@ impl Database {
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "INSERT INTO
-                        entity_contractors_bank_details
+                        entity_contractor_bank_details
                             (ulid, bank_name, bank_account_name, bank_account_number, branch_code, bank_code)
                   VALUES($1, $2, $3, $4, $5, $6)
                   ON CONFLICT(ulid) DO UPDATE SET 
@@ -159,7 +159,7 @@ impl Database {
             "SELECT
                 *
             FROM
-                individual_contractors_bank_details 
+                individual_contractor_bank_details 
             WHERE ulid = $1",
         )
         .bind(ulid)
@@ -175,7 +175,7 @@ impl Database {
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "INSERT INTO
-                            individual_contractors_bank_details
+                            individual_contractor_bank_details
                             (ulid, bank_name, bank_account_name, bank_account_number, bank_code, branch_code)
                   VALUES($1, $2, $3, $4, $5, $6)
                   ON CONFLICT(ulid) DO UPDATE SET 

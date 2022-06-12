@@ -59,7 +59,7 @@ impl Database {
         details: PrefillEntityClientPicDetails,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO prefilled_entity_clients_pic_details
+            INSERT INTO prefilled_entity_client_pic_details
             (email, first_name, last_name, dob, dial_code, phone_number, profile_picture)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT(email) DO UPDATE SET 

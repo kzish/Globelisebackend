@@ -65,8 +65,8 @@ impl Database {
         details: ContractorBankDetails,
     ) -> GlobeliseResult<()> {
         let table = match user_type {
-            UserType::Individual => "individual_contractors_bank_details",
-            UserType::Entity => "entity_contractors_bank_details",
+            UserType::Individual => "individual_contractor_bank_details",
+            UserType::Entity => "entity_contractor_bank_details",
         };
 
         sqlx::query(&format!(
@@ -99,8 +99,8 @@ impl Database {
         user_type: UserType,
     ) -> GlobeliseResult<Option<ContractorBankDetails>> {
         let table = match user_type {
-            UserType::Individual => "individual_contractors_bank_details",
-            UserType::Entity => "entity_contractors_bank_details",
+            UserType::Individual => "individual_contractor_bank_details",
+            UserType::Entity => "entity_contractor_bank_details",
         };
 
         let result = sqlx::query_as(&format!(

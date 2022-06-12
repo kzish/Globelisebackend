@@ -29,7 +29,7 @@ impl Database {
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "
-            INSERT INTO entity_clients_branch_bank_details (
+            INSERT INTO entity_client_branch_bank_details (
                 ulid, currency, bank_name, bank_account_name, bank_account_number,
                 swift_code, bank_key, iban, bank_code, branch_code
             ) VALUES (
@@ -65,7 +65,7 @@ impl Database {
                 ulid, currency, bank_name, bank_account_name, bank_account_number,
                 swift_code, bank_key, iban, bank_code, branch_code
             FROM
-                ntity_clients_branch_bank_details
+                entity_client_branch_bank_details
             WHERE
                 ulid = $1",
         )

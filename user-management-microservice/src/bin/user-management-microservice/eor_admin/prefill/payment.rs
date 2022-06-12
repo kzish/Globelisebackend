@@ -77,7 +77,7 @@ impl Database {
         details: InsertOnePrefillEntityClientPaymentDetails,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO prefilled_entity_clients_payment_details
+            INSERT INTO prefilled_entity_client_payment_details
             (email, currency, payment_date, cutoff_date)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT(email) DO UPDATE SET 
@@ -102,7 +102,7 @@ impl Database {
             SELECT
                 email, currency, payment_date, cutoff_date
             FROM
-                prefilled_entity_clients_payment_details
+                prefilled_entity_client_payment_details
             WHERE
                 email = $1";
 

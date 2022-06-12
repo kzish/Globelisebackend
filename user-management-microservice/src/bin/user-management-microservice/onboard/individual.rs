@@ -85,7 +85,7 @@ impl Database {
         details: IndividualClientAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO individual_clients_account_details (
+            INSERT INTO individual_client_account_details (
                 ulid, first_name, last_name, dob, dial_code, 
                 phone_number, country, city, address, postal_code, 
                 tax_id, time_zone, profile_picture
@@ -126,7 +126,7 @@ impl Database {
                 ulid, first_name, last_name, dob, dial_code, phone_number, country, city, address,
                 postal_code, tax_id, time_zone, profile_picture
             FROM
-                individual_clients_account_details
+                individual_client_account_details
             WHERE
                 ulid = $1";
 
@@ -220,7 +220,7 @@ impl Database {
         details: IndividualContractorAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO individual_contractors_account_details (
+            INSERT INTO individual_contractor_account_details (
                 ulid, first_name, last_name, dob, dial_code, 
                 phone_number, country, city, address, postal_code, 
                 tax_id, time_zone, profile_picture, cv, gender,
@@ -279,7 +279,7 @@ impl Database {
                 ulid, first_name, last_name, dob, dial_code, phone_number, country, city, address,
                 postal_code, tax_id, time_zone, profile_picture, cv
             FROM
-                individual_contractors_account_details
+                individual_contractor_account_details
             WHERE
                 ulid = $1";
 
