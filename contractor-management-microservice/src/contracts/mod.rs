@@ -13,7 +13,9 @@ use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, FromInto, TryFromInto};
 use sqlx::FromRow;
 use user_management_microservice_sdk::{
-    token::UserAccessToken, user::UserRole, user_index::GetUserInfoRequest,
+    token::UserAccessToken,
+    user::{UserRole, UserType},
+    user_index::GetUserInfoRequest,
 };
 use uuid::Uuid;
 
@@ -49,6 +51,7 @@ pub async fn eor_admin_user_index(
         result.push(UserIndex {
             ulid: v.ulid,
             name: v.name,
+            r#type: v.user_type,
             role: v.user_role,
             contract_count: count,
             created_at: v.created_at,
@@ -146,6 +149,7 @@ pub async fn eor_admin_create_contract(
 pub struct UserIndex {
     pub ulid: Uuid,
     pub name: String,
+    pub r#type: UserType,
     pub role: UserRole,
     pub contract_count: i64,
     #[serde_as(as = "FromInto<OffsetDateWrapper>")]
