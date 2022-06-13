@@ -87,7 +87,7 @@ pub async fn entity_client_get_one(
 #[serde(rename_all = "kebab-case")]
 pub struct PrefilledIndividualContractorAccountDetails {
     pub email: EmailWrapper,
-    pub client_ulid: Uuid,
+    pub client_ulid: Option<Uuid>,
     pub first_name: String,
     pub last_name: String,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
@@ -113,23 +113,42 @@ pub async fn individual_contractor_post_one(
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
-    database
-        .insert_one_prefilled_individual_contractor_account_details(
-            body.email,
-            body.client_ulid,
-            body.first_name,
-            body.last_name,
-            body.dob,
-            body.dial_code,
-            body.phone_number,
-            body.country,
-            body.city,
-            body.address,
-            body.postal_code,
-            body.tax_id,
-            body.time_zone,
-        )
-        .await?;
+    if let Some(client_ulid) = body.client_ulid {
+        database
+            .insert_one_prefilled_individual_contractor_account_details(
+                body.email,
+                client_ulid,
+                body.first_name,
+                body.last_name,
+                body.dob,
+                body.dial_code,
+                body.phone_number,
+                body.country,
+                body.city,
+                body.address,
+                body.postal_code,
+                body.tax_id,
+                body.time_zone,
+            )
+            .await?;
+    } else {
+        database
+            .insert_one_prefilled_individual_contractor_account_details_no_client_ulid(
+                body.email,
+                body.first_name,
+                body.last_name,
+                body.dob,
+                body.dial_code,
+                body.phone_number,
+                body.country,
+                body.city,
+                body.address,
+                body.postal_code,
+                body.tax_id,
+                body.time_zone,
+            )
+            .await?;
+    }
     Ok(())
 }
 
@@ -138,7 +157,7 @@ pub async fn individual_contractor_post_one(
 #[serde(rename_all = "kebab-case")]
 pub struct IndividualContractorGetOneQuery {
     email: EmailWrapper,
-    client_ulid: Uuid,
+    client_ulid: Option<Uuid>,
 }
 
 pub async fn individual_contractor_get_one(
@@ -156,6 +175,55 @@ pub async fn individual_contractor_get_one(
 }
 
 impl Database {
+    #[allow(clippy::too_many_arguments)]
+    pub async fn insert_one_prefilled_individual_contractor_account_details_no_client_ulid(
+        &self,
+        email: EmailWrapper,
+        first_name: String,
+        last_name: String,
+        dob: sqlx::types::time::OffsetDateTime,
+        dial_code: String,
+        phone_number: String,
+        country: Country,
+        city: String,
+        address: String,
+        postal_code: String,
+        tax_id: Option<String>,
+        time_zone: String,
+    ) -> GlobeliseResult<()> {
+        let query = "
+            INSERT INTO prefilled_individual_contractor_account_details_no_client_ulid (
+                email, first_name, last_name, dob, dial_code, 
+                phone_number, country, city, address, postal_code, 
+                tax_id, time_zone
+            ) VALUES (
+                $1, $2, $3, $4, $5, 
+                $6, $7, $8, $9, $10, 
+                $11, $12
+            ) ON CONFLICT(email) DO UPDATE SET 
+                first_name = $2, last_name = $3, dob = $4, dial_code = $5, 
+                phone_number = $6, country = $7, city = $8, address = $9, postal_code = $10, 
+                tax_id = $11, time_zone = $12";
+
+        sqlx::query(query)
+            .bind(email)
+            .bind(first_name)
+            .bind(last_name)
+            .bind(dob)
+            .bind(dial_code)
+            .bind(phone_number)
+            .bind(country)
+            .bind(city)
+            .bind(address)
+            .bind(postal_code)
+            .bind(tax_id)
+            .bind(time_zone)
+            .execute(&self.0)
+            .await?;
+
+        Ok(())
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub async fn insert_one_prefilled_individual_contractor_account_details(
         &self,
@@ -210,13 +278,13 @@ impl Database {
     pub async fn select_one_prefilled_individual_contractor_account_details(
         &self,
         email: EmailWrapper,
-        client_ulid: Uuid,
+        client_ulid: Option<Uuid>,
     ) -> GlobeliseResult<Option<PrefilledIndividualContractorAccountDetails>> {
         let query = "
             SELECT
                 *
             FROM
-                prefilled_individual_contractor_account_details
+                prefilled_individual_contractor_account_details_index
             WHERE
                 email = $1 AND
                 client_ulid = $2";
