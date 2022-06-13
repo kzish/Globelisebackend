@@ -17,7 +17,6 @@ use sqlx::FromRow;
 use ssh2::Session;
 use std::process::Command;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use std::{
     fs::{self},
     io::{prelude::*, Write},
@@ -25,6 +24,7 @@ use std::{
     path::Path,
     str,
 };
+use tokio::sync::Mutex;
 use umya_spreadsheet::*;
 use user_management_microservice_sdk::user::UserType;
 use uuid::Uuid;
@@ -169,12 +169,12 @@ pub struct CitiBankPayRollRecord {
 //list_available_templates() -> Vec<String>
 //download_citibank_transfer_initiation_template() -> FILE.xlxs
 //upload_citibank_transfer_initiation_template(UploadCitiBankTransferInitiationFiles.xlxs)
-//parseACK(local_file.xml) -> CitiBankACKFile
-//parseACPT(local_file.xml) -> CitiBankACPTFile
-//parseRJCT(local_file.xml) -> CitiBankRJCTFile
+//parse_ack(local_file.xml) -> CitiBankACKFile
+//parse_acpt(local_file.xml) -> CitiBankACPTFile
+//parse_rjct(local_file.xml) -> CitiBankRJCTFile
 
 //init_citibank_transfer(file_ulid) -> pushes transction.xml file to citibank ftp folder
-//refresh_citibank_transfers() -> checks transaction status and updates the records
+//update_transaction_status() -> checks transaction status and updates the records
 
 pub async fn search_clients(
     _: Token<AdminAccessToken>,
@@ -243,22 +243,20 @@ pub async fn _update_transaction_status(db: Arc<Mutex<Database>>) -> GlobeliseRe
         let enc_data = std::fs::read_to_string(Path::new(&file_path)).expect("failed to read file");
         let raw_data = decrypt(enc_data).await?;
 
-        let mut record_ulid = Uuid::new_v4();
-        let mut transaction_status: String = "".to_string();
-        let mut transaction_status_description: String = "".to_string();
+        let mut record_ulid: Uuid;
+        let mut transaction_status: String;
+        let mut transaction_status_description: String;
 
         if file_name.contains("ACK") {
-            let citibank_response = parseACK(raw_data).await?;
+            let citibank_response = parse_ack(raw_data).await?;
             let file_ulid = Uuid::parse_str(
                 &citibank_response
-                    .CstmrPmtStsRpt
-                    .OrgnlGrpInfAndSts
-                    .OrgnlMsgId,
+                    .cstmr_pmt_sts_rpt
+                    .orgnl_grp_inf_and_sts
+                    .orgnl_msg_id,
             )
             .unwrap();
-            println!("================{}=================", file_ulid);
             transaction_status = "ack".to_string();
-            transaction_status_description = "transaction acknowledged".to_string();
             database
                 .update_status_uploaded_citibank_transfer_initiation_file(
                     file_ulid,
@@ -266,24 +264,24 @@ pub async fn _update_transaction_status(db: Arc<Mutex<Database>>) -> GlobeliseRe
                 )
                 .await?;
         } else if file_name.contains("ACPT") {
-            let citibank_response = parseACPT(raw_data).await?;
+            let citibank_response = parse_acpt(raw_data).await?;
 
-            for record in citibank_response.CstmrPmtStsRpt.OrgnlPmtInfAndSts {
-                record_ulid = Uuid::parse_str(&record.OrgnlPmtInfId).unwrap();
+            for record in citibank_response.cstmr_pmt_sts_rpt.orgnl_pmt_inf_and_sts {
+                record_ulid = Uuid::parse_str(&record.orgnl_pmt_inf_id).unwrap();
                 transaction_status = "acpt".to_string();
                 transaction_status_description = "transaction accepted".to_string();
                 database.update_uploaded_citibank_transfer_initiation_file_record_by_cititbank_transaction_response(record_ulid, transaction_status, transaction_status_description).await?;
             }
         } else if file_name.contains("RJCT") {
-            let citibank_response = parseRJCT(raw_data).await?;
+            let citibank_response = parse_rjct(raw_data).await?;
 
-            for record in citibank_response.CstmrPmtStsRpt.OrgnlPmtInfAndSts {
-                record_ulid = Uuid::parse_str(&record.OrgnlPmtInfId).unwrap();
+            for record in citibank_response.cstmr_pmt_sts_rpt.orgnl_pmt_inf_and_sts {
+                record_ulid = Uuid::parse_str(&record.orgnl_pmt_inf_id).unwrap();
                 transaction_status = "rcjt".to_string();
                 let mut reject_reason: String = "".to_string();
 
-                for reason in record.TxInfAndSts.StsRsnInf {
-                    for aditional_info in reason.AddtlInf {
+                for reason in record.tx_inf_and_sts.sts_rsn_inf {
+                    for aditional_info in reason.addtl_inf {
                         reject_reason.push_str(&format!("{}, ", &aditional_info));
                     }
                 }
@@ -301,21 +299,21 @@ pub async fn _update_transaction_status(db: Arc<Mutex<Database>>) -> GlobeliseRe
 }
 
 //parse xml string to CitiBankACKFile object
-async fn parseACK(src: String) -> GlobeliseResult<CitiBankACKFile> {
+async fn parse_ack(src: String) -> GlobeliseResult<CitiBankACKFile> {
     let item = serde_xml_rs::from_str(&src).unwrap();
 
     Ok(item)
 }
 
 //parse xml string to CitiBankACPTFile object
-async fn parseACPT(src: String) -> GlobeliseResult<CitiBankACPTFile> {
+async fn parse_acpt(src: String) -> GlobeliseResult<CitiBankACPTFile> {
     let item = serde_xml_rs::from_str(&src).unwrap();
 
     Ok(item)
 }
 
 //parse xml string to CitiBankRJCTFile object
-async fn parseRJCT(src: String) -> GlobeliseResult<CitiBankRJCTFile> {
+async fn parse_rjct(src: String) -> GlobeliseResult<CitiBankRJCTFile> {
     let item = serde_xml_rs::from_str(&src).unwrap();
 
     Ok(item)
@@ -494,22 +492,24 @@ pub async fn list_available_templates(
     Ok(Json(available_templates))
 }
 
-async fn sftp_delete_remote_file(remote_file: String) -> GlobeliseResult<()> {
-    // Connect to the SSH server
-    let sftp_username = std::env::var("CITIBANK_SFTP_USERNAME")?;
-    let sftp_password = std::env::var("CITIBANK_SFTP_PASSWORD")?;
-    let sftp_host = std::env::var("CITIBANK_SFTP_HOST")?;
-    let sftp_port = std::env::var("CITIBANK_SFTP_PORT")?;
-    let tcp = TcpStream::connect(format!("{}:{}", &sftp_host, &sftp_port))?;
-    let mut sess = Session::new()?;
-    sess.set_tcp_stream(tcp);
-    sess.handshake()?;
-    sess.userauth_password(&sftp_username, &sftp_password)?;
-    let sftp_client = sess.sftp()?;
-    sftp_client.unlink(Path::new(&remote_file))?;
+// TODO remove this if not needed
+//leaving this here incase i need it in production
+// async fn sftp_delete_remote_file(remote_file: String) -> GlobeliseResult<()> {
+//     // Connect to the SSH server
+//     let sftp_username = std::env::var("CITIBANK_SFTP_USERNAME")?;
+//     let sftp_password = std::env::var("CITIBANK_SFTP_PASSWORD")?;
+//     let sftp_host = std::env::var("CITIBANK_SFTP_HOST")?;
+//     let sftp_port = std::env::var("CITIBANK_SFTP_PORT")?;
+//     let tcp = TcpStream::connect(format!("{}:{}", &sftp_host, &sftp_port))?;
+//     let mut sess = Session::new()?;
+//     sess.set_tcp_stream(tcp);
+//     sess.handshake()?;
+//     sess.userauth_password(&sftp_username, &sftp_password)?;
+//     let sftp_client = sess.sftp()?;
+//     sftp_client.unlink(Path::new(&remote_file))?;
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 async fn generate_xml(
     template_name: String,
@@ -618,7 +618,6 @@ pub async fn download_citibank_transfer_initiation_template(
 
     //generate pre populated xlsx file
     let mut book = new_file();
-    book.new_sheet("Sheet1");
 
     //add headers
     book.get_sheet_by_name_mut("Sheet1")
@@ -874,10 +873,10 @@ pub async fn init_citibank_transfer(
 
     let raw_data = std::fs::read_to_string(Path::new(&local_file)).expect("failed to read file");
     let enc_data = encrypt(raw_data).await?;
-    std::fs::write(Path::new(&local_file), enc_data.as_bytes());
+    std::fs::write(Path::new(&local_file), enc_data.as_bytes())?;
     let sftp_drop_dir = std::env::var("CITIBANK_SFTP_DROP_DIR").expect("path not set");
     let remote_file = format!("{}GRONEXT_PAYROLL_{}.xml", &sftp_drop_dir, &guid);
-    sftp_upload(local_file.to_string(), remote_file).await;
+    sftp_upload(local_file.to_string(), remote_file).await?;
     //remove local_file after upload
     fs::remove_file(Path::new(&local_file))?;
     //update status
@@ -921,20 +920,6 @@ pub async fn list_uploaded_citibank_transfer_initiation_files_records(
     Ok(Json(records))
 }
 
-//all rocords for a file
-pub async fn list_all_uploaded_citibank_transfer_initiation_files_records(
-    _: Token<AdminAccessToken>,
-    file_ulid: Uuid,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<CitiBankPayRollRecord>>> {
-    let database = database.lock().await;
-    let records = database
-        .list_all_uploaded_citibank_transfer_initiation_files_records(file_ulid)
-        .await?;
-
-    Ok(Json(records))
-}
-
 //update single uploaded file record
 pub async fn update_uploaded_citibank_transfer_initiation_file_record(
     _: Token<AdminAccessToken>,
@@ -963,6 +948,20 @@ pub async fn delete_uploaded_citibank_transfer_initiation_file_record(
     Ok(())
 }
 
+//delete uploaded file
+pub async fn delete_uploaded_citibank_transfer_initiation_file(
+    _: Token<AdminAccessToken>,
+    axum::extract::Path(ulid): axum::extract::Path<Uuid>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    let database = database.lock().await;
+    database
+        .delete_uploaded_citibank_transfer_initiation_file(ulid)
+        .await?;
+
+    Ok(())
+}
+
 impl Database {
     // ============ files
 
@@ -975,9 +974,13 @@ impl Database {
         let result = sqlx::query_as(
             "SELECT * FROM 
                         onboarded_user_index
-                    WHERE name LIKE $1",
+                    WHERE name LIKE $1
+                    LIMIT $2
+                    OFFSET $3",
         )
         .bind(format!("%{}%", request.name.unwrap_or_default()))
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.0)
         .await?;
 
@@ -996,10 +999,14 @@ impl Database {
                     WHERE 
                         client_ulid = $1
                     AND 
-                        department_name LIKE $2",
+                        department_name LIKE $2
+                    LIMIT $3
+                    OFFSET $4",
         )
         .bind(request.client_ulid)
         .bind(format!("%{}%", request.department_name.unwrap_or_default()))
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.0)
         .await?;
 
@@ -1110,23 +1117,6 @@ impl Database {
         Ok(())
     }
 
-    //list by file_ulid
-    pub async fn list_uploaded_citibank_transfer_initiation_files(
-        &self,
-        file_ulid: Uuid,
-    ) -> GlobeliseResult<Vec<CitiBankPayRollRecord>> {
-        let result = sqlx::query_as(
-            "SELECT * FROM
-                        uploaded_citibank_transfer_initiation_files
-                    WHERE file_ulid = $1",
-        )
-        .bind(file_ulid)
-        .fetch_all(&self.0)
-        .await?;
-
-        Ok(result)
-    }
-
     //all files for a client
     pub async fn list_all_uploaded_citibank_transfer_initiation_files_for_client(
         &self,
@@ -1159,7 +1149,7 @@ impl Database {
                 "INSERT INTO
                             uploaded_citibank_transfer_initiation_files_records
                     (ulid, currency_code, country_code, employee_id, employee_name, bank_name, bank_account_number, 
-                     bank_code, swift_code, amount, file_ulid, transaction_status)
+                     bank_code, swift_code, amount, file_ulid, transaction_status, transaction_status_description)
                     VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);"
             )
             .bind(&record.ulid)
@@ -1254,55 +1244,6 @@ impl Database {
         Ok(result)
     }
 
-    pub async fn list_all_uploaded_citibank_transfer_initiation_files_records(
-        &self,
-        file_ulid: Uuid,
-    ) -> GlobeliseResult<Vec<CitiBankPayRollRecord>> {
-        let result = sqlx::query_as(
-            "SELECT * FROM
-                        uploaded_citibank_transfer_initiation_files_records
-                    WHERE file_ulid = $1",
-        )
-        .bind(file_ulid)
-        .fetch_all(&self.0)
-        .await?;
-
-        Ok(result)
-    }
-
-    pub async fn list_pending_uploaded_citibank_transfer_initiation_files_records(
-        &self,
-        file_ulid: Uuid,
-    ) -> GlobeliseResult<Vec<CitiBankPayRollRecord>> {
-        let result = sqlx::query_as(
-            "SELECT * FROM
-                        uploaded_citibank_transfer_initiation_files_records
-                    WHERE file_ulid = $1
-                    AND transaction_status = 'pending'",
-        )
-        .bind(file_ulid)
-        .fetch_all(&self.0)
-        .await?;
-
-        Ok(result)
-    }
-
-    pub async fn get_record_uploaded_citibank_transfer_initiation_files_record(
-        &self,
-        record_ulid: Uuid,
-    ) -> GlobeliseResult<CitiBankPayRollRecord> {
-        let result = sqlx::query_as(
-            "SELECT * FROM
-                        uploaded_citibank_transfer_initiation_files_records
-                    WHERE ulid = $1",
-        )
-        .bind(record_ulid)
-        .fetch_one(&self.0)
-        .await?;
-
-        Ok(result)
-    }
-
     pub async fn update_uploaded_citibank_transfer_initiation_file_record_by_cititbank_transaction_response(
         &self,
         record_ulid: Uuid,
@@ -1320,43 +1261,6 @@ impl Database {
         .bind(record_ulid)
         .bind(transaction_status)
         .bind(transaction_status_description)
-        .execute(&self.0)
-        .await?;
-
-        Ok(())
-    }
-
-    pub async fn update_status_uploaded_citibank_transfer_initiation_file_record(
-        &self,
-        record_ulid: Uuid,
-        status: String,
-    ) -> GlobeliseResult<()> {
-        sqlx::query(
-            "UPDATE 
-                                uploaded_citibank_transfer_initiation_files_records
-                        SET 
-                        transaction_status = $2
-                        WHERE ulid = $1",
-        )
-        .bind(&record_ulid)
-        .bind(&status)
-        .execute(&self.0)
-        .await?;
-
-        Ok(())
-    }
-
-    pub async fn delete_status_uploaded_citibank_transfer_initiation_file_record(
-        &self,
-        record_ulid: Uuid,
-        status: String,
-    ) -> GlobeliseResult<()> {
-        sqlx::query(
-            "DELETE FROM 
-                            uploaded_citibank_transfer_initiation_files_records
-                WHERE ulid = $1",
-        )
-        .bind(&record_ulid)
         .execute(&self.0)
         .await?;
 

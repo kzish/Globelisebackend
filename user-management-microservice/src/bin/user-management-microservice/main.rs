@@ -323,6 +323,10 @@ async fn main() {
             post(eor_admin::bank_transfer::citi_bank::update_uploaded_citibank_transfer_initiation_file_record),
         )
         .route(
+            "/eor-admin/citibank/delete-uploaded-citibank-transfer-initiation-file/:ulid",
+            post(eor_admin::bank_transfer::citi_bank::delete_uploaded_citibank_transfer_initiation_file),
+        )
+        .route(
             "/eor-admin/citibank/delete-uploaded-citibank-transfer-initiation-file-record/:ulid",
             post(eor_admin::bank_transfer::citi_bank::delete_uploaded_citibank_transfer_initiation_file_record),
         ).route(
