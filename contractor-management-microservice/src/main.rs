@@ -56,7 +56,11 @@ async fn main() {
             get(contracts::get_many_contractors_for_clients),
         )
         .route("/contracts/:role", get(contracts::contracts_index))
-        .route("/payslips/:role", get(payslips::user_payslips_index))
+        .route("/payslips/:role", get(payslips::user_find_many_payslips))
+        .route(
+            "/payslips/:role/:payslip_ulid",
+            get(payslips::user_get_one_payslip),
+        )
         .route("/tax-reports/:role", get(tax_report::user_tax_report_index))
         .route(
             "/invoices/individual/:role",
@@ -70,7 +74,11 @@ async fn main() {
         .route("/eor-admin/users", get(contracts::eor_admin_user_index))
         .route(
             "/eor-admin/payslips",
-            get(payslips::eor_admin_payslips_index).post(payslips::eor_admin_create_payslip),
+            get(payslips::admin_get_many_payslips).post(payslips::admin_post_one_payslip),
+        )
+        .route(
+            "/eor-admin/payslips/:payslip_ulid",
+            get(payslips::admin_get_one_payslip),
         )
         .route(
             "/eor-admin/tax-reports",

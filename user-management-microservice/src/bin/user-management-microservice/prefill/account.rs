@@ -105,7 +105,7 @@ impl Database {
         details: InsertOnePrefillIndividualContractorAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO prefilled_individual_contractors_account_details (
+            INSERT INTO prefilled_individual_contractor_account_details (
                 email, client_ulid, first_name, last_name, dob, 
                 dial_code, phone_number, country, city, address, 
                 postal_code, tax_id, time_zone
@@ -145,11 +145,9 @@ impl Database {
     ) -> GlobeliseResult<Option<PrefillIndividualContractorAccountDetails>> {
         let query = "
             SELECT
-                email, client_ulid, first_name, last_name, dob, 
-                dial_code, phone_number, country, city, address, 
-                postal_code, tax_id, time_zone
+                *
             FROM
-                prefilled_individual_contractors_account_details
+                prefilled_individual_contractor_account_details
             WHERE
                 email = $1 AND
                 client_ulid =$2";

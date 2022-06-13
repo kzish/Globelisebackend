@@ -195,8 +195,8 @@ pub enum ContractsIndex {
 #[serde(rename_all = "kebab-case")]
 pub struct ContractsIndexForClient {
     contractor_name: String,
-    contract_ulid: String,
-    branch_ulid: Uuid,
+    contract_ulid: Uuid,
+    branch_ulid: Option<Uuid>,
     contract_name: String,
     contract_type: String,
     job_title: String,
@@ -215,7 +215,7 @@ pub struct ContractsIndexForClient {
 pub struct ContractsIndexForContractor {
     client_name: String,
     contract_ulid: Uuid,
-    branch_ulid: Uuid,
+    branch_ulid: Option<Uuid>,
     contract_name: String,
     contract_type: String,
     job_title: String,

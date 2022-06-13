@@ -1,23 +1,25 @@
 use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
 use uuid::Uuid;
 
-use crate::{common::PaginatedQuery, database::Database};
+use crate::database::Database;
 
-use super::{CreatePayslipsIndex, PayslipsIndex};
+use super::PayslipsIndex;
 
 impl Database {
-    /// Indexes tax report.
-    pub async fn payslips_index(
+    pub async fn select_many_payslips(
         &self,
-        query: PaginatedQuery,
+        page: Option<u32>,
+        per_page: Option<u32>,
+        query: Option<String>,
+        contractor_ulid: Option<Uuid>,
+        client_ulid: Option<Uuid>,
     ) -> GlobeliseResult<Vec<PayslipsIndex>> {
-        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+        let (limit, offset) = calc_limit_and_offset(per_page, page);
 
         let index = sqlx::query_as(
             "
             SELECT
-                payslip_ulid, client_name, contractor_name, contract_name, payslip_title,
-                payment_date, begin_period, end_period
+                *
             FROM
                 payslips_index
             WHERE
@@ -26,9 +28,9 @@ impl Database {
                 ($3 IS NULL OR (client_name ~* $3 OR contractor_name ~* $3))
             LIMIT $4 OFFSET $5",
         )
-        .bind(query.client_ulid)
-        .bind(query.contractor_ulid)
-        .bind(query.query)
+        .bind(client_ulid)
+        .bind(contractor_ulid)
+        .bind(query)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)
@@ -37,29 +39,66 @@ impl Database {
         Ok(index)
     }
 
-    /// Create tax report
-    pub async fn create_payslip(&self, query: CreatePayslipsIndex) -> GlobeliseResult<Uuid> {
+    pub async fn select_one_payslip(
+        &self,
+        ulid: Uuid,
+        client_ulid: Option<Uuid>,
+        contractor_ulid: Option<Uuid>,
+    ) -> GlobeliseResult<Option<PayslipsIndex>> {
+        let query = "
+            SELECT
+                *
+            FROM
+                payslips_index
+            WHERE
+                payslip_ulid = $1 AND
+                ($2 IS NULL OR client_ulid = $2) AND
+                ($3 IS NULL OR contractor_ulid = $3)";
+
+        let result = sqlx::query_as(query)
+            .bind(ulid)
+            .bind(client_ulid)
+            .bind(contractor_ulid)
+            .fetch_optional(&self.0)
+            .await?;
+
+        Ok(result)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn insert_one_payslip(
+        &self,
+        client_ulid: Uuid,
+        contractor_ulid: Uuid,
+        contract_ulid: Option<Uuid>,
+        payslip_title: String,
+        payment_date: sqlx::types::time::OffsetDateTime,
+        begin_period: sqlx::types::time::OffsetDateTime,
+        end_period: sqlx::types::time::OffsetDateTime,
+        payslip_file: Vec<u8>,
+    ) -> GlobeliseResult<Uuid> {
         let ulid = Uuid::new_v4();
 
-        sqlx::query(
-            "
-            INSERT INTO payslips
-            (ulid, client_ulid, contractor_ulid, contract_ulid, payslip_title,
-            payment_date, begin_period, end_period, payslip_file)
-            VALUES
-            ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        )
-        .bind(ulid)
-        .bind(query.client_ulid)
-        .bind(query.contractor_ulid)
-        .bind(query.contract_ulid)
-        .bind(query.payslip_title)
-        .bind(query.payment_date)
-        .bind(query.begin_period)
-        .bind(query.end_period)
-        .bind(query.payslip_file)
-        .execute(&self.0)
-        .await?;
+        let query = "
+        INSERT INTO payslips (
+            ulid, client_ulid, contractor_ulid, contract_ulid, payslip_title,
+            payment_date, begin_period, end_period, payslip_file
+        ) VALUES (
+            $1, $2, $3, $4, $5, 
+            $6, $7, $8, $9)";
+
+        sqlx::query(query)
+            .bind(ulid)
+            .bind(client_ulid)
+            .bind(contractor_ulid)
+            .bind(contract_ulid)
+            .bind(payslip_title)
+            .bind(payment_date)
+            .bind(begin_period)
+            .bind(end_period)
+            .bind(payslip_file)
+            .execute(&self.0)
+            .await?;
 
         Ok(ulid)
     }

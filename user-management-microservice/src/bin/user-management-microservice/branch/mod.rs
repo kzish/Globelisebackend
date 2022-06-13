@@ -213,6 +213,42 @@ pub mod user {
 
         Ok(())
     }
+
+    #[serde_as]
+    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    pub struct GetManyBranchesIndividualContractorQuery {
+        pub branch_ulid: Uuid,
+        pub page: Option<u32>,
+        pub per_page: Option<u32>,
+    }
+
+    pub async fn get_many_individual_contractors(
+        claims: Token<UserAccessToken>,
+        Query(query): Query<GetManyBranchesIndividualContractorQuery>,
+        Extension(database): Extension<SharedDatabase>,
+    ) -> GlobeliseResult<Json<Vec<BranchDetails>>> {
+        let database = database.lock().await;
+
+        if !database
+            .client_owns_branch(claims.payload.ulid, query.branch_ulid)
+            .await?
+        {
+            return Err(GlobeliseError::unauthorized(
+                "This client does not own this branch",
+            ));
+        }
+
+        let result = database
+            .select_many_entity_client_branch_individual_contractors(
+                Some(query.branch_ulid),
+                query.page,
+                query.per_page,
+            )
+            .await?;
+
+        Ok(Json(result))
+    }
 }
 
 pub mod eor_admin {
@@ -478,7 +514,7 @@ impl Database {
                 -- payment details
                 cutoff_date, payment_date
             FROM
-                entity_clients_branch_details
+                entity_client_branch_details
             WHERE
                 $1 IS NULL OR (client_ulid = $1)
             LIMIT $2 OFFSET $3";
@@ -503,12 +539,11 @@ impl Database {
 
         let query = "
             SELECT
-                ulid, branch_ulid, branch_name, department_ulid, department_name,
-                classification
+                *
             FROM
-                entity_client_branch_deparment_individual_contractors_index
+                entity_client_branch_department_individual_contractors_index
             WHERE
-                $1 IS NULL OR (branch_ulid = $1)
+                ($1 IS NULL OR branch_ulid = $1)
             LIMIT 
                 $2 
             OFFSET 
@@ -542,7 +577,7 @@ impl Database {
                 -- payment details
                 cutoff_date, payment_date
             FROM
-                entity_clients_branch_details
+                entity_client_branch_details
             WHERE
                 ulid = $1";
 

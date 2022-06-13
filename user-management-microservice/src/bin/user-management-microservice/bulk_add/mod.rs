@@ -242,7 +242,7 @@ impl Database {
         details: PrefillIndividualContractorDetailsForBulkUpload,
     ) -> GlobeliseResult<()> {
         let query = "
-            INSERT INTO  prefilled_individual_contractors_details_for_bulk_upload
+            INSERT INTO  prefilled_individual_contractor_details_for_bulk_upload
                 client_ulid, branch_ulid, department_ulid, first_name, last_name, 
                 gender, marital_status, nationality, dob, dial_code,
                 phone_number, email, address, country, city, 
@@ -337,7 +337,7 @@ impl Database {
                 currency, basic_salary, additional_item_1, additional_item_2, deduction_1, 
                 deduction_2, other_pay_item_1, other_pay_item_2
             FROM
-                prefilled_individual_contractors_details_for_bulk_upload
+                prefilled_individual_contractor_details_for_bulk_upload
             WHERE
                 email = $1";
         let result = sqlx::query_as(query)

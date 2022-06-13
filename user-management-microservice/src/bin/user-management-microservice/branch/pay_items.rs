@@ -171,7 +171,7 @@ impl Database {
         let ulid = Uuid::new_v4();
 
         let query = "
-            INSERT INTO entity_clients_branch_pay_items (
+            INSERT INTO entity_client_branch_pay_items (
                 ulid, branch_ulid, pay_item_type, pay_item_custom_name, use_pay_item_type_name,
                 pay_item_method, employers_contribution, require_employee_id
             ) VALUES (
@@ -196,7 +196,7 @@ impl Database {
     pub async fn update_pay_item(&self, pay_item: PayItem) -> GlobeliseResult<()> {
         let query = "
             UPDATE 
-                entity_clients_branch_pay_items 
+                entity_client_branch_pay_items 
             SET
                 pay_item_type = $2,
                 pay_item_custom_name = $3,
@@ -224,7 +224,7 @@ impl Database {
     pub async fn delete_pay_item(&self, ulid: Uuid) -> GlobeliseResult<()> {
         let query = "
             DELETE FROM 
-                entity_clients_branch_pay_items 
+                entity_client_branch_pay_items 
             WHERE
                 ulid = $1
             ";
@@ -238,7 +238,7 @@ impl Database {
             SELECT 
                 *
             FROM 
-                entity_clients_branch_pay_items 
+                entity_client_branch_pay_items 
             WHERE 
                 ulid = $1";
         let pay_item = sqlx::query_as(query)
@@ -257,13 +257,13 @@ impl Database {
             SELECT 
                 * 
             FROM 
-                entity_clients_branch_pay_items 
+                entity_client_branch_pay_items 
             WHERE 
                 branch_ulid = $1 AND
                 ($2 IS NULL OR pay_item_custom_name LIKE '%$2%')
             LIMIT $3 
             OFFSET $4";
-        let pay_items = sqlx::query_as(&query)
+        let pay_items = sqlx::query_as(query)
             .bind(request.branch_ulid)
             .bind(request.search_param)
             .bind(request.per_page.get())

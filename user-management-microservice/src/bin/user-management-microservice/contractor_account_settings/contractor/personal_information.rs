@@ -203,7 +203,7 @@ impl Database {
             "SELECT
                 *
             FROM
-                entity_contractors_account_details 
+                entity_contractor_account_details 
             WHERE ulid = $1",
         )
         .bind(uuid)
@@ -218,7 +218,7 @@ impl Database {
         request: EntityContractorProfileSettingsRequest,
     ) -> GlobeliseResult<()> {
         let query = "INSERT INTO 
-                           entity_contractors_account_details 
+                            entity_contractor_account_details 
                                     (ulid, company_name, country, entity_type, registration_number, tax_id, company_address, city,
                                      postal_code, time_zone, email_address, added_related_pay_item_id, total_dependants, logo, company_profile) 
                             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
@@ -267,7 +267,7 @@ impl Database {
         let response = sqlx::query_as(
             "SELECT *
                 FROM 
-                 individual_contractors_account_details 
+                    individual_contractor_account_details 
                 WHERE ulid = $1",
         )
         .bind(ulid)
@@ -282,7 +282,7 @@ impl Database {
         request: IndividualContractorProfileSettingsRequest,
     ) -> GlobeliseResult<()> {
         let query = "INSERT INTO 
-                           individual_contractors_account_details 
+                            individual_contractor_account_details 
                                     (ulid, first_name, last_name, dob, dial_code, phone_number, country, 
                                     city, address, postal_code, tax_id, time_zone, gender, marital_status,
                                     nationality, email_address, national_id, passport_number, work_permit,
