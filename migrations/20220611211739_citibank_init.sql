@@ -82,10 +82,10 @@ CREATE OR REPLACE VIEW public.contractor_bank_account_details_citibank_template
     contractor_bank_details.bank_account_number,
     contractor_bank_details.bank_code,
     contractor_bank_details.branch_code AS bank_branch_code,
-    contractor_branch_pairs.branch_ulid
+    entity_client_branch_individual_contractor_pairs.branch_ulid
    FROM contractor_account_details
      JOIN contractor_bank_details ON contractor_account_details.contractor_ulid = contractor_bank_details.ulid
-     JOIN contractor_branch_pairs ON contractor_branch_pairs.contractor_ulid = contractor_account_details.contractor_ulid;
+     JOIN entity_client_branch_individual_contractor_pairs ON entity_client_branch_individual_contractor_pairs.contractor_ulid = contractor_account_details.contractor_ulid;
 
 ALTER TABLE public.contractor_bank_account_details_citibank_template
     OWNER TO postgres;
