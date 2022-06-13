@@ -41,3 +41,8 @@ unicode-normalization = "0.1.19"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 lexical = "6.1.1"
 itertools = "0.10.3"
+umya-spreadsheet = "0.7.2"
+chrono = "0.4.19"
+substring = "1.4.5"
+serde-xml-rs = "0.5.1"
+ssh2 = "0.9.3"
