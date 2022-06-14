@@ -13,8 +13,8 @@ use jsonwebtoken::{
 };
 use once_cell::sync::Lazy;
 use reqwest::{
-    header::{HeaderMap, HeaderValue},
-    Client as ReqwestClient,
+    header::{HeaderMap, HeaderValue, AUTHORIZATION},
+    Client as ReqwestClient, StatusCode,
 };
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -217,5 +217,41 @@ impl PublicKeys {
             self.0.insert(key, decoding_key);
         }
         Ok(self.0.get(&key).unwrap())
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct AuthBearer(pub String);
+
+#[async_trait]
+impl<B> FromRequest<B> for AuthBearer
+where
+    B: Send,
+{
+    type Rejection = (StatusCode, &'static str);
+
+    async fn from_request(req: &mut RequestParts<B>) -> std::result::Result<Self, Self::Rejection> {
+        // Get authorisation header
+        let authorisation = req
+            .headers()
+            .get(AUTHORIZATION)
+            .ok_or((StatusCode::BAD_REQUEST, "`Authorization` header is missing"))?
+            .to_str()
+            .map_err(|_| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    "`Authorization` header contains invalid characters",
+                )
+            })?;
+
+        // Check that its a well-formed bearer and return
+        let split = authorisation.split_once(' ');
+        match split {
+            Some((name, contents)) if name == "Bearer" => Ok(Self(contents.to_string())),
+            _ => Err((
+                StatusCode::BAD_REQUEST,
+                "`Authorization` header must be a bearer token",
+            )),
+        }
     }
 }

@@ -1113,7 +1113,6 @@ impl Database {
         .execute(&self.0)
         .await?;
 
-        println!("{}:{}", file_ulid, status);
         Ok(())
     }
 
