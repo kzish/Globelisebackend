@@ -463,8 +463,6 @@ async fn main() {
         )
         // ========== PUBSUB PAGES ==========
         .route("/dapr/subscribe", get(dapr_subscription_list))
-        // ========== DEBUG PAGES ==========
-        .route("/debug/google/login", get(auth::google::login_page))
         .route("/healthz", get(handle_healthz))
         .layer(
             ServiceBuilder::new()

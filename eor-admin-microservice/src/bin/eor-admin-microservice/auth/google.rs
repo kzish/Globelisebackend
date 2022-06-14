@@ -13,10 +13,13 @@ pub async fn signup(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    let claims = id_token.decode(&*CLIENT_ID).await.map_err(|e| match e {
-        google_auth::Error::Decoding(_) => GlobeliseError::unauthorized("Google login failed"),
-        e => GlobeliseError::internal(e),
-    })?;
+    let claims = id_token
+        .decode_and_validate(&*CLIENT_ID)
+        .await
+        .map_err(|e| match e {
+            google_auth::Error::Decoding(_) => GlobeliseError::unauthorized("Google login failed"),
+            e => GlobeliseError::internal(e),
+        })?;
 
     let admin = Admin {
         email: claims.email,
@@ -38,10 +41,13 @@ pub async fn login(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    let claims = id_token.decode(&*CLIENT_ID).await.map_err(|e| match e {
-        google_auth::Error::Decoding(_) => GlobeliseError::unauthorized("Google login failed"),
-        e => GlobeliseError::internal(e),
-    })?;
+    let claims = id_token
+        .decode_and_validate(&*CLIENT_ID)
+        .await
+        .map_err(|e| match e {
+            google_auth::Error::Decoding(_) => GlobeliseError::unauthorized("Google login failed"),
+            e => GlobeliseError::internal(e),
+        })?;
 
     let database = database.lock().await;
     let mut shared_state = shared_state.lock().await;
