@@ -84,7 +84,7 @@ pub struct GetPrefillIndividualContractorDetailsForBulkUpload {
     pub email: EmailWrapper,
 }
 
-pub async fn download() -> impl IntoResponse {
+pub async fn download(_: Token<AdminAccessToken>) -> impl IntoResponse {
     let bytes = include_bytes!("journal_template.xlsx").to_vec();
     (
         [(
