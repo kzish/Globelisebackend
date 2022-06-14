@@ -289,6 +289,10 @@ pub async fn post_one(
         // VALIDATIONS
         // NOTE: Consider parsing, not validate!
 
+        if raw_payroll_journals.is_empty() {
+            return Err(GlobeliseError::bad_request("File cannot be empty"));
+        }
+
         // NOTE: Summation of floating points might not be accurate.
         // We might want to introduce some delta to compensate.
         if raw_payroll_journals.iter().map(|v| v.amount).sum::<f64>() != 0.0f64 {
