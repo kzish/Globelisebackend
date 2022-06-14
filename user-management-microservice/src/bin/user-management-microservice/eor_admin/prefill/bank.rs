@@ -17,7 +17,7 @@ use crate::database::{Database, SharedDatabase};
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualContractorBankDetails {
     pub email: EmailWrapper,
-    pub client_ulid: Uuid,
+    pub client_ulid: Option<Uuid>,
     pub bank_name: String,
     pub bank_account_name: String,
     pub bank_account_number: String,
@@ -35,17 +35,30 @@ pub async fn individual_contractor_post_one(
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
-    database
-        .insert_one_prefilled_individual_contractor_bank_details(
-            body.email,
-            body.client_ulid,
-            body.bank_name,
-            body.bank_account_name,
-            body.bank_account_number,
-            body.bank_code,
-            body.branch_code,
-        )
-        .await?;
+    if let Some(client_ulid) = body.client_ulid {
+        database
+            .insert_one_prefilled_individual_contractor_bank_details(
+                body.email,
+                client_ulid,
+                body.bank_name,
+                body.bank_account_name,
+                body.bank_account_number,
+                body.bank_code,
+                body.branch_code,
+            )
+            .await?;
+    } else {
+        database
+            .insert_one_prefilled_individual_contractor_bank_details_no_client_ulid(
+                body.email,
+                body.bank_name,
+                body.bank_account_name,
+                body.bank_account_number,
+                body.bank_code,
+                body.branch_code,
+            )
+            .await?;
+    }
     Ok(())
 }
 
@@ -54,7 +67,7 @@ pub async fn individual_contractor_post_one(
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualContractorBankDetailsQuery {
     pub email: EmailWrapper,
-    pub client_ulid: Uuid,
+    pub client_ulid: Option<Uuid>,
 }
 
 pub async fn individual_contractor_get_one(
@@ -65,7 +78,10 @@ pub async fn individual_contractor_get_one(
 ) -> GlobeliseResult<Json<PrefillIndividualContractorBankDetails>> {
     let database = database.lock().await;
     let result = database
-        .select_one_prefilled_individual_contractor_bank_details(query.email, query.client_ulid)
+        .select_one_prefilled_individual_contractor_bank_details_index(
+            query.email,
+            query.client_ulid,
+        )
         .await?
         .ok_or(GlobeliseError::NotFound)?;
     Ok(Json(result))
@@ -127,6 +143,40 @@ pub async fn entity_client_get_one(
 
 impl Database {
     #[allow(clippy::too_many_arguments)]
+    pub async fn insert_one_prefilled_individual_contractor_bank_details_no_client_ulid(
+        &self,
+        email: EmailWrapper,
+        bank_name: String,
+        bank_account_name: String,
+        bank_account_number: String,
+        bank_code: String,
+        branch_code: String,
+    ) -> GlobeliseResult<()> {
+        let query = "
+            INSERT INTO prefilled_individual_contractor_bank_details_no_client_ulid (
+                email, bank_name, bank_account_name, bank_account_number, bank_code, 
+                branch_code
+            ) VALUES (
+                $1, $2, $3, $4, $5,
+                $6
+            ) ON CONFLICT(email) DO UPDATE SET 
+                bank_name = $2, bank_account_name = $3, bank_account_number = $4, bank_code = $5, 
+                branch_code = $6";
+
+        sqlx::query(query)
+            .bind(email)
+            .bind(bank_name)
+            .bind(bank_account_name)
+            .bind(bank_account_number)
+            .bind(bank_code)
+            .bind(branch_code)
+            .execute(&self.0)
+            .await?;
+
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
     pub async fn insert_one_prefilled_individual_contractor_bank_details(
         &self,
         email: EmailWrapper,
@@ -162,16 +212,16 @@ impl Database {
         Ok(())
     }
 
-    pub async fn select_one_prefilled_individual_contractor_bank_details(
+    pub async fn select_one_prefilled_individual_contractor_bank_details_index(
         &self,
         email: EmailWrapper,
-        client_ulid: Uuid,
+        client_ulid: Option<Uuid>,
     ) -> GlobeliseResult<Option<PrefillIndividualContractorBankDetails>> {
         let query = "
             SELECT
                *
             FROM
-                prefilled_individual_contractor_bank_details
+                prefilled_individual_contractor_bank_details_index
             WHERE
                 email = $1 AND
                 client_ulid = $2";

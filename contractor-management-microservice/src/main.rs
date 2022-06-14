@@ -87,7 +87,7 @@ async fn main() {
         )
         .route(
             "/eor-admin/contracts",
-            get(contracts::eor_admin_contracts_index).post(contracts::eor_admin_create_contract),
+            get(contracts::admin_get_many_contracts).post(contracts::admin_post_one_contract),
         )
         .route(
             "/eor-admin/invoices/individual",
