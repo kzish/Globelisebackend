@@ -84,7 +84,7 @@ pub struct GetPrefillIndividualContractorDetailsForBulkUpload {
     pub email: EmailWrapper,
 }
 
-pub async fn download() -> impl IntoResponse {
+pub async fn download(_: Token<AdminAccessToken>) -> impl IntoResponse {
     let bytes = include_bytes!("journal_template.xlsx").to_vec();
     (
         [(
@@ -288,6 +288,10 @@ pub async fn post_one(
 
         // VALIDATIONS
         // NOTE: Consider parsing, not validate!
+
+        if raw_payroll_journals.is_empty() {
+            return Err(GlobeliseError::bad_request("File cannot be empty"));
+        }
 
         // NOTE: Summation of floating points might not be accurate.
         // We might want to introduce some delta to compensate.
