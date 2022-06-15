@@ -246,7 +246,7 @@ pub struct PostOneContract {
 pub struct ContractsIndex {
     contract_ulid: Uuid,
     client_ulid: Uuid,
-    branch_ulid: Uuid,
+    branch_ulid: Option<Uuid>,
     client_name: Option<String>,
     contractor_ulid: Uuid,
     contractor_name: Option<String>,
