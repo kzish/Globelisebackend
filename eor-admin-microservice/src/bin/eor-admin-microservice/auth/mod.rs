@@ -13,7 +13,7 @@ use rand::Rng;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 
-use crate::database::SharedDatabase;
+use crate::database::{auth::Admin, SharedDatabase};
 
 pub mod google;
 pub mod password;
@@ -61,7 +61,7 @@ pub async fn signup(
     }
 
     let ulid = database
-        .insert_one_admin(body.email, hash, false, false)
+        .insert_one_admin(body.email, Some(hash), false, false)
         .await?;
 
     let mut shared_state = shared_state.lock().await;
@@ -82,11 +82,16 @@ pub async fn login(
     // if an email is registered by using the sign-up page.
     // Simplify this step
     let database = database.lock().await;
-    if let Some(admin) = database.find_one_admin(None, Some(&body.email)).await? {
+    if let Some(Admin {
+        password: Some(hash),
+        ulid,
+        ..
+    }) = database.find_one_admin(None, Some(&body.email)).await?
+    {
         {
-            if let Ok(true) = verify_encoded(&admin.password, password.as_bytes()) {
+            if let Ok(true) = verify_encoded(&hash, password.as_bytes()) {
                 let mut shared_state = shared_state.lock().await;
-                let refresh_token = shared_state.open_session(admin.ulid).await?;
+                let refresh_token = shared_state.open_session(ulid).await?;
                 Ok(refresh_token)
             } else {
                 Err(GlobeliseError::unauthorized(

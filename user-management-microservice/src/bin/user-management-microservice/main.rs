@@ -62,6 +62,7 @@ async fn main() {
         // ========== PUBLIC PAGES ==========
         .route("/auth/signup/:user_type", post(auth::signup))
         .route("/auth/login", post(auth::login))
+        .route("/auth/google/signup/:user_type", post(auth::google::signup))
         .route("/auth/google/login", post(auth::google::login))
         .route(
             "/auth/password/reset/email",
