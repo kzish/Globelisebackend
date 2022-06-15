@@ -15,13 +15,11 @@ use unicode_normalization::UnicodeNormalization;
 
 use crate::database::SharedDatabase;
 
-pub mod admin;
 pub mod google;
 pub mod password;
 mod state;
 pub mod token;
 
-use admin::Admin;
 pub use state::{SharedState, State};
 use token::RefreshToken;
 use token::KEYS;
@@ -51,17 +49,23 @@ pub async fn signup(
     let hash =
         hash_encoded(password.as_bytes(), &salt, &HASH_CONFIG).map_err(GlobeliseError::internal)?;
 
-    let admin = Admin {
-        email: body.email,
-        password: Some(hash),
-        is_google: false,
-        is_outlook: false,
-    };
     let database = database.lock().await;
-    let ulid = database.create_admin(admin).await?;
+
+    //Check for existing user
+    if database
+        .find_one_admin(None, Some(&body.email))
+        .await?
+        .is_some()
+    {
+        return Err(GlobeliseError::UnavailableEmail);
+    }
+
+    let ulid = database
+        .insert_one_admin(body.email, hash, false, false)
+        .await?;
 
     let mut shared_state = shared_state.lock().await;
-    let refresh_token = shared_state.open_session(&database, ulid).await?;
+    let refresh_token = shared_state.open_session(ulid).await?;
     Ok(refresh_token)
 }
 
@@ -78,25 +82,17 @@ pub async fn login(
     // if an email is registered by using the sign-up page.
     // Simplify this step
     let database = database.lock().await;
-    if let Some(ulid) = database.admin_id(&body.email).await? {
-        if let Some(Admin {
-            password: Some(hash),
-            ..
-        }) = database.admin(ulid).await?
+    if let Some(admin) = database.find_one_admin(None, Some(&body.email)).await? {
         {
-            if let Ok(true) = verify_encoded(&hash, password.as_bytes()) {
+            if let Ok(true) = verify_encoded(&admin.password, password.as_bytes()) {
                 let mut shared_state = shared_state.lock().await;
-                let refresh_token = shared_state.open_session(&database, ulid).await?;
+                let refresh_token = shared_state.open_session(admin.ulid).await?;
                 Ok(refresh_token)
             } else {
                 Err(GlobeliseError::unauthorized(
                     "Entered the wrong the password",
                 ))
             }
-        } else {
-            Err(GlobeliseError::unauthorized(
-                "Cannot find admin with that ulid",
-            ))
         }
     } else {
         Err(GlobeliseError::unauthorized(
@@ -111,11 +107,12 @@ pub async fn access_token(
     Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
-    let ulid = claims.payload.ulid;
     let mut shared_state = shared_state.lock().await;
     let mut is_session_valid = false;
-    let _ = shared_state.clear_expired_sessions(ulid).await;
-    if let Some(sessions) = shared_state.sessions(ulid).await? {
+    let _ = shared_state
+        .clear_expired_sessions(claims.payload.ulid)
+        .await;
+    if let Some(sessions) = shared_state.sessions(claims.payload.ulid).await? {
         let encoded_claims = jsonwebtoken::encode(
             &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::EdDSA),
             &claims,
@@ -133,10 +130,13 @@ pub async fn access_token(
     }
 
     let database = database.lock().await;
-    if let Some(Admin { email, .. }) = database.admin(ulid).await? {
+    if let Some(admin) = database
+        .find_one_admin(Some(claims.payload.ulid), None)
+        .await?
+    {
         let access = AdminAccessToken {
             ulid: claims.payload.ulid,
-            email,
+            email: admin.email,
         };
         let (access_token, _) = create_token(access, &KEYS.encoding)?;
         Ok(access_token)
