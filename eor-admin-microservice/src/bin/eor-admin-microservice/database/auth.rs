@@ -1,30 +1,28 @@
-use common_utils::{
-    custom_serde::EmailWrapper,
-    error::{GlobeliseError, GlobeliseResult},
-};
-use sqlx::Row;
+use common_utils::{custom_serde::EmailWrapper, error::GlobeliseResult};
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use uuid::Uuid;
-
-use crate::auth::admin::Admin;
 
 use super::Database;
 
+#[derive(Debug, FromRow, Deserialize, Serialize)]
+pub struct Admin {
+    pub ulid: Uuid,
+    pub email: EmailWrapper,
+    pub password: String,
+    pub is_google: bool,
+    pub is_outlook: bool,
+}
+
 impl Database {
     /// Creates and stores a new admin.
-    pub async fn create_admin(&self, admin: Admin) -> GlobeliseResult<Uuid> {
-        if !admin.has_authentication() {
-            return Err(GlobeliseError::unauthorized(
-                "Cannot create user without any authentication method provided",
-            ));
-        }
-
-        // Avoid overwriting an existing admin.
-        match self.admin_id(&admin.email).await {
-            Ok(Some(_)) => return Err(GlobeliseError::UnavailableEmail),
-            Ok(None) => (),
-            Err(e) => return Err(e),
-        }
-
+    pub async fn insert_one_admin(
+        &self,
+        email: EmailWrapper,
+        password: String,
+        is_google: bool,
+        is_outlook: bool,
+    ) -> GlobeliseResult<Uuid> {
         let ulid = Uuid::new_v4();
 
         sqlx::query(
@@ -36,10 +34,10 @@ impl Database {
             )",
         )
         .bind(ulid)
-        .bind(admin.email)
-        .bind(admin.password)
-        .bind(admin.is_google)
-        .bind(admin.is_outlook)
+        .bind(email)
+        .bind(password)
+        .bind(is_google)
+        .bind(is_outlook)
         .execute(&self.0)
         .await?;
 
@@ -47,7 +45,7 @@ impl Database {
     }
 
     /// Updates a admin's password.
-    pub async fn update_password(
+    pub async fn update_one_admin_password(
         &self,
         ulid: Uuid,
         // TODO: Create a newtype to ensure only hashed password are inserted
@@ -71,40 +69,26 @@ impl Database {
     }
 
     /// Gets a admin's authentication information.
-    pub async fn admin(&self, ulid: Uuid) -> GlobeliseResult<Option<Admin>> {
-        Ok(sqlx::query_as(
-            "
-            SELECT 
-                email, password, is_google, is_outlook
+    pub async fn find_one_admin(
+        &self,
+        ulid: Option<Uuid>,
+        email: Option<&EmailWrapper>,
+    ) -> GlobeliseResult<Option<Admin>> {
+        let query = "
+            SELECT
+                *
             FROM 
                 admin_users
             WHERE 
-                ulid = $1",
-        )
-        .bind(ulid)
-        .fetch_optional(&self.0)
-        .await?)
-    }
+                ($1 IS NULL OR ulid = $1) AND
+                ($2 IS NULL OR email = $2)";
 
-    /// Gets a admin's id.
-    pub async fn admin_id(&self, email: &EmailWrapper) -> GlobeliseResult<Option<Uuid>> {
-        let m_row = sqlx::query(
-            "
-            SELECT 
-                ulid 
-            FROM 
-                admin_users 
-            WHERE 
-                email = $1",
-        )
-        .bind(email.as_ref())
-        .fetch_optional(&self.0)
-        .await?;
+        let result = sqlx::query_as(query)
+            .bind(ulid)
+            .bind(email)
+            .fetch_optional(&self.0)
+            .await?;
 
-        if let Some(row) = m_row {
-            Ok(Some(row.get("ulid")))
-        } else {
-            Ok(None)
-        }
+        Ok(result)
     }
 }
