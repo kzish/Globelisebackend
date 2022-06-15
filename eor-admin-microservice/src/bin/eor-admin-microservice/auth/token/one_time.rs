@@ -123,7 +123,11 @@ where
 
         // Make sure the admin actually exists.
         let database = database.lock().await;
-        if database.admin(claims.sub).await?.is_none() {
+        if database
+            .find_one_admin(Some(claims.sub), None)
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::unauthorized(
                 "One-time token rejected: admin does not exist",
             ));
@@ -184,7 +188,11 @@ where
 
         // Make sure the admin actually exists.
         let database = database.lock().await;
-        if database.admin(claims.sub).await?.is_none() {
+        if database
+            .find_one_admin(Some(claims.sub), None)
+            .await?
+            .is_none()
+        {
             return Err(GlobeliseError::unauthorized(
                 "One-time token rejected: admin does not exist",
             ));

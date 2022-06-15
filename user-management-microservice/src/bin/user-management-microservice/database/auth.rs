@@ -75,10 +75,6 @@ impl Database {
         Ok(())
     }
 
-    /// Gets a user's authentication information.
-    ///
-    /// If `user_type` is specified, this function only searches that type's table.
-    /// Otherwise, it searches all user tables.
     pub async fn find_one_user(
         &self,
         ulid: Option<Uuid>,

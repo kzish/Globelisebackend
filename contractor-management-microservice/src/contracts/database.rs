@@ -138,7 +138,7 @@ impl Database {
         Ok(index)
     }
 
-    #[warn(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments)]
     pub async fn insert_one_contract(
         &self,
         client_ulid: Uuid,
