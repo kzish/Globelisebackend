@@ -9,7 +9,6 @@ use sqlx::FromRow;
 use user_management_microservice_sdk::user::UserType;
 use uuid::Uuid;
 
-/// Stores information associated with a user id.
 #[derive(Debug, FromRow, Deserialize, Serialize)]
 pub struct User {
     pub ulid: Uuid,
