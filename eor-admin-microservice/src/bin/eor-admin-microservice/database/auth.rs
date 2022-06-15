@@ -9,7 +9,7 @@ use super::Database;
 pub struct Admin {
     pub ulid: Uuid,
     pub email: EmailWrapper,
-    pub password: String,
+    pub password: Option<String>,
     pub is_google: bool,
     pub is_outlook: bool,
 }
@@ -19,7 +19,7 @@ impl Database {
     pub async fn insert_one_admin(
         &self,
         email: EmailWrapper,
-        password: String,
+        password: Option<String>,
         is_google: bool,
         is_outlook: bool,
     ) -> GlobeliseResult<Uuid> {

@@ -30,6 +30,11 @@ pub async fn login(
         let refresh_token = shared_state.open_session(admin.ulid).await?;
         Ok(refresh_token)
     } else {
-        Err(GlobeliseError::unauthorized("Please signup first"))
+        let ulid = database
+            .insert_one_admin(claims.email, None, true, false)
+            .await?;
+
+        let refresh_token = shared_state.open_session(ulid).await?;
+        Ok(refresh_token)
     }
 }
