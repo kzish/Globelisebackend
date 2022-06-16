@@ -14,6 +14,7 @@ init_global_static!(LISTENING_ADDRESS);
 init_global_static!(EOR_ADMIN_MICROSERVICE_DOMAIN_URL);
 init_global_static!(GLOBELISE_SMTP_URL);
 init_global_static!(FRONTEND_URL);
+init_global_static!(GOOGLE_CLIENT_ID);
 
 pub static GLOBELISE_SENDER_EMAIL: Lazy<Mailbox> = Lazy::new(|| {
     std::env::var("GLOBELISE_SENDER_EMAIL")

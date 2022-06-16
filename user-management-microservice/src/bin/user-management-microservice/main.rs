@@ -62,6 +62,7 @@ async fn main() {
         // ========== PUBLIC PAGES ==========
         .route("/auth/signup/:user_type", post(auth::signup))
         .route("/auth/login", post(auth::login))
+        .route("/auth/google/signup/:user_type", post(auth::google::signup))
         .route("/auth/google/login", post(auth::google::login))
         .route(
             "/auth/password/reset/email",
@@ -463,8 +464,6 @@ async fn main() {
         )
         // ========== PUBSUB PAGES ==========
         .route("/dapr/subscribe", get(dapr_subscription_list))
-        // ========== DEBUG PAGES ==========
-        .route("/debug/google/login", get(auth::google::login_page))
         .route("/healthz", get(handle_healthz))
         .layer(
             ServiceBuilder::new()

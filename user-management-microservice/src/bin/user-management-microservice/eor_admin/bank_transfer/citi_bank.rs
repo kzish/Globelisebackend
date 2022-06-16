@@ -212,7 +212,7 @@ pub async fn update_transaction_status(
     let sftp_drop_dir = std::env::var("CITIBANK_SFTP_DROP_DIR").expect("sftp_drop_dir_not set");
     for file in remote_files {
         //skip this directory
-        if file.replace("/", "") == sftp_drop_dir.replace("/", "") {
+        if file.replace('/', "") == sftp_drop_dir.replace('/', "") {
             continue;
         }
         let file_name = file.replace("/GRONEXTPYRSFTP/", "");
@@ -553,7 +553,7 @@ async fn generate_xml(
         item = str::replace(
             &item,
             "{{EndToEndId}}",
-            &record
+            record
                 .ulid
                 .to_simple()
                 .to_string()
@@ -569,7 +569,7 @@ async fn generate_xml(
         control_sum_total += record.amount;
         number_of_transactions += 1;
 
-        items.push_str(&item.trim());
+        items.push_str(item.trim());
     }
 
     data = str::replace(&data, "{{MsgId}}", &guid); //unique ID
@@ -583,7 +583,7 @@ async fn generate_xml(
     );
     data = str::replace(&data, "{{CtrlSum}}", &format!("{:.2}", &control_sum_total)); //transfer amount total
     data = str::replace(&data, "{{NbOfTxs}}", &number_of_transactions.to_string()); //number of records
-    data = str::replace(&data, "{{items}}", &items.trim()); //transaction items
+    data = str::replace(&data, "{{items}}", items.trim()); //transaction items
 
     std::fs::write(local_file, data.as_bytes()).expect("failed to write to file");
 }
@@ -598,11 +598,12 @@ pub async fn download_citibank_transfer_initiation_template(
 ) -> (HeaderMap, Vec<u8>) {
     let database = database.lock().await;
 
-    let content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     let mut headers = HeaderMap::new();
     headers.insert(
         HeaderName::from_static("content-type"),
-        HeaderValue::from_str(&content_type).expect(""),
+        HeaderValue::from_static(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
     );
     let base_path = std::env::var("CITIBANK_BASE_PATH").expect("base path not set");
 
@@ -783,8 +784,7 @@ pub async fn upload_citibank_transfer_initiation_template(
         for row in r.rows() {
             //skip first row with titles
             if index != 0 {
-                let employee_id_ulid =
-                    Uuid::parse_str(&row[2].get_string().unwrap_or_default().to_string())?;
+                let employee_id_ulid = Uuid::parse_str(row[2].get_string().unwrap_or_default())?;
 
                 let record = CitiBankPayRollRecord {
                     ulid: Uuid::new_v4(),
@@ -812,7 +812,7 @@ pub async fn upload_citibank_transfer_initiation_template(
                         .unwrap_or(&row[8].get_float().unwrap_or_default().to_string())
                         .to_string()
                         .parse()?,
-                    file_ulid: file_ulid,
+                    file_ulid,
                     transaction_status: "pending".to_string(),
                     transaction_status_description: Some("pending".to_string()),
                 };
@@ -912,7 +912,7 @@ pub async fn list_uploaded_citibank_transfer_initiation_files_records(
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<CitiBankPayRollRecord>>> {
     let database = database.lock().await;
-    let ulid = request.file_ulid.unwrap_or(Uuid::new_v4());
+    let ulid = request.file_ulid.unwrap_or_else(Uuid::new_v4);
     let records = database
         .list_uploaded_citibank_transfer_initiation_files_records(ulid)
         .await?;
@@ -1113,7 +1113,6 @@ impl Database {
         .execute(&self.0)
         .await?;
 
-        println!("{}:{}", file_ulid, status);
         Ok(())
     }
 

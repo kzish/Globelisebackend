@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
 
-mod auth;
+pub mod auth;
 mod onboard;
 
 pub type SharedDatabase = Arc<Mutex<Database>>;

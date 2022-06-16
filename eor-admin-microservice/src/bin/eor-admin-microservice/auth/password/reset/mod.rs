@@ -39,10 +39,11 @@ pub async fn send_email(
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
-    let (admin_ulid, is_valid_attempt) = match database.admin_id(&body.email).await {
-        Ok(Some(ulid)) => (ulid, true),
-        _ => (Uuid::new_v4(), false),
-    };
+    let (admin_ulid, is_valid_attempt) =
+        match database.find_one_admin(None, Some(&body.email)).await {
+            Ok(Some(admin)) => (admin.ulid, true),
+            _ => (Uuid::new_v4(), false),
+        };
 
     let mut shared_state = shared_state.lock().await;
     let (one_time_token, created_valid_token) = match shared_state
@@ -142,7 +143,9 @@ pub async fn execute(
     let hash = hash_encoded(request.new_password.as_bytes(), &salt, &HASH_CONFIG)
         .map_err(GlobeliseError::internal)?;
 
-    database.update_password(claims.sub, Some(hash)).await?;
+    database
+        .update_one_admin_password(claims.sub, Some(hash))
+        .await?;
     shared_state.revoke_all_sessions(claims.sub).await?;
 
     Ok(())

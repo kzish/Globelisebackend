@@ -15,8 +15,6 @@ use tokio::sync::Mutex;
 use tonic::transport::Channel;
 use uuid::Uuid;
 
-use crate::database::Database;
-
 use super::{
     token::{
         one_time::{create_one_time_token, OneTimeTokenAudience},
@@ -52,18 +50,7 @@ impl State {
     /// Opens a new session for a admin.
     ///
     /// Returns the refresh token for the session.
-    pub async fn open_session(
-        &mut self,
-        database: &Database,
-        ulid: Uuid,
-    ) -> GlobeliseResult<String> {
-        // Validate that the admin exists
-        if database.admin(ulid).await?.is_none() {
-            return Err(GlobeliseError::unauthorized(
-                "Refused to open session: invalid admin",
-            ));
-        }
-
+    pub async fn open_session(&mut self, ulid: Uuid) -> GlobeliseResult<String> {
         let mut sessions = Sessions::default();
         if let Some(existing_sessions) = self.sessions(ulid).await? {
             sessions = existing_sessions;

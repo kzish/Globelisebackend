@@ -16,38 +16,39 @@ use error::Result;
 /// Representation of Google's ID token.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct IdToken {
-    credential: String,
-}
+pub struct IdToken(pub String);
 
 impl IdToken {
     /// Decode and validate the token.
-    pub async fn decode(&self, client_id: &str) -> Result<Claims> {
-        let OauthKeyList { keys } = OauthKeyList::new().await?;
-        let key = self.identify_key(&keys)?;
+    pub async fn decode_and_validate(&self, google_client_id: &str) -> Result<Claims> {
+        let openid_configuration = OpenIdConfiguration::new().await?;
+        let oauth_key_list = OauthKeyList::new(&openid_configuration.jwks_uri).await?;
+        let key = self.identify_key(&oauth_key_list.keys)?;
 
-        let mut validation = Validation::new(Algorithm::RS256);
-        validation.set_audience(&[client_id]);
-        validation.set_issuer(&["https://accounts.google.com"]);
+        if &key.kty != "RSA" {
+            return Err(Error::NotSupported(key.kty.clone()));
+        }
+
+        let mut validation = Validation::new(key.alg);
+        validation.set_audience(&[google_client_id]);
+        validation.set_issuer(&["accounts.google.com"]);
         validation.set_required_spec_claims(&["aud", "iss", "exp"]);
         let validation = validation;
 
         let TokenData { claims, .. } = decode::<Claims>(
-            &*self.credential,
-            &DecodingKey::from_rsa_components(&*key.n, &*key.e).map_err(|_| {
-                Error::Decoding("could not create decoding key from Google public key".into())
-            })?,
+            &*self.0,
+            &DecodingKey::from_rsa_components(&*key.n, &*key.e)
+                .map_err(|e| Error::Decoding(format!("{}", e)))?,
             &validation,
         )
-        .map_err(|_| Error::Decoding("could not decode JWT".into()))?;
+        .map_err(|e| Error::Decoding(format!("{}", e)))?;
 
         Ok(claims)
     }
 
     /// Pick the correct key used for the token.
     fn identify_key<'a>(&self, keys: &'a [OauthKey]) -> Result<&'a OauthKey> {
-        let header = decode_header(&*self.credential)
-            .map_err(|_| Error::Decoding("could not decode JWT header".into()))?;
+        let header = decode_header(&*self.0).map_err(|e| Error::Decoding(format!("{}", e)))?;
         let key_id = header.kid.ok_or(Error::MissingKeyId)?;
 
         for key in keys {
@@ -65,12 +66,16 @@ impl IdToken {
 #[serde(rename_all = "kebab-case")]
 pub struct Claims {
     pub email: EmailWrapper,
+    pub aud: String,
+    pub iss: String,
 }
 
 /// Google's public key used for decoding tokens.
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 struct OauthKey {
+    kty: String,
+    alg: Algorithm,
     kid: String,
     n: String,
     e: String,
@@ -85,20 +90,53 @@ struct OauthKeyList {
 
 impl OauthKeyList {
     /// Fetch Google's public keys.
-    async fn new() -> Result<Self> {
+    async fn new(jwks_uri: &str) -> Result<Self> {
         OAUTH_KEY_CLIENT
-            .get("https://www.googleapis.com/oauth2/v3/certs")
+            .get(jwks_uri)
             .send()
             .await
-            .map_err(|_| Error::FetchPublicKeys)?
+            .map_err(|e| Error::FetchPublicKeys(format!("{}", e)))?
             .json::<Self>()
             .await
-            .map_err(|_| Error::FetchPublicKeys)
+            .map_err(|e| Error::FetchPublicKeys(format!("{}", e)))
     }
 }
 
 /// HTTP client for fetching and caching Google's public keys.
 static OAUTH_KEY_CLIENT: Lazy<ClientWithMiddleware> = Lazy::new(|| {
+    ClientBuilder::new(Client::new())
+        .with(Cache(HttpCache {
+            mode: CacheMode::Default,
+            manager: Arc::new(MokaManager::default()),
+            options: None,
+        }))
+        .build()
+});
+
+/// Array of Google's public keys.
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+struct OpenIdConfiguration {
+    #[serde(rename = "jwks_uri")]
+    jwks_uri: String,
+}
+
+impl OpenIdConfiguration {
+    /// Fetch Google's public keys.
+    async fn new() -> Result<Self> {
+        OPENID_CONFIGURATION
+            .get("https://accounts.google.com/.well-known/openid-configuration")
+            .send()
+            .await
+            .map_err(|e| Error::FetchPublicKeys(format!("{}", e)))?
+            .json::<Self>()
+            .await
+            .map_err(|e| Error::FetchPublicKeys(format!("{}", e)))
+    }
+}
+
+/// HTTP client for fetching and caching Google's public keys.
+static OPENID_CONFIGURATION: Lazy<ClientWithMiddleware> = Lazy::new(|| {
     ClientBuilder::new(Client::new())
         .with(Cache(HttpCache {
             mode: CacheMode::Default,
