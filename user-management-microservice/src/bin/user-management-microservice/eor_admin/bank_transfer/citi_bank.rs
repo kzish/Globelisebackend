@@ -565,6 +565,7 @@ async fn generate_xml(
         item = str::replace(&item, "{{Cdtr_Nm}}", &record.employee_name);
         item = str::replace(&item, "{{CdtrAcct_Id}}", &record.bank_account_number);
         item = str::replace(&item, "{{RmtInf_Ustrd}}", "Globelise Salary Payment");
+        item = str::replace(&item, "{{bene_bank_name}}", &record.bank_name);
 
         control_sum_total += record.amount;
         number_of_transactions += 1;
