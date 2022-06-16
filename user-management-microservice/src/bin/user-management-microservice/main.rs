@@ -112,7 +112,7 @@ async fn main() {
             "/onboard/payment-details",
             get(onboard::payment::get_onboard_client_payment_details)
                 .post(onboard::payment::post_onboard_client_payment_details),
-        )
+        )   
         .route(
             "/client/branch",
             get(branch::user::get_many_branches)
@@ -345,11 +345,6 @@ async fn main() {
             get(eor_admin::eor_admin_onboarded_user_index),
         )
         .route("/eor-admin/users", get(eor_admin::eor_admin_user_index))
-        .route(
-            "/eor-admin/users/create_client_contractor_pairs",
-            get(eor_admin::client_contractor_pair::get_many)
-                .post(eor_admin::client_contractor_pair::post_one),
-        )
         .route(
             "/eor-admin/users/individual/contractor_branch_pairs",
             get(eor_admin::individual_contractor_branch_pair::get_many)
