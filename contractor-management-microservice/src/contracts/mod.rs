@@ -5,59 +5,53 @@ use axum::{
 use common_utils::{
     custom_serde::{Currency, EmailWrapper, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::GlobeliseResult,
-    token::{Token, TokenString},
+    token::Token,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, FromInto, TryFromInto};
 use sqlx::FromRow;
 use user_management_microservice_sdk::{
     token::UserAccessToken,
     user::{UserRole, UserType},
-    user_index::GetUserInfoRequest,
 };
 use uuid::Uuid;
 
-use crate::{
-    common::PaginatedQuery, database::SharedDatabase, env::USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
-};
+use crate::{common::PaginatedQuery, database::SharedDatabase};
+
+use self::database::OnboardedUserIndex;
 
 mod database;
 
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GetUserInfoRequest {
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+    pub search_text: Option<String>,
+    pub user_type: Option<UserType>,
+    pub user_role: Option<UserRole>,
+}
+
 /// Lists all the users plus some information about them.
 pub async fn eor_admin_user_index(
-    TokenString(access_token): TokenString,
-    Query(request): Query<GetUserInfoRequest>,
-    Extension(shared_client): Extension<Client>,
+    _: Token<AdminAccessToken>,
+    Query(query): Query<GetUserInfoRequest>,
     Extension(shared_database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<UserIndex>>> {
-    let response = user_management_microservice_sdk::user_index::eor_admin_onboarded_users(
-        &shared_client,
-        &*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
-        access_token,
-        request,
-    )
-    .await?;
-
-    let mut result = Vec::with_capacity(response.len());
-
+) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
     let database = shared_database.lock().await;
-
-    for v in response {
-        let count = database
-            .count_number_of_contracts(v.ulid, v.user_role)
-            .await?;
-        result.push(UserIndex {
-            ulid: v.ulid,
-            name: v.name,
-            r#type: v.user_type,
-            role: v.user_role,
-            contract_count: count,
-            created_at: v.created_at,
-            email: v.email,
-        })
-    }
+    let result = database
+        .select_many_onboarded_users(
+            query.page,
+            query.per_page,
+            query.search_text,
+            query.user_type,
+            query.user_role,
+            None,
+            None,
+        )
+        .await?;
     Ok(Json(result))
 }
 
