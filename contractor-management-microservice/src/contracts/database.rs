@@ -26,7 +26,7 @@ impl Database {
             LIMIT $3 OFFSET $4",
         )
         .bind(contractor_ulid)
-        .bind(query.query)
+        .bind(query.search_text)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)
@@ -56,7 +56,7 @@ impl Database {
             LIMIT $3 OFFSET $4",
         )
         .bind(client_ulid)
-        .bind(query.query)
+        .bind(query.search_text)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)
@@ -151,5 +151,37 @@ impl Database {
         .await?;
 
         Ok(ulid)
+    }
+
+    pub async fn select_one_contract(
+        &self,
+        contract_ulid: Option<Uuid>,
+        contractor_ulid: Option<Uuid>,
+        client_ulid: Option<Uuid>,
+        query: Option<String>,
+        branch_ulid: Option<Uuid>,
+    ) -> GlobeliseResult<Option<ContractsIndex>> {
+        let result = sqlx::query_as(
+            "
+        SELECT
+            *
+        FROM
+            contracts_index
+        WHERE
+            ($1 IS NULL OR contract_ulid = $1) AND
+            ($2 IS NULL OR client_ulid = $2) AND
+            ($3 IS NULL OR contractor_ulid = $3) AND
+            ($4 IS NULL OR (contract_name ~* $4 OR client_name ~* $4 OR contractor_name ~* $4)) AND
+            ($5 IS NULL OR branch_ulid = $5)",
+        )
+        .bind(contract_ulid)
+        .bind(client_ulid)
+        .bind(contractor_ulid)
+        .bind(query)
+        .bind(branch_ulid)
+        .fetch_optional(&self.0)
+        .await?;
+
+        Ok(result)
     }
 }
