@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use strum::Display;
 
 pub mod custom_serde;
+pub mod database;
 pub mod error;
 pub mod pubsub;
 pub mod token;
