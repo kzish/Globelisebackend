@@ -2,13 +2,17 @@ use axum::{
     extract::{Extension, Path, Query},
     Json,
 };
-use common_utils::{custom_serde::OffsetDateWrapper, error::GlobeliseResult, token::Token};
+use common_utils::{
+    custom_serde::{OffsetDateWrapper, UserRole},
+    error::GlobeliseResult,
+    token::Token,
+};
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use itertools::izip;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, FromInto};
 use sqlx::{postgres::PgRow, FromRow, Row};
-use user_management_microservice_sdk::{token::UserAccessToken, user::UserRole};
+use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::database::SharedDatabase;

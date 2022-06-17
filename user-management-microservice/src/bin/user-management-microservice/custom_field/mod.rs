@@ -4,7 +4,7 @@ use axum::{
 };
 use common_utils::{
     calc_limit_and_offset,
-    custom_serde::FORM_DATA_LENGTH_LIMIT,
+    custom_serde::{UserType, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     impl_enum_asfrom_str,
     token::Token,
@@ -13,7 +13,7 @@ use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::FromRow;
-use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};

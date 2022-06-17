@@ -1,9 +1,10 @@
 use axum::{extract::Path, Extension, Json};
-use common_utils::{error::GlobeliseResult, token::Token};
-use user_management_microservice_sdk::{
-    token::UserAccessToken,
-    user::{UserRole, UserType},
+use common_utils::{
+    custom_serde::{UserRole, UserType},
+    error::GlobeliseResult,
+    token::Token,
 };
+use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
