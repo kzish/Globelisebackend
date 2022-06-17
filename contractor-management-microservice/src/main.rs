@@ -64,7 +64,10 @@ async fn main() {
             "/payslips/:role/:payslip_ulid",
             get(payslips::user_get_one_payslip),
         )
-        .route("/tax-reports/:role", get(tax_report::user_tax_report_index))
+        .route(
+            "/tax-reports/:role",
+            get(tax_report::user_get_many_tax_report_index),
+        )
         .route(
             "/invoices/individual/:role",
             get(invoice::user_invoice_individual_index),
@@ -77,20 +80,28 @@ async fn main() {
         .route("/eor-admin/users", get(contracts::eor_admin_user_index))
         .route(
             "/eor-admin/payslips",
-            get(payslips::admin_get_many_payslips).post(payslips::admin_post_one_payslip),
+            get(payslips::admin_get_many_payslip_index).post(payslips::admin_post_one_payslip),
         )
         .route(
             "/eor-admin/payslips/:payslip_ulid",
-            get(payslips::admin_get_one_payslip),
+            get(payslips::admin_get_one_payslip_index),
         )
         .route(
             "/eor-admin/tax-reports",
-            get(tax_report::eor_admin_tax_report_index)
-                .post(tax_report::eor_admin_create_tax_report),
+            get(tax_report::admin_get_many_tax_report_index)
+                .post(tax_report::admin_post_one_tax_report),
+        )
+        .route(
+            "/eor-admin/tax-reports/:tax_report_ulid",
+            get(tax_report::admin_get_one_tax_report_index),
         )
         .route(
             "/eor-admin/contracts",
-            get(contracts::admin_get_many_contracts).post(contracts::admin_post_one_contract),
+            get(contracts::admin_get_many_contract_index).post(contracts::admin_post_one_contract),
+        )
+        .route(
+            "/eor-admin/contracts/:contract_ulid",
+            get(contracts::admin_get_one_contract_index),
         )
         .route(
             "/eor-admin/invoices/individual",
