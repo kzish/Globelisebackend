@@ -1,7 +1,9 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
     calc_limit_and_offset,
-    custom_serde::{EmailWrapper, OptionOffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{
+        EmailWrapper, OffsetDateWrapper, OptionOffsetDateWrapper, FORM_DATA_LENGTH_LIMIT,
+    },
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -9,10 +11,9 @@ use eor_admin_microservice_sdk::token::AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
-use user_management_microservice_sdk::{
-    user::{UserRole, UserType},
-    user_index::{OnboardedUserIndex, UserIndex},
-};
+use sqlx::FromRow;
+use user_management_microservice_sdk::user::{UserRole, UserType};
+use uuid::Uuid;
 
 use crate::{
     database::{Database, SharedDatabase},
@@ -55,7 +56,7 @@ pub async fn eor_admin_onboarded_user_index(
 ) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
     let database = database.lock().await;
     let result = database
-        .onboarded_user_index(
+        .select_many_onboarded_users(
             query.page,
             query.per_page,
             query.search_text,
@@ -178,14 +179,35 @@ pub async fn eor_admin_user_index(
     Ok(Json(result))
 }
 
+/// Stores information associated with a user id.
+#[serde_as]
+#[derive(Debug, FromRow, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct OnboardedUserIndex {
+    pub ulid: Uuid,
+    pub name: String,
+    pub user_role: UserRole,
+    pub user_type: UserType,
+    pub email: EmailWrapper,
+    pub contract_count: i64,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
+}
+
+#[serde_as]
+#[derive(Debug, FromRow, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct UserIndex {
+    pub ulid: Uuid,
+    pub user_type: UserType,
+    pub email: EmailWrapper,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
+}
+
 impl Database {
-    /// Index users (client and contractors)
-    ///
-    /// Currently, the search functionality only works on the name.
-    /// For entities, this is the company's name.
-    /// For individuals, this is a concat of their first and last name.
     #[allow(clippy::too_many_arguments)]
-    pub async fn onboarded_user_index(
+    pub async fn select_many_onboarded_users(
         &self,
         page: Option<u32>,
         per_page: Option<u32>,
@@ -200,12 +222,7 @@ impl Database {
         let result = sqlx::query_as(
             "
             SELECT
-                ulid,
-                name,
-                email,
-                user_role,
-                user_type,
-                created_at
+                *
             FROM 
                 onboarded_user_index 
             WHERE
@@ -231,9 +248,6 @@ impl Database {
         Ok(result)
     }
 
-    /// Index users ULID and email
-    ///
-    /// This does not require users to be fully onboarded.
     pub async fn user_index(
         &self,
         page: Option<u32>,
@@ -248,12 +262,7 @@ impl Database {
         let result = sqlx::query_as(
             "
             SELECT 
-                ulid,
-                email,
-                user_type,
-                is_google,
-                is_outlook,
-                created_at
+                *
             FROM 
                 users_index 
             WHERE

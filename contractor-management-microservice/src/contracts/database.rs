@@ -1,45 +1,34 @@
-use common_utils::{calc_limit_and_offset, custom_serde::Currency, error::GlobeliseResult};
-use user_management_microservice_sdk::user::UserRole;
+use common_utils::{
+    calc_limit_and_offset,
+    custom_serde::{Currency, EmailWrapper, OffsetDateWrapper},
+    error::GlobeliseResult,
+};
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, TryFromInto};
+use sqlx::FromRow;
+use user_management_microservice_sdk::user::{UserRole, UserType};
 use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::Database};
 
 use super::{ClientsIndex, ContractorsIndex, ContractsIndex};
 
+/// Stores information associated with a user id.
+#[serde_as]
+#[derive(Debug, FromRow, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct OnboardedUserIndex {
+    pub ulid: Uuid,
+    pub name: String,
+    pub user_role: UserRole,
+    pub user_type: UserType,
+    pub email: EmailWrapper,
+    pub contract_count: i64,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
+}
+
 impl Database {
-    /// Counts the number of contracts.
-    pub async fn count_number_of_contracts(
-        &self,
-        ulid: Uuid,
-        role: UserRole,
-    ) -> GlobeliseResult<i64> {
-        let client_ulid = match role {
-            UserRole::Client => Some(ulid),
-            UserRole::Contractor => None,
-        };
-        let contractor_ulid = match role {
-            UserRole::Client => None,
-            UserRole::Contractor => Some(ulid),
-        };
-
-        let result = sqlx::query_scalar(
-            "
-            SELECT
-                COUNT(*)
-            FROM
-                contracts
-            WHERE
-                ($1 IS NULL OR (client_ulid = $1)) AND
-                ($2 IS NULL OR (contractor_ulid = $2))",
-        )
-        .bind(client_ulid)
-        .bind(contractor_ulid)
-        .fetch_one(&self.0)
-        .await?;
-
-        Ok(result)
-    }
-
     /// Indexes clients that a contractor works for.
     pub async fn select_many_clients_for_contractors(
         &self,
@@ -185,5 +174,47 @@ impl Database {
         .await?;
 
         Ok(ulid)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn select_many_onboarded_users(
+        &self,
+        page: Option<u32>,
+        per_page: Option<u32>,
+        search_text: Option<String>,
+        user_type: Option<UserType>,
+        user_role: Option<UserRole>,
+        created_after: Option<sqlx::types::time::OffsetDateTime>,
+        created_before: Option<sqlx::types::time::OffsetDateTime>,
+    ) -> GlobeliseResult<Vec<OnboardedUserIndex>> {
+        let (limit, offset) = calc_limit_and_offset(per_page, page);
+
+        let result = sqlx::query_as(
+            "
+            SELECT
+                *
+            FROM 
+                onboarded_user_index 
+            WHERE
+                ($1 IS NULL OR name ~* $1) AND
+                ($2 IS NULL OR user_role = $2) AND
+                ($3 IS NULL OR user_type = $3) AND
+                ($4 IS NULL OR created_at > $4) AND
+                ($5 IS NULL OR created_at < $5)
+            LIMIT
+                $6
+            OFFSET
+                $7",
+        )
+        .bind(search_text)
+        .bind(user_role)
+        .bind(user_type)
+        .bind(created_after)
+        .bind(created_before)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.0)
+        .await?;
+        Ok(result)
     }
 }
