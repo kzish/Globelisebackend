@@ -4,7 +4,7 @@ use axum::{
 };
 use common_utils::{
     custom_serde::{Country, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
-    error::GlobeliseResult,
+    error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
@@ -18,8 +18,7 @@ use crate::{common::PaginatedQuery, database::SharedDatabase};
 
 mod database;
 
-/// List the tax reports
-pub async fn user_tax_report_index(
+pub async fn user_get_many_tax_report_index(
     claims: Token<UserAccessToken>,
     Path(role): Path<UserRole>,
     Query(mut query): Query<PaginatedQuery>,
@@ -32,23 +31,56 @@ pub async fn user_tax_report_index(
         UserRole::Contractor => query.contractor_ulid = Some(claims.payload.ulid),
     };
 
-    let result = database.tax_report_index(query).await?;
+    let result = database
+        .select_many_tax_reports(
+            query.page,
+            query.per_page,
+            query.search_text,
+            query.contractor_ulid,
+            query.client_ulid,
+        )
+        .await?;
     Ok(Json(result))
 }
 
-/// List the tax reports
-pub async fn eor_admin_tax_report_index(
+pub async fn admin_get_many_tax_report_index(
     _: Token<AdminAccessToken>,
     Query(query): Query<PaginatedQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<TaxReportIndex>>> {
     let database = shared_database.lock().await;
-    let result = database.tax_report_index(query).await?;
+    let result = database
+        .select_many_tax_reports(
+            query.page,
+            query.per_page,
+            query.search_text,
+            query.contractor_ulid,
+            query.client_ulid,
+        )
+        .await?;
     Ok(Json(result))
 }
 
-/// Create the tax reports
-pub async fn eor_admin_create_tax_report(
+pub async fn admin_get_one_tax_report_index(
+    _: Token<AdminAccessToken>,
+    Path(tax_report_ulid): Path<Uuid>,
+    Query(query): Query<PaginatedQuery>,
+    Extension(shared_database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<TaxReportIndex>> {
+    let database = shared_database.lock().await;
+    let result = database
+        .select_one_tax_report(
+            Some(tax_report_ulid),
+            query.contractor_ulid,
+            query.client_ulid,
+            query.search_text,
+        )
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
+    Ok(Json(result))
+}
+
+pub async fn admin_post_one_tax_report(
     _: Token<AdminAccessToken>,
     ContentLengthLimit(Json(request)): ContentLengthLimit<
         Json<CreateTaxReportIndex>,
@@ -57,7 +89,7 @@ pub async fn eor_admin_create_tax_report(
     Extension(shared_database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = shared_database.lock().await;
-    database.create_tax_report(request).await?;
+    database.insert_one_tax_report(request).await?;
     Ok(())
 }
 
@@ -93,7 +125,7 @@ pub struct TaxReportIndex {
     pub begin_period: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "FromInto<OffsetDateWrapper>")]
     pub end_period: sqlx::types::time::OffsetDateTime,
-    country: String,
+    country: Country,
 }
 
 #[serde_as]

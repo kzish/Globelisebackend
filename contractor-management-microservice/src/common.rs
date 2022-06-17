@@ -8,7 +8,7 @@ use uuid::Uuid;
 pub struct PaginatedQuery {
     pub page: Option<u32>,
     pub per_page: Option<u32>,
-    pub query: Option<String>,
+    pub search_text: Option<String>,
     pub contractor_ulid: Option<Uuid>,
     pub client_ulid: Option<Uuid>,
 }
