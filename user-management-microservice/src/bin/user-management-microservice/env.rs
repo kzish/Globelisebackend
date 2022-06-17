@@ -19,6 +19,7 @@ init_global_static!(MULESOFT_CLIENT_ID);
 init_global_static!(MULESOFT_CLIENT_SECRET);
 init_global_static!(FRONTEND_URL);
 init_global_static!(GOOGLE_CLIENT_ID);
+init_global_static!(DATABASE_URL);
 
 pub static GLOBELISE_SENDER_EMAIL: Lazy<Mailbox> = Lazy::new(|| {
     std::env::var("GLOBELISE_SENDER_EMAIL")

@@ -33,7 +33,7 @@ mod onboard;
 mod prefill;
 
 use crate::auth::token::KEYS;
-use env::{DAPR_ADDRESS, FRONTEND_URL, LISTENING_ADDRESS};
+use env::{DAPR_ADDRESS, DATABASE_URL, FRONTEND_URL, LISTENING_ADDRESS};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -44,7 +44,10 @@ async fn main() {
     let shared_state = auth::State::new().await.expect("Could not connect to Dapr");
     let shared_state = Arc::new(Mutex::new(shared_state));
 
-    let database = Arc::new(Mutex::new(Database::new().await));
+    let shared_database = Arc::new(Mutex::new(Database::new().await));
+    let common_database = Arc::new(Mutex::new(
+        common_utils::database::Database::new(&*DATABASE_URL).await,
+    ));
 
     let public_keys = Arc::new(Mutex::new(PublicKeys::default()));
 
@@ -278,9 +281,9 @@ async fn main() {
         )
         .route(
             "/eor-admin/onboarded-users",
-            get(eor_admin::eor_admin_onboarded_user_index),
+            get(eor_admin::admin_get_many_onboarded_user_index),
         )
-        .route("/eor-admin/users", get(eor_admin::eor_admin_user_index))
+        .route("/eor-admin/users", get(eor_admin::admin_get_many_user_index))
         .route(
             "/eor-admin/users/individual/contractor_branch_pairs",
             get(eor_admin::individual_contractor_branch_pair::get_many)
@@ -419,7 +422,8 @@ async fn main() {
                         .allow_credentials(true)
                         .allow_headers(Any),
                 )
-                .layer(Extension(database))
+                .layer(Extension(shared_database))
+                .layer(Extension(common_database))
                 .layer(Extension(shared_state))
                 .layer(Extension(KEYS.decoding.clone()))
                 .layer(Extension(public_keys))

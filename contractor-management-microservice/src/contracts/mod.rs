@@ -3,9 +3,8 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{
-        Currency, EmailWrapper, OffsetDateWrapper, UserRole, UserType, FORM_DATA_LENGTH_LIMIT,
-    },
+    custom_serde::{Currency, OffsetDateWrapper, UserRole, UserType, FORM_DATA_LENGTH_LIMIT},
+    database::{user::OnboardedUserIndex, CommonDatabase},
     error::GlobeliseResult,
     token::Token,
 };
@@ -17,8 +16,6 @@ use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::SharedDatabase};
-
-use self::database::OnboardedUserIndex;
 
 mod database;
 
@@ -37,11 +34,11 @@ pub struct GetUserInfoRequest {
 pub async fn eor_admin_user_index(
     _: Token<AdminAccessToken>,
     Query(query): Query<GetUserInfoRequest>,
-    Extension(shared_database): Extension<SharedDatabase>,
+    Extension(shared_database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
     let database = shared_database.lock().await;
     let result = database
-        .select_many_onboarded_users(
+        .select_many_onboarded_user_index(
             query.page,
             query.per_page,
             query.search_text,
@@ -177,20 +174,6 @@ pub async fn admin_post_one_contract(
         .await?;
 
     Ok(ulid.to_string())
-}
-
-#[serde_as]
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct UserIndex {
-    pub ulid: Uuid,
-    pub name: String,
-    pub r#type: UserType,
-    pub role: UserRole,
-    pub contract_count: i64,
-    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
-    pub created_at: sqlx::types::time::OffsetDateTime,
-    pub email: EmailWrapper,
 }
 
 #[serde_as]
