@@ -6,13 +6,13 @@ use axum::{
     headers::{authorization::Bearer, Authorization},
 };
 use common_utils::{
+    custom_serde::UserType,
     error::{GlobeliseError, GlobeliseResult},
     token::ISSUER,
 };
 use jsonwebtoken::{decode, encode, Algorithm, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
-use user_management_microservice_sdk::user::UserType;
 use uuid::Uuid;
 
 use crate::auth::{SharedDatabase, SharedState};

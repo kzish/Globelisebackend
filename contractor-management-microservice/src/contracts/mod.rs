@@ -3,7 +3,9 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{Currency, EmailWrapper, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{
+        Currency, EmailWrapper, OffsetDateWrapper, UserRole, UserType, FORM_DATA_LENGTH_LIMIT,
+    },
     error::GlobeliseResult,
     token::Token,
 };
@@ -11,10 +13,7 @@ use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, FromInto, TryFromInto};
 use sqlx::FromRow;
-use user_management_microservice_sdk::{
-    token::UserAccessToken,
-    user::{UserRole, UserType},
-};
+use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::SharedDatabase};

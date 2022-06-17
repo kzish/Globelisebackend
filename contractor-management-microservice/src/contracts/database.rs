@@ -1,12 +1,11 @@
 use common_utils::{
     calc_limit_and_offset,
-    custom_serde::{Currency, EmailWrapper, OffsetDateWrapper},
+    custom_serde::{Currency, EmailWrapper, OffsetDateWrapper, UserRole, UserType},
     error::GlobeliseResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 use sqlx::FromRow;
-use user_management_microservice_sdk::user::{UserRole, UserType};
 use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::Database};

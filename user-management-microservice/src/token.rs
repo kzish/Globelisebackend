@@ -1,12 +1,12 @@
-use common_utils::{custom_serde::EmailWrapper, token::TokenLike, DaprAppId};
+use common_utils::{
+    custom_serde::{EmailWrapper, UserRole, UserType},
+    token::TokenLike,
+    DaprAppId,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use time::Duration;
 use uuid::Uuid;
-
-use crate::user::UserRole;
-
-use super::user::UserType;
 
 /// Claims for access tokens.
 #[serde_as]

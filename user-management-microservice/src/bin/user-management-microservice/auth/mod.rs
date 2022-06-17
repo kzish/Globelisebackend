@@ -6,7 +6,7 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{EmailWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{EmailWrapper, UserRole, UserType, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::{create_token, Token},
 };
@@ -14,10 +14,7 @@ use once_cell::sync::Lazy;
 use rand::Rng;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
-use user_management_microservice_sdk::{
-    token::UserAccessToken,
-    user::{UserRole, UserType},
-};
+use user_management_microservice_sdk::token::UserAccessToken;
 
 use crate::database::SharedDatabase;
 

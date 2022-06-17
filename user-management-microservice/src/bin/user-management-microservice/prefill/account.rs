@@ -1,13 +1,13 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
-    custom_serde::{EmailWrapper, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{EmailWrapper, OffsetDateWrapper, UserType, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 use sqlx::FromRow;
-use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};

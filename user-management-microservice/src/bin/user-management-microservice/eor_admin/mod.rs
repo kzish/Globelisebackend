@@ -2,7 +2,8 @@ use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
     calc_limit_and_offset,
     custom_serde::{
-        EmailWrapper, OffsetDateWrapper, OptionOffsetDateWrapper, FORM_DATA_LENGTH_LIMIT,
+        EmailWrapper, OffsetDateWrapper, OptionOffsetDateWrapper, UserRole, UserType,
+        FORM_DATA_LENGTH_LIMIT,
     },
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
@@ -12,7 +13,6 @@ use lettre::{Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 use sqlx::FromRow;
-use user_management_microservice_sdk::user::{UserRole, UserType};
 use uuid::Uuid;
 
 use crate::{

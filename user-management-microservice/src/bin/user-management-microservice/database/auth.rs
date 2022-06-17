@@ -1,5 +1,7 @@
-use common_utils::{custom_serde::EmailWrapper, error::GlobeliseResult};
-use user_management_microservice_sdk::user::UserType;
+use common_utils::{
+    custom_serde::{EmailWrapper, UserType},
+    error::GlobeliseResult,
+};
 use uuid::Uuid;
 
 use crate::auth::user::User;
