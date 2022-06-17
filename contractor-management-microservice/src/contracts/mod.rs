@@ -4,7 +4,7 @@ use axum::{
 };
 use common_utils::{
     custom_serde::{Currency, EmailWrapper, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
-    error::GlobeliseResult,
+    error::{GlobeliseError, GlobeliseResult},
     token::{Token, TokenString},
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
@@ -24,6 +24,16 @@ use crate::{
 };
 
 mod database;
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GetOneContractQuery {
+    pub query: Option<String>,
+    pub contractor_ulid: Option<Uuid>,
+    pub client_ulid: Option<Uuid>,
+    pub branch_ulid: Option<Uuid>,
+}
 
 /// Lists all the users plus some information about them.
 pub async fn eor_admin_user_index(
@@ -136,7 +146,7 @@ pub async fn contracts_index(
     Ok(Json(results))
 }
 
-pub async fn admin_get_many_contracts(
+pub async fn admin_get_many_contract_index(
     _: Token<AdminAccessToken>,
     Query(query): Query<GetManyContractsQuery>,
     Extension(database): Extension<SharedDatabase>,
@@ -154,6 +164,26 @@ pub async fn admin_get_many_contracts(
             )
             .await?,
     ))
+}
+
+pub async fn admin_get_one_contract_index(
+    _: Token<AdminAccessToken>,
+    Path(contract_ulid): Path<Uuid>,
+    Query(query): Query<GetOneContractQuery>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<ContractsIndex>> {
+    let database = database.lock().await;
+    let result = database
+        .select_one_contract(
+            Some(contract_ulid),
+            query.contractor_ulid,
+            query.client_ulid,
+            query.query,
+            query.branch_ulid,
+        )
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
+    Ok(Json(result))
 }
 
 pub async fn admin_post_one_contract(

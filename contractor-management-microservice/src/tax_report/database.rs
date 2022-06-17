@@ -1,17 +1,20 @@
 use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
 use uuid::Uuid;
 
-use crate::{common::PaginatedQuery, database::Database};
+use crate::database::Database;
 
 use super::{CreateTaxReportIndex, TaxReportIndex};
 
 impl Database {
-    /// Indexes tax report.
-    pub async fn tax_report_index(
+    pub async fn select_many_tax_reports(
         &self,
-        query: PaginatedQuery,
+        page: Option<u32>,
+        per_page: Option<u32>,
+        search_text: Option<String>,
+        contractor_ulid: Option<Uuid>,
+        client_ulid: Option<Uuid>,
     ) -> GlobeliseResult<Vec<TaxReportIndex>> {
-        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+        let (limit, offset) = calc_limit_and_offset(per_page, page);
 
         let index = sqlx::query_as(
             "
@@ -24,11 +27,14 @@ impl Database {
                 ($1 IS NULL OR client_ulid = $1) AND
                 ($2 IS NULL OR contractor_ulid = $2) AND
                 ($3 IS NULL OR (client_name ~* $3 OR contractor_name ~* $3))
-            LIMIT $4 OFFSET $5",
+            LIMIT 
+                $4
+            OFFSET 
+                $5",
         )
-        .bind(query.client_ulid)
-        .bind(query.contractor_ulid)
-        .bind(query.query)
+        .bind(client_ulid)
+        .bind(contractor_ulid)
+        .bind(search_text)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)
@@ -37,8 +43,36 @@ impl Database {
         Ok(index)
     }
 
-    /// Create tax report
-    pub async fn create_tax_report(&self, query: CreateTaxReportIndex) -> GlobeliseResult<()> {
+    pub async fn select_one_tax_report(
+        &self,
+        tax_report_ulid: Option<Uuid>,
+        contractor_ulid: Option<Uuid>,
+        client_ulid: Option<Uuid>,
+        search_text: Option<String>,
+    ) -> GlobeliseResult<Option<TaxReportIndex>> {
+        let result = sqlx::query_as(
+            "
+            SELECT
+                *
+            FROM
+                tax_reports_index
+            WHERE
+                ($1 IS NULL OR tax_report_ulid = $1) AND
+                ($2 IS NULL OR client_ulid = $2) AND
+                ($3 IS NULL OR contractor_ulid = $3) AND
+                ($4 IS NULL OR (client_name ~* $4 OR contractor_name ~* $4))",
+        )
+        .bind(tax_report_ulid)
+        .bind(client_ulid)
+        .bind(contractor_ulid)
+        .bind(search_text)
+        .fetch_optional(&self.0)
+        .await?;
+
+        Ok(result)
+    }
+
+    pub async fn insert_one_tax_report(&self, query: CreateTaxReportIndex) -> GlobeliseResult<()> {
         sqlx::query(
             "
             INSERT INTO tax_reports

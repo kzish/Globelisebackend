@@ -32,7 +32,7 @@ pub async fn user_find_many_payslips(
                 .select_many_payslips(
                     query.page,
                     query.per_page,
-                    query.query,
+                    query.search_text,
                     query.contractor_ulid,
                     Some(claims.payload.ulid),
                 )
@@ -43,7 +43,7 @@ pub async fn user_find_many_payslips(
                 .select_many_payslips(
                     query.page,
                     query.per_page,
-                    query.query,
+                    query.search_text,
                     Some(claims.payload.ulid),
                     query.client_ulid,
                 )
@@ -78,7 +78,7 @@ pub async fn user_get_one_payslip(
     Ok(Json(result))
 }
 
-pub async fn admin_get_many_payslips(
+pub async fn admin_get_many_payslip_index(
     _: Token<AdminAccessToken>,
     Query(query): Query<PaginatedQuery>,
     Extension(shared_database): Extension<SharedDatabase>,
@@ -88,7 +88,7 @@ pub async fn admin_get_many_payslips(
         .select_many_payslips(
             query.page,
             query.per_page,
-            query.query,
+            query.search_text,
             query.contractor_ulid,
             query.client_ulid,
         )
@@ -96,7 +96,7 @@ pub async fn admin_get_many_payslips(
     Ok(Json(result))
 }
 
-pub async fn admin_get_one_payslip(
+pub async fn admin_get_one_payslip_index(
     _: Token<AdminAccessToken>,
     Path(payslip_ulid): Path<Uuid>,
     Extension(shared_database): Extension<SharedDatabase>,
