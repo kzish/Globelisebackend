@@ -25,7 +25,7 @@ mod database;
 pub struct GetUserIndexQuery {
     pub page: Option<u32>,
     pub per_page: Option<u32>,
-    pub search_text: Option<String>,
+    pub query: Option<String>,
     pub user_type: Option<UserType>,
     pub user_role: Option<UserRole>,
 }
@@ -41,17 +41,18 @@ pub struct GetOneContractQuery {
 }
 
 /// Lists all the users plus some information about them.
-pub async fn eor_admin_user_index(
+pub async fn admin_get_many_user_index(
     _: Token<AdminAccessToken>,
     Query(query): Query<GetUserIndexQuery>,
     Extension(shared_database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
+    println!("query:{:#?}", query);
     let database = shared_database.lock().await;
     let result = database
         .select_many_onboarded_user_index(
             query.page,
             query.per_page,
-            query.search_text,
+            query.query,
             query.user_type,
             query.user_role,
             None,
@@ -61,30 +62,40 @@ pub async fn eor_admin_user_index(
     Ok(Json(result))
 }
 
-pub async fn get_many_clients_for_contractors(
+pub async fn user_get_many_clients_for_contractors(
     access_token: Token<UserAccessToken>,
     Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ClientsIndex>>> {
+) -> GlobeliseResult<Json<Vec<ClientContractorPair>>> {
     let database = database.lock().await;
-    Ok(Json(
-        database
-            .select_many_clients_for_contractors(access_token.payload.ulid, query)
-            .await?,
-    ))
+    let result = database
+        .select_many_client_contractor_pairs(
+            query.page,
+            query.per_page,
+            query.query,
+            query.contractor_ulid,
+            Some(access_token.payload.ulid),
+        )
+        .await?;
+    Ok(Json(result))
 }
 
-pub async fn get_many_contractors_for_clients(
+pub async fn user_get_many_contractors_for_clients(
     access_token: Token<UserAccessToken>,
     Query(query): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ContractorsIndex>>> {
+) -> GlobeliseResult<Json<Vec<ClientContractorPair>>> {
     let database = database.lock().await;
-    Ok(Json(
-        database
-            .select_many_contractors_for_clients(access_token.payload.ulid, query)
-            .await?,
-    ))
+    let result = database
+        .select_many_client_contractor_pairs(
+            query.page,
+            query.per_page,
+            query.query,
+            Some(access_token.payload.ulid),
+            query.client_ulid,
+        )
+        .await?;
+    Ok(Json(result))
 }
 
 #[serde_as]
@@ -99,7 +110,7 @@ pub struct GetManyContractsQuery {
     pub branch_ulid: Option<Uuid>,
 }
 
-pub async fn contracts_index(
+pub async fn user_get_many_contract_index(
     claims: Token<UserAccessToken>,
     Path(role): Path<UserRole>,
     Query(query): Query<GetManyContractsQuery>,
@@ -134,6 +145,39 @@ pub async fn contracts_index(
     };
 
     Ok(Json(results))
+}
+
+pub async fn user_get_one_contract_index(
+    claims: Token<UserAccessToken>,
+    Path((user_role, contract_ulid)): Path<(UserRole, Uuid)>,
+    Query(query): Query<GetManyContractsQuery>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<ContractsIndex>> {
+    let database = database.lock().await;
+    let result = match user_role {
+        UserRole::Client => database
+            .select_one_contract(
+                Some(contract_ulid),
+                query.contractor_ulid,
+                Some(claims.payload.ulid),
+                query.query,
+                query.branch_ulid,
+            )
+            .await?
+            .ok_or(GlobeliseError::NotFound)?,
+        UserRole::Contractor => database
+            .select_one_contract(
+                Some(contract_ulid),
+                Some(claims.payload.ulid),
+                query.client_ulid,
+                query.query,
+                query.branch_ulid,
+            )
+            .await?
+            .ok_or(GlobeliseError::NotFound)?,
+    };
+
+    Ok(Json(result))
 }
 
 pub async fn admin_get_many_contract_index(
@@ -209,9 +253,11 @@ pub async fn admin_post_one_contract(
 #[serde_as]
 #[derive(Debug, FromRow, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct ClientsIndex {
+pub struct ClientContractorPair {
     client_ulid: Uuid,
     client_name: String,
+    contractor_ulid: Uuid,
+    contractor_name: String,
 }
 
 #[serde_as]

@@ -10,7 +10,7 @@ impl Database {
         &self,
         page: Option<u32>,
         per_page: Option<u32>,
-        search_text: Option<String>,
+        query: Option<String>,
         contractor_ulid: Option<Uuid>,
         client_ulid: Option<Uuid>,
     ) -> GlobeliseResult<Vec<TaxReportIndex>> {
@@ -34,7 +34,7 @@ impl Database {
         )
         .bind(client_ulid)
         .bind(contractor_ulid)
-        .bind(search_text)
+        .bind(query)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)
@@ -48,7 +48,7 @@ impl Database {
         tax_report_ulid: Option<Uuid>,
         contractor_ulid: Option<Uuid>,
         client_ulid: Option<Uuid>,
-        search_text: Option<String>,
+        query: Option<String>,
     ) -> GlobeliseResult<Option<TaxReportIndex>> {
         let result = sqlx::query_as(
             "
@@ -65,7 +65,7 @@ impl Database {
         .bind(tax_report_ulid)
         .bind(client_ulid)
         .bind(contractor_ulid)
-        .bind(search_text)
+        .bind(query)
         .fetch_optional(&self.0)
         .await?;
 

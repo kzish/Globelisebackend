@@ -111,7 +111,7 @@ pub async fn add_individual_contractor(
 pub struct GetManyUserIndexQuery {
     pub page: Option<u32>,
     pub per_page: Option<u32>,
-    pub search_text: Option<String>,
+    pub query: Option<String>,
     pub user_type: Option<UserType>,
     #[serde(default)]
     #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
@@ -132,7 +132,7 @@ pub async fn admin_get_many_user_index(
         .select_many_user_index(
             query.page,
             query.per_page,
-            query.search_text,
+            query.query,
             query.user_type,
             query.created_after,
             query.created_before,
@@ -147,7 +147,7 @@ pub async fn admin_get_many_user_index(
 pub struct GetManyOnboardedUserIndexQuery {
     pub page: Option<u32>,
     pub per_page: Option<u32>,
-    pub search_text: Option<String>,
+    pub query: Option<String>,
     pub user_type: Option<UserType>,
     pub user_role: Option<UserRole>,
     #[serde(default)]
@@ -169,7 +169,7 @@ pub async fn admin_get_many_onboarded_user_index(
         .select_many_onboarded_user_index(
             query.page,
             query.per_page,
-            query.search_text,
+            query.query,
             query.user_type,
             query.user_role,
             query.created_after,

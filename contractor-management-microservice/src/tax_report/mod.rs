@@ -35,7 +35,7 @@ pub async fn user_get_many_tax_report_index(
         .select_many_tax_reports(
             query.page,
             query.per_page,
-            query.search_text,
+            query.query,
             query.contractor_ulid,
             query.client_ulid,
         )
@@ -53,7 +53,7 @@ pub async fn admin_get_many_tax_report_index(
         .select_many_tax_reports(
             query.page,
             query.per_page,
-            query.search_text,
+            query.query,
             query.contractor_ulid,
             query.client_ulid,
         )
@@ -73,7 +73,7 @@ pub async fn admin_get_one_tax_report_index(
             Some(tax_report_ulid),
             query.contractor_ulid,
             query.client_ulid,
-            query.search_text,
+            query.query,
         )
         .await?
         .ok_or(GlobeliseError::NotFound)?;
