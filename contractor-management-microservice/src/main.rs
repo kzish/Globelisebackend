@@ -4,7 +4,7 @@ use axum::{
     error_handling::HandleErrorLayer,
     extract::Extension,
     http::{HeaderValue, Method, StatusCode},
-    routing::get,
+    routing::{get, post},
     BoxError, Json, Router,
 };
 use common_utils::{
@@ -68,6 +68,10 @@ async fn main() {
         .route(
             "/contracts/:role/:contract_ulid",
             get(contracts::user_get_one_contract_index),
+        )
+        .route(
+            "/:role/contracts/:contract_ulid/sign",
+            post(contracts::user_sign_one_contract),
         )
         .route("/payslips/:role", get(payslips::user_find_many_payslips))
         .route(
