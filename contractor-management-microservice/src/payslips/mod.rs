@@ -32,7 +32,7 @@ pub async fn user_find_many_payslips(
                 .select_many_payslips(
                     query.page,
                     query.per_page,
-                    query.search_text,
+                    query.query,
                     query.contractor_ulid,
                     Some(claims.payload.ulid),
                 )
@@ -43,7 +43,7 @@ pub async fn user_find_many_payslips(
                 .select_many_payslips(
                     query.page,
                     query.per_page,
-                    query.search_text,
+                    query.query,
                     Some(claims.payload.ulid),
                     query.client_ulid,
                 )
@@ -88,7 +88,7 @@ pub async fn admin_get_many_payslip_index(
         .select_many_payslips(
             query.page,
             query.per_page,
-            query.search_text,
+            query.query,
             query.contractor_ulid,
             query.client_ulid,
         )
