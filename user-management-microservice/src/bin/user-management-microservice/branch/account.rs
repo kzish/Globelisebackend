@@ -1,13 +1,13 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Path};
 use common_utils::{
-    custom_serde::{Country, ImageData, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{Country, ImageData, UserType, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
 use sqlx::FromRow;
-use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};

@@ -1,16 +1,14 @@
 use axum::{extract::Query, Extension, Json};
 use common_utils::{
     calc_limit_and_offset,
+    custom_serde::{UserRole, UserType},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::FromRow;
-use user_management_microservice_sdk::{
-    token::UserAccessToken,
-    user::{UserRole, UserType},
-};
+use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};

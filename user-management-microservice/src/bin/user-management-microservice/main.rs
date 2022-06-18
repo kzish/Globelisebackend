@@ -33,7 +33,7 @@ mod onboard;
 mod prefill;
 
 use crate::auth::token::KEYS;
-use env::{DAPR_ADDRESS, FRONTEND_URL, LISTENING_ADDRESS};
+use env::{DAPR_ADDRESS, DATABASE_URL, FRONTEND_URL, LISTENING_ADDRESS};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -44,7 +44,10 @@ async fn main() {
     let shared_state = auth::State::new().await.expect("Could not connect to Dapr");
     let shared_state = Arc::new(Mutex::new(shared_state));
 
-    let database = Arc::new(Mutex::new(Database::new().await));
+    let shared_database = Arc::new(Mutex::new(Database::new().await));
+    let common_database = Arc::new(Mutex::new(
+        common_utils::database::Database::new(&*DATABASE_URL).await,
+    ));
 
     let public_keys = Arc::new(Mutex::new(PublicKeys::default()));
 
@@ -182,48 +185,6 @@ async fn main() {
             get(notification::get_many).
             put(notification::put_one),
         )
-        // ========== contractor account settings (contractors routes) ==========
-        .route(
-            "/account-settings/contractors/bank-details/entity",
-            get(contractor_account_settings::contractor::bank_details::get_bank_details_entity)
-            .post(contractor_account_settings::contractor::bank_details::post_bank_details_entity),
-        )
-        .route(
-            "/account-settings/contractors/bank-details/individual",
-            get(contractor_account_settings::contractor::bank_details::get_bank_details_individual)
-            .post(contractor_account_settings::contractor::bank_details::post_bank_details_individual),
-        )
-        .route(
-            "/account-settings/contractors/personal-information/entity",
-            get(contractor_account_settings::contractor::personal_information::get_profile_settings_entity)
-            .post(contractor_account_settings::contractor::personal_information::post_profile_settings_entity),
-        )
-        .route(
-            "/account-settings/contractors/personal-information/individual",
-            get(contractor_account_settings::contractor::personal_information::get_profile_settings_individual)
-            .post(contractor_account_settings::contractor::personal_information::post_profile_settings_individual),
-        )
-        // ========== contractor account settings (pic routes) ==========
-        .route(
-            "/admin-pic/account-settings/contractors/bank-details/entity/:contractor_ulid",
-            get(contractor_account_settings::client_pic::bank_details::get_bank_details_entity)
-            .post(contractor_account_settings::client_pic::bank_details::post_bank_details_entity),
-        )
-        .route(
-            "/admin-pic/account-settings/contractors/bank-details/individual/:contractor_ulid",
-            get(contractor_account_settings::client_pic::bank_details::get_bank_details_individual)
-            .post(contractor_account_settings::client_pic::bank_details::post_bank_details_individual),
-        )
-        .route(
-            "/admin-pic/account-settings/contractors/personal-information/entity/:contractor_ulid",
-            get(contractor_account_settings::client_pic::personal_information::get_profile_settings_entity)
-            .post(contractor_account_settings::client_pic::personal_information::post_profile_settings_entity),
-        )
-        .route(
-            "/admin-pic/account-settings/contractors/personal-information/individual/:contractor_ulid",
-            get(contractor_account_settings::client_pic::personal_information::get_profile_settings_individual)
-            .post(contractor_account_settings::client_pic::personal_information::post_profile_settings_individual),
-        )
          .route(
             "/admin-pic/account-settings/contractors/payroll-information/entity/:contractor_ulid",
             get(contractor_account_settings::client_pic::payroll_information::get_payroll_information_entity)
@@ -243,28 +204,6 @@ async fn main() {
             "/admin-pic/account-settings/contractors/employment-information/individual/:contractor_ulid",
             get(contractor_account_settings::client_pic::employment_information::get_employment_information_individual)
             .post(contractor_account_settings::client_pic::employment_information::post_employment_information_individual),
-        )
-
-    // ========== contractor account settings (eor admin routes) ==========
-        .route(
-            "/eor-admin/account-settings/contractors/bank-details/entity/:contractor_ulid",
-            get(contractor_account_settings::eor_admin::bank_details::get_bank_details_entity)
-            .post(contractor_account_settings::eor_admin::bank_details::post_bank_details_entity),
-        )
-        .route(
-            "/eor-admin/account-settings/contractors/bank-details/individual/:contractor_ulid",
-            get(contractor_account_settings::eor_admin::bank_details::get_bank_details_individual)
-            .post(contractor_account_settings::eor_admin::bank_details::post_bank_details_individual),
-        )
-        .route(
-            "/eor-admin/account-settings/contractors/personal-information/entity/:contractor_ulid",
-            get(contractor_account_settings::eor_admin::personal_information::get_profile_settings_entity)
-            .post(contractor_account_settings::eor_admin::personal_information::post_profile_settings_entity),
-        )
-        .route(
-            "/eor-admin/account-settings/contractors/personal-information/individual/:contractor_ulid",
-            get(contractor_account_settings::eor_admin::personal_information::get_profile_settings_individual)
-            .post(contractor_account_settings::eor_admin::personal_information::post_profile_settings_individual),
         )
          .route(
             "/eor-admin/account-settings/contractors/payroll-information/entity/:contractor_ulid",
@@ -342,14 +281,9 @@ async fn main() {
         )
         .route(
             "/eor-admin/onboarded-users",
-            get(eor_admin::eor_admin_onboarded_user_index),
+            get(eor_admin::admin_get_many_onboarded_user_index),
         )
-        .route("/eor-admin/users", get(eor_admin::eor_admin_user_index))
-        .route(
-            "/eor-admin/users/create_client_contractor_pairs",
-            get(eor_admin::client_contractor_pair::get_many)
-                .post(eor_admin::client_contractor_pair::post_one),
-        )
+        .route("/eor-admin/users", get(eor_admin::admin_get_many_user_index))
         .route(
             "/eor-admin/users/individual/contractor_branch_pairs",
             get(eor_admin::individual_contractor_branch_pair::get_many)
@@ -488,7 +422,8 @@ async fn main() {
                         .allow_credentials(true)
                         .allow_headers(Any),
                 )
-                .layer(Extension(database))
+                .layer(Extension(shared_database))
+                .layer(Extension(common_database))
                 .layer(Extension(shared_state))
                 .layer(Extension(KEYS.decoding.clone()))
                 .layer(Extension(public_keys))

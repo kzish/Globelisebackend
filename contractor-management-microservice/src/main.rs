@@ -26,7 +26,7 @@ mod invoice;
 mod payslips;
 mod tax_report;
 
-use env::{DAPR_ADDRESS, FRONTEND_URL, LISTENING_ADDRESS};
+use env::{DAPR_ADDRESS, DATABASE_URL, FRONTEND_URL, LISTENING_ADDRESS};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -40,6 +40,9 @@ async fn main() {
         .unwrap();
 
     let shared_database = Arc::new(Mutex::new(Database::new().await));
+    let common_database = Arc::new(Mutex::new(
+        common_utils::database::Database::new(&*DATABASE_URL).await,
+    ));
 
     let public_keys = Arc::new(Mutex::new(PublicKeys::default()));
 
@@ -137,6 +140,7 @@ async fn main() {
                         .allow_headers(Any),
                 )
                 .layer(Extension(shared_database))
+                .layer(Extension(common_database))
                 .layer(Extension(reqwest_client))
                 .layer(Extension(public_keys))
                 .layer(Extension(shared_pubsub)),

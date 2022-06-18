@@ -3,7 +3,7 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{OffsetDateWrapper, UserRole, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -11,7 +11,7 @@ use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
 use sqlx::FromRow;
-use user_management_microservice_sdk::{token::UserAccessToken, user::UserRole};
+use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::SharedDatabase};

@@ -4,14 +4,13 @@ use axum::{
     response::Redirect,
 };
 use common_utils::{
-    custom_serde::{EmailWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{EmailWrapper, UserType, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
 };
 use lettre::{Message, SmtpTransport, Transport};
 use rand::Rng;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
-use user_management_microservice_sdk::user::UserType;
 use uuid::Uuid;
 
 use crate::{
