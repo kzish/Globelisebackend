@@ -5,13 +5,14 @@ use std::num::NonZeroU32;
 use argon2::verify_encoded;
 use axum::extract::{Extension, Json, Path, Query};
 use common_utils::{
+    custom_serde::UserType,
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use sqlx::{FromRow, Row};
-use user_management_microservice_sdk::{token::UserAccessToken, user::UserType};
+use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};

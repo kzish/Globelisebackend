@@ -4,6 +4,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use argon2::{hash_encoded, verify_encoded};
 use common_utils::{
+    custom_serde::UserType,
     error::{GlobeliseError, GlobeliseResult},
     token::create_token,
 };
@@ -16,7 +17,6 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use time::OffsetDateTime;
 use tokio::sync::Mutex;
 use tonic::transport::Channel;
-use user_management_microservice_sdk::user::UserType;
 use uuid::Uuid;
 
 use crate::database::Database;

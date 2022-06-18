@@ -1,3 +1,12 @@
+use std::{
+    fs::{self},
+    io::{prelude::*, Write},
+    net::TcpStream,
+    path::Path,
+    str,
+    sync::Arc,
+};
+
 use axum::extract::ContentLengthLimit;
 use axum::extract::{Extension, Json, Query};
 use calamine::{open_workbook, Reader, Xlsx};
@@ -5,7 +14,7 @@ use chrono;
 use common_utils::token::Token;
 use common_utils::{
     calc_limit_and_offset,
-    custom_serde::FORM_DATA_LENGTH_LIMIT,
+    custom_serde::{UserType, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
@@ -16,17 +25,9 @@ use serde_with::{base64::Base64, serde_as};
 use sqlx::FromRow;
 use ssh2::Session;
 use std::process::Command;
-use std::sync::Arc;
-use std::{
-    fs::{self},
-    io::{prelude::*, Write},
-    net::TcpStream,
-    path::Path,
-    str,
-};
+use substring::Substring;
 use tokio::sync::Mutex;
 use umya_spreadsheet::*;
-use user_management_microservice_sdk::user::UserType;
 use uuid::Uuid;
 
 use crate::database::{Database, SharedDatabase};
@@ -34,7 +35,6 @@ use crate::database::{Database, SharedDatabase};
 use super::citibank_ack_file::CitiBankACKFile;
 use super::citibank_acpt_file::CitiBankACPTFile;
 use super::citibank_rjct_file::CitiBankRJCTFile;
-use substring::Substring;
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]

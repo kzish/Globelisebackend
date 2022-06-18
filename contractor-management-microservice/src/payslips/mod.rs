@@ -3,7 +3,7 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{OffsetDateWrapper, UserRole, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -11,7 +11,7 @@ use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
 use sqlx::FromRow;
-use user_management_microservice_sdk::{token::UserAccessToken, user::UserRole};
+use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::SharedDatabase};
@@ -32,7 +32,7 @@ pub async fn user_find_many_payslips(
                 .select_many_payslips(
                     query.page,
                     query.per_page,
-                    query.search_text,
+                    query.query,
                     query.contractor_ulid,
                     Some(claims.payload.ulid),
                 )
@@ -43,7 +43,7 @@ pub async fn user_find_many_payslips(
                 .select_many_payslips(
                     query.page,
                     query.per_page,
-                    query.search_text,
+                    query.query,
                     Some(claims.payload.ulid),
                     query.client_ulid,
                 )
@@ -88,7 +88,7 @@ pub async fn admin_get_many_payslip_index(
         .select_many_payslips(
             query.page,
             query.per_page,
-            query.search_text,
+            query.query,
             query.contractor_ulid,
             query.client_ulid,
         )

@@ -2,11 +2,11 @@
 
 use axum::extract::{Extension, Path};
 use common_utils::{
+    custom_serde::UserType,
     error::{GlobeliseError, GlobeliseResult},
     token::AuthBearer,
 };
 use google_auth::IdToken;
-use user_management_microservice_sdk::user::UserType;
 
 use crate::env::GOOGLE_CLIENT_ID;
 

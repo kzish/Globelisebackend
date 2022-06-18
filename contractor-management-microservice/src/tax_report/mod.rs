@@ -3,7 +3,7 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{Country, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{Country, OffsetDateWrapper, UserRole, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -11,7 +11,7 @@ use eor_admin_microservice_sdk::token::AdminAccessToken;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, FromInto, TryFromInto};
 use sqlx::FromRow;
-use user_management_microservice_sdk::{token::UserAccessToken, user::UserRole};
+use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::{common::PaginatedQuery, database::SharedDatabase};
@@ -35,7 +35,7 @@ pub async fn user_get_many_tax_report_index(
         .select_many_tax_reports(
             query.page,
             query.per_page,
-            query.search_text,
+            query.query,
             query.contractor_ulid,
             query.client_ulid,
         )
@@ -53,7 +53,7 @@ pub async fn admin_get_many_tax_report_index(
         .select_many_tax_reports(
             query.page,
             query.per_page,
-            query.search_text,
+            query.query,
             query.contractor_ulid,
             query.client_ulid,
         )
@@ -73,7 +73,7 @@ pub async fn admin_get_one_tax_report_index(
             Some(tax_report_ulid),
             query.contractor_ulid,
             query.client_ulid,
-            query.search_text,
+            query.query,
         )
         .await?
         .ok_or(GlobeliseError::NotFound)?;
