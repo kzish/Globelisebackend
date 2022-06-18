@@ -65,7 +65,7 @@ impl sqlx::Type<sqlx::Postgres> for EmailWrapper {
 impl sqlx::Decode<'_, sqlx::Postgres> for EmailWrapper {
     fn decode(value: sqlx::postgres::PgValueRef<'_>) -> Result<Self, sqlx::error::BoxDynError> {
         let value: &'_ str = sqlx::decode::Decode::decode(value)?;
-        let email = EmailAddress::from_str(value)?;
+        let email = EmailAddress::from_str(value.to_lowercase().as_str())?;
         Ok(EmailWrapper(email))
     }
 }
