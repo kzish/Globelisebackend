@@ -32,7 +32,7 @@ impl Database {
         &self,
         page: Option<u32>,
         per_page: Option<u32>,
-        search_text: Option<String>,
+        query: Option<String>,
         user_type: Option<UserType>,
         user_role: Option<UserRole>,
         created_after: Option<sqlx::types::time::OffsetDateTime>,
@@ -57,7 +57,7 @@ impl Database {
             OFFSET
                 $7",
         )
-        .bind(search_text)
+        .bind(query)
         .bind(user_role)
         .bind(user_type)
         .bind(created_after)
@@ -86,7 +86,7 @@ impl Database {
         &self,
         page: Option<u32>,
         per_page: Option<u32>,
-        search_text: Option<String>,
+        query: Option<String>,
         user_type: Option<UserType>,
         created_after: Option<sqlx::types::time::OffsetDateTime>,
         created_before: Option<sqlx::types::time::OffsetDateTime>,
@@ -109,7 +109,7 @@ impl Database {
             OFFSET
                 $6",
         )
-        .bind(search_text)
+        .bind(query)
         .bind(user_type)
         .bind(created_after)
         .bind(created_before)

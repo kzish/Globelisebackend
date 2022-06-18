@@ -1,68 +1,46 @@
 use common_utils::{calc_limit_and_offset, custom_serde::Currency, error::GlobeliseResult};
 use uuid::Uuid;
 
-use crate::{common::PaginatedQuery, database::Database};
+use crate::database::Database;
 
-use super::{ClientsIndex, ContractorsIndex, ContractsIndex};
+use super::{ClientContractorPair, ContractsIndex};
 
 impl Database {
     /// Indexes clients that a contractor works for.
-    pub async fn select_many_clients_for_contractors(
+    pub async fn select_many_client_contractor_pairs(
         &self,
-        contractor_ulid: Uuid,
-        query: PaginatedQuery,
-    ) -> GlobeliseResult<Vec<ClientsIndex>> {
-        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
+        page: Option<u32>,
+        per_page: Option<u32>,
+        query: Option<String>,
+        client_ulid: Option<Uuid>,
+        contractor_ulid: Option<Uuid>,
+    ) -> GlobeliseResult<Vec<ClientContractorPair>> {
+        let (limit, offset) = calc_limit_and_offset(per_page, page);
 
-        let index = sqlx::query_as(
+        let result = sqlx::query_as(
             "
             SELECT DISTINCT
-                client_ulid, client_name
+                client_ulid, client_name, contractor_ulid, contractor_name
             FROM
-                clients_index_for_contractors
+                contracts_index
             WHERE
-                contractor_ulid = $1 AND
-                ($2 IS NULL OR client_name ~* $2)
-            LIMIT $3 OFFSET $4",
-        )
-        .bind(contractor_ulid)
-        .bind(query.search_text)
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&self.0)
-        .await?;
-
-        Ok(index)
-    }
-
-    /// Indexes contracts working for a client.
-    pub async fn select_many_contractors_for_clients(
-        &self,
-        client_ulid: Uuid,
-        query: PaginatedQuery,
-    ) -> GlobeliseResult<Vec<ContractorsIndex>> {
-        let (limit, offset) = calc_limit_and_offset(query.per_page, query.page);
-
-        let index = sqlx::query_as(
-            "
-            SELECT
-                contractor_ulid, contractor_name, contract_name, contract_status,
-                job_title, seniority
-            FROM
-                contractors_index_for_clients
-            WHERE
-                client_ulid = $1 AND
-                ($2 IS NULL OR (contractor_name ~* $2))
-            LIMIT $3 OFFSET $4",
+                ($1 IS NULL OR client_ulid = $1) AND
+                ($2 IS NULL OR contractor_ulid = $2) AND
+                ($3 IS NULL OR client_name ~* $3 OR contractor_name ~* $3)
+            LIMIT
+                $4
+            OFFSET
+                $5",
         )
         .bind(client_ulid)
-        .bind(query.search_text)
+        .bind(contractor_ulid)
+        .bind(query)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)
         .await?;
 
-        Ok(index)
+        Ok(result)
     }
 
     pub async fn select_many_contracts(

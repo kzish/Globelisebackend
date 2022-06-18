@@ -53,12 +53,22 @@ async fn main() {
 
     let app = Router::new()
         // ========== PUBLIC PAGES ==========
-        .route("/clients", get(contracts::get_many_clients_for_contractors))
+        .route(
+            "/clients",
+            get(contracts::user_get_many_clients_for_contractors),
+        )
         .route(
             "/contractors",
-            get(contracts::get_many_contractors_for_clients),
+            get(contracts::user_get_many_contractors_for_clients),
         )
-        .route("/contracts/:role", get(contracts::contracts_index))
+        .route(
+            "/contracts/:role",
+            get(contracts::user_get_many_contract_index),
+        )
+        .route(
+            "/contracts/:role/:contract_ulid",
+            get(contracts::user_get_one_contract_index),
+        )
         .route("/payslips/:role", get(payslips::user_find_many_payslips))
         .route(
             "/payslips/:role/:payslip_ulid",
@@ -66,6 +76,10 @@ async fn main() {
         )
         .route(
             "/tax-reports/:role",
+            get(tax_report::user_get_many_tax_report_index),
+        )
+        .route(
+            "/tax-reports/:role/:tax_report_ulid",
             get(tax_report::user_get_many_tax_report_index),
         )
         .route(
@@ -77,7 +91,10 @@ async fn main() {
             get(invoice::user_invoice_group_index),
         )
         // ========== ADMIN PAGES ==========
-        .route("/eor-admin/users", get(contracts::eor_admin_user_index))
+        .route(
+            "/eor-admin/users",
+            get(contracts::admin_get_many_user_index),
+        )
         .route(
             "/eor-admin/payslips",
             get(payslips::admin_get_many_payslip_index).post(payslips::admin_post_one_payslip),
