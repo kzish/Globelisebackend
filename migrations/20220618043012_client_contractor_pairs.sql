@@ -1,2 +1,2 @@
-DROP TABLE public.clients_index_for_contractors;
-DROP TABLE public.contractors_index_for_clients;
+DROP VIEW public.clients_index_for_contractors;
+DROP VIEW public.contractors_index_for_clients;

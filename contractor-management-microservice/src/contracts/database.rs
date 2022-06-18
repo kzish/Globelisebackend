@@ -91,7 +91,6 @@ impl Database {
         contract_name: &String,
         contract_type: &String,
         job_title: &String,
-        contract_status: &String,
         contract_amount: sqlx::types::Decimal,
         currency: Currency,
         seniority: &String,
@@ -108,16 +107,14 @@ impl Database {
                 begin_at, end_at, branch_ulid
             ) VALUES (
                 $1, $2, $3, $4, $5,
-                $6, $7, $8, $9, $10,
-                $11, $12, $13
-                    )",
+                'PENDING', $6, $7, $8, $9,
+                $10, $11, $12)",
         )
         .bind(ulid)
         .bind(client_ulid)
         .bind(contractor_ulid)
         .bind(contract_name)
         .bind(contract_type)
-        .bind(contract_status)
         .bind(contract_amount)
         .bind(currency)
         .bind(job_title)
@@ -161,5 +158,31 @@ impl Database {
         .await?;
 
         Ok(result)
+    }
+
+    pub async fn sign_one_contract(
+        &self,
+        contract_ulid: Uuid,
+        contractor_ulid: Uuid,
+    ) -> GlobeliseResult<Option<()>> {
+        let result = sqlx::query(
+            "
+        UPDATE
+            contracts
+        SET
+            contract_status = 'ACTIVE'
+        WHERE
+            contract_ulid = $1 AND
+            contractor_ulid = $2",
+        )
+        .bind(contract_ulid)
+        .bind(contractor_ulid)
+        .execute(&self.0)
+        .await?;
+        if result.rows_affected() == 0 {
+            Ok(None)
+        } else {
+            Ok(Some(()))
+        }
     }
 }
