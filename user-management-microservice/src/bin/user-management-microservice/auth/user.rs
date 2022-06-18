@@ -1,12 +1,11 @@
 //! Types for user data.
 
 use common_utils::{
-    custom_serde::EmailWrapper,
+    custom_serde::{EmailWrapper, UserType},
     error::{GlobeliseError, GlobeliseResult},
 };
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use user_management_microservice_sdk::user::UserType;
 use uuid::Uuid;
 
 #[derive(Debug, FromRow, Deserialize, Serialize)]

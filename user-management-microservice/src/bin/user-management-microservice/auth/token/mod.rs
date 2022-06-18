@@ -2,13 +2,12 @@
 
 use std::{fs::File, io::Read};
 
-use common_utils::{token::TokenLike, DaprAppId};
+use common_utils::{custom_serde::UserType, token::TokenLike, DaprAppId};
 use jsonwebtoken::{DecodingKey, EncodingKey};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use time::Duration;
-use user_management_microservice_sdk::user::UserType;
 use uuid::Uuid;
 
 pub mod one_time;

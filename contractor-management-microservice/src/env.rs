@@ -10,5 +10,5 @@ macro_rules! init_global_static {
 
 init_global_static!(LISTENING_ADDRESS);
 init_global_static!(DAPR_ADDRESS);
-init_global_static!(USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL);
 init_global_static!(FRONTEND_URL);
+init_global_static!(DATABASE_URL);
