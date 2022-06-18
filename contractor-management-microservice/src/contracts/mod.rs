@@ -180,6 +180,29 @@ pub async fn user_get_one_contract_index(
     Ok(Json(result))
 }
 
+pub async fn user_sign_one_contract(
+    claims: Token<UserAccessToken>,
+    Path((user_role, contract_ulid)): Path<(UserRole, Uuid)>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    let database = database.lock().await;
+
+    if user_role != UserRole::Contractor
+        || !claims.payload.user_roles.contains(&UserRole::Contractor)
+    {
+        return Err(GlobeliseError::unauthorized(
+            "Only contractors can sign a contract",
+        ));
+    }
+
+    database
+        .sign_one_contract(contract_ulid, claims.payload.ulid)
+        .await?
+        .ok_or(GlobeliseError::NotFound)?;
+
+    Ok(())
+}
+
 pub async fn admin_get_many_contract_index(
     _: Token<AdminAccessToken>,
     Query(query): Query<GetManyContractsQuery>,
@@ -238,7 +261,6 @@ pub async fn admin_post_one_contract(
             &body.contract_name,
             &body.contract_type,
             &body.job_title,
-            &body.contract_status,
             body.contract_amount,
             body.currency,
             &body.seniority,
@@ -282,7 +304,6 @@ pub struct PostOneContract {
     contract_name: String,
     contract_type: String,
     job_title: String,
-    contract_status: String,
     contract_amount: sqlx::types::Decimal,
     currency: Currency,
     seniority: String,
