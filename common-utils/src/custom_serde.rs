@@ -72,12 +72,12 @@ impl sqlx::Decode<'_, sqlx::Postgres> for EmailWrapper {
 
 impl sqlx::encode::Encode<'_, sqlx::Postgres> for EmailWrapper {
     fn encode_by_ref(&self, buf: &mut sqlx::postgres::PgArgumentBuffer) -> sqlx::encode::IsNull {
-        let val = self.0.as_ref();
-        sqlx::encode::Encode::<'_, sqlx::Postgres>::encode(val, buf)
+        let value = self.0.as_ref();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::encode(value.to_lowercase().as_str(), buf)
     }
     fn size_hint(&self) -> std::primitive::usize {
-        let val = self.0.as_ref();
-        sqlx::encode::Encode::<'_, sqlx::Postgres>::size_hint(&val)
+        let value = self.0.as_ref();
+        sqlx::encode::Encode::<'_, sqlx::Postgres>::size_hint(&value)
     }
 }
 
