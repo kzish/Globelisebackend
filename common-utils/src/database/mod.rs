@@ -4,6 +4,7 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
 
 pub mod user;
+pub mod onboard;
 
 /// Convenience wrapper around PostgreSQL.
 pub struct Database(pub Pool<Postgres>);
