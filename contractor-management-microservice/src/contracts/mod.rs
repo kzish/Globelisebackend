@@ -46,7 +46,6 @@ pub async fn admin_get_many_user_index(
     Query(query): Query<GetUserIndexQuery>,
     Extension(shared_database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
-    println!("query:{:#?}", query);
     let database = shared_database.lock().await;
     let result = database
         .select_many_onboarded_user_index(
@@ -259,6 +258,7 @@ pub async fn admin_post_one_contract(
             body.contractor_ulid,
             body.branch_ulid,
             &body.contract_name,
+            &body.contract_status,
             &body.contract_type,
             &body.job_title,
             body.contract_amount,
@@ -302,6 +302,7 @@ pub struct PostOneContract {
     contractor_ulid: Uuid,
     branch_ulid: Option<Uuid>,
     contract_name: String,
+    contract_status: String,
     contract_type: String,
     job_title: String,
     contract_amount: sqlx::types::Decimal,

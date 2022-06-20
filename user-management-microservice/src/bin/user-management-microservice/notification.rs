@@ -1,7 +1,10 @@
-use axum::{extract::Query, Extension, Json};
+use axum::{
+    extract::{ContentLengthLimit, Query},
+    Extension, Json,
+};
 use common_utils::{
     calc_limit_and_offset,
-    custom_serde::{UserRole, UserType},
+    custom_serde::{UserRole, UserType, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -67,7 +70,10 @@ pub async fn get_many(
 
 pub async fn put_one(
     token: Token<UserAccessToken>,
-    Query(body): Query<PutNotificationRequest>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<PutNotificationRequest>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
