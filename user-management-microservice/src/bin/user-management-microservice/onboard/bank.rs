@@ -1,6 +1,6 @@
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::{UserRole, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::FORM_DATA_LENGTH_LIMIT,
     database::{onboard::bank::ContractorBankDetails, CommonDatabase},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
@@ -29,10 +29,6 @@ pub async fn get_onboard_contractor_bank_details(
     Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<ContractorBankDetails>> {
     let database = database.lock().await;
-
-    if !claims.payload.user_roles.contains(&UserRole::Contractor) {
-        return Err(GlobeliseError::Forbidden);
-    }
 
     let result = database
         .select_one_contractor_bank_detail(claims.payload.ulid, claims.payload.user_type)
