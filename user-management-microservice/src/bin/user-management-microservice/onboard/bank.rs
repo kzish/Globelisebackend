@@ -30,10 +30,6 @@ pub async fn get_onboard_contractor_bank_details(
 ) -> GlobeliseResult<Json<ContractorBankDetails>> {
     let database = database.lock().await;
 
-    if !claims.payload.user_roles.contains(&UserRole::Contractor) {
-        return Err(GlobeliseError::Forbidden);
-    }
-
     let result = database
         .select_one_contractor_bank_detail(claims.payload.ulid, claims.payload.user_type)
         .await?
