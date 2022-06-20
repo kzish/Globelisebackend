@@ -1,6 +1,6 @@
 use axum::extract::{ContentLengthLimit, Extension, Json};
 use common_utils::{
-    custom_serde::{UserRole, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::FORM_DATA_LENGTH_LIMIT,
     database::{onboard::bank::ContractorBankDetails, CommonDatabase},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
