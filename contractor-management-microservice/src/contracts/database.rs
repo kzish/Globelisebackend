@@ -174,7 +174,7 @@ impl Database {
         SET
             contract_status = 'ACTIVE'
         WHERE
-            contract_ulid = $1 AND
+            ulid = $1 AND
             contractor_ulid = $2",
         )
         .bind(contract_ulid)
