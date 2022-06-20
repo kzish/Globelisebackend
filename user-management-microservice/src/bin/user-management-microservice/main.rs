@@ -31,6 +31,7 @@ mod eor_admin;
 mod notification;
 mod onboard;
 mod prefill;
+mod user;
 
 use crate::auth::token::KEYS;
 use env::{DAPR_ADDRESS, DATABASE_URL, FRONTEND_URL, LISTENING_ADDRESS};
@@ -81,6 +82,10 @@ async fn main() {
         )
         .route("/auth/access-token", post(auth::access_token))
         .route("/auth/public-key", get(auth::public_key))
+        .route(
+            "/:user_role/users",
+            get(user::user_get_many_users),
+        )
         .route(
             "/onboard/individual-details/client",
             get(onboard::individual::get_onboard_individual_client_account_details)
