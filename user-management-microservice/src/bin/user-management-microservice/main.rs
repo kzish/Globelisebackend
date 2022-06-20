@@ -21,6 +21,7 @@ use tower_http::cors::{Any, CorsLayer, Origin};
 mod auth;
 mod branch;
 mod bulk_add;
+mod constant;
 mod contractor_account_settings;
 mod custom_field;
 mod database;
@@ -396,6 +397,9 @@ async fn main() {
             "/eor-admin/sap/journal_template.xlsx",
             get(eor_admin::sap::s4_hana::download),
         )
+        // ========== CONSTANT PAGES ========
+        .route("/country_code",get(constant::country_code::get_many).post(constant::country_code::post_one).delete(constant::country_code::delete_one))
+        .route("/currency_code",get(constant::currency_code::get_many).post(constant::currency_code::post_one).delete(constant::currency_code::delete_one))
         // ========== PUBSUB PAGES ==========
         .route("/dapr/subscribe", get(dapr_subscription_list))
         .route("/healthz", get(handle_healthz))
