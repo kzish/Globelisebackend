@@ -19,7 +19,7 @@ impl Database {
 
         let result = sqlx::query_as(
             "
-            SELECT DISTINCT
+            SELECT DISTINCT ON (client_ulid, contractor_ulid)
                 client_ulid, client_name, contractor_ulid, contractor_name
             FROM
                 contracts_index

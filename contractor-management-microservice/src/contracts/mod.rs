@@ -46,7 +46,6 @@ pub async fn admin_get_many_user_index(
     Query(query): Query<GetUserIndexQuery>,
     Extension(shared_database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
-    println!("query:{:#?}", query);
     let database = shared_database.lock().await;
     let result = database
         .select_many_onboarded_user_index(
