@@ -19,7 +19,7 @@ impl Database {
 
         let result = sqlx::query_as(
             "
-            SELECT DISTINCT
+            SELECT DISTINCT ON (client_ulid, contractor_ulid)
                 client_ulid, client_name, contractor_ulid, contractor_name
             FROM
                 contracts_index
@@ -89,6 +89,7 @@ impl Database {
         contractor_ulid: Uuid,
         branch_ulid: Option<Uuid>,
         contract_name: &String,
+        contract_status: &String,
         contract_type: &String,
         job_title: &String,
         contract_amount: sqlx::types::Decimal,
@@ -107,14 +108,15 @@ impl Database {
                 begin_at, end_at, branch_ulid
             ) VALUES (
                 $1, $2, $3, $4, $5,
-                'PENDING', $6, $7, $8, $9,
-                $10, $11, $12)",
+                $6, $7, $8, $9, $10, 
+                $11, $12, $13)",
         )
         .bind(ulid)
         .bind(client_ulid)
         .bind(contractor_ulid)
         .bind(contract_name)
         .bind(contract_type)
+        .bind(contract_status)
         .bind(contract_amount)
         .bind(currency)
         .bind(job_title)
@@ -172,7 +174,7 @@ impl Database {
         SET
             contract_status = 'ACTIVE'
         WHERE
-            contract_ulid = $1 AND
+            ulid = $1 AND
             contractor_ulid = $2",
         )
         .bind(contract_ulid)
