@@ -63,8 +63,7 @@ impl Database {
         let result = sqlx::query_as(&format!(
             "
         SELECT
-            ulid, bank_name, bank_account_name, bank_account_number, bank_code,
-            branch_code
+            *
         FROM
             {table}
         WHERE
