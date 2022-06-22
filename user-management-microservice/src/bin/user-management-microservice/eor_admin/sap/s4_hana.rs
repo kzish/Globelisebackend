@@ -1,8 +1,9 @@
 use std::io::Cursor;
 
 use axum::{
-    extract::{ContentLengthLimit, Extension, Json},
-    http::{header::CONTENT_TYPE, HeaderValue},
+    extract::{ContentLengthLimit, Extension, Json, Path, Query},
+    headers::HeaderName,
+    http::{header::CONTENT_TYPE, HeaderMap, HeaderValue},
     response::IntoResponse,
 };
 use calamine::Reader;
@@ -119,22 +120,19 @@ pub struct SapMulesoftPayrollJournalRow {
     pub document_header_text: String,
     pub gl_account: String,
     pub amount: sqlx::types::Decimal,
-    pub cost_center: String,
+    pub cost_center: Option<String>,
     pub uploaded: bool,
 }
 
 pub async fn get_many_rows(
     // Only for validation
     _: Token<AdminAccessToken>,
-    ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<SapMulesoftPayrollJournalRowQuery>,
-        FORM_DATA_LENGTH_LIMIT,
-    >,
+    Query(query): Query<SapMulesoftPayrollJournalRowQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<SapMulesoftPayrollJournalRow>>> {
     let database = database.lock().await;
     let result = database
-        .select_many_sap_mulesoft_payroll_journal_rows(body.entry_ulid)
+        .select_many_sap_mulesoft_payroll_journal_rows(query.entry_ulid)
         .await?;
     Ok(Json(result))
 }
@@ -158,17 +156,37 @@ pub struct SapMulesoftPayrollJournalEntry {
 pub async fn get_many_entries(
     // Only for validation
     _: Token<AdminAccessToken>,
-    ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<SapMulesoftPayrollJournalEntryQuery>,
-        FORM_DATA_LENGTH_LIMIT,
-    >,
+    Query(query): Query<SapMulesoftPayrollJournalEntryQuery>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<Vec<SapMulesoftPayrollJournalEntry>>> {
     let database = database.lock().await;
     let result = database
-        .select_many_sap_mulesoft_payroll_journal_entries(body.client_ulid, body.country_code)
+        .select_many_sap_mulesoft_payroll_journal_entries(query.client_ulid, query.country_code)
         .await?;
     Ok(Json(result))
+}
+
+pub async fn download_one_entry(
+    // Only for validation
+    _: Token<AdminAccessToken>,
+    Path(entry_ulid): Path<Uuid>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<(HeaderMap, Vec<u8>)> {
+    let database = database.lock().await;
+    let result = database
+        .download_one_sap_mulesoft_payroll_journal_entry(entry_ulid)
+        .await?
+        .ok_or_else(|| {
+            GlobeliseError::bad_request("Cannot find payroll journal entry with that UUID")
+        })?;
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        HeaderName::from_static("content-type"),
+        HeaderValue::from_static(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+    );
+    Ok((headers, result))
 }
 
 pub async fn post_one(
@@ -183,7 +201,7 @@ pub async fn post_one(
 ) -> GlobeliseResult<String> {
     let database = database.lock().await;
 
-    let mut workbook = calamine::open_workbook_auto_from_rs(Cursor::new(body.file))?;
+    let mut workbook = calamine::open_workbook_auto_from_rs(Cursor::new(&body.file))?;
     if let Some((_, data)) = workbook.worksheets().get(0) {
         let des = data.deserialize()?;
 
@@ -424,6 +442,7 @@ pub async fn post_one(
                 body.client_ulid,
                 &inferred_country_code,
                 &raw_payroll_journals,
+                &body.file,
             )
             .await?;
 
@@ -511,7 +530,7 @@ impl Database {
         FROM
             sap_mulesoft_payroll_journals_rows
         WHERE
-            (entry_ulid IS NULL OR entry_ulid = $1)",
+            ($1 IS NULL OR entry_ulid = $1)",
         )
         .bind(entry_ulid)
         .fetch_all(&self.0)
@@ -532,8 +551,8 @@ impl Database {
         FROM
             sap_mulesoft_payroll_journals_entries
         WHERE
-            (client_ulid IS NULL OR client_ulid = $1) AND
-            (country_code IS NULL OR country_code = $2)",
+            ($1 IS NULL OR client_ulid = $1) AND
+            ($2 IS NULL OR country_code = $2)",
         )
         .bind(client_ulid)
         .bind(country_code)
@@ -543,25 +562,49 @@ impl Database {
         Ok(result)
     }
 
+    pub async fn download_one_sap_mulesoft_payroll_journal_entry(
+        &self,
+        ulid: Uuid,
+    ) -> GlobeliseResult<Option<Vec<u8>>> {
+        let result = sqlx::query(
+            "
+        SELECT
+            uploaded_file
+        FROM
+            sap_mulesoft_payroll_journals_entries
+        WHERE
+            ulid = $1",
+        )
+        .bind(ulid)
+        .fetch_optional(&self.0)
+        .await?
+        .map(|r| r.try_get("uploaded_file"))
+        .transpose()?;
+
+        Ok(result)
+    }
+
     pub async fn insert_sap_mulesoft_payroll_journal(
         &self,
         client_ulid: Uuid,
         country_code: &String,
         rows: &[InsertPayrollJournalRowData],
+        file: &[u8],
     ) -> GlobeliseResult<Uuid> {
         let ulid = Uuid::new_v4();
 
         sqlx::query(
             "
         INSERT INTO sap_mulesoft_payroll_journals_entries (
-            ulid, client_ulid, country_code
+            ulid, client_ulid, country_code, uploaded_file
         ) VALUES (
-            $1, $2, $3
+            $1, $2, $3, $4
         )",
         )
         .bind(ulid)
         .bind(client_ulid)
         .bind(country_code)
+        .bind(file)
         .execute(&self.0)
         .await?;
 
