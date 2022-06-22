@@ -47,7 +47,7 @@ impl Database {
             FROM 
                 onboarded_user_index 
             WHERE
-                ($1 IS NULL OR name ~* $1) AND
+                ($1 IS NULL OR name ~* $1 OR email ~* $1) AND
                 ($2 IS NULL OR user_role = $2) AND
                 ($3 IS NULL OR user_type = $3) AND
                 ($4 IS NULL OR created_at > $4) AND
