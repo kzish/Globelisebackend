@@ -170,13 +170,13 @@ async fn main() {
         )
         .route(
             "/client/prefill/individual_contractor_account_details",
-            get(prefill::account::individual_contractor_get_one)
-                .post(prefill::account::individual_contractor_post_one),
+            get(prefill::account::user_get_one_individual_contractor)
+                .post(prefill::account::user_post_one_individual_contractor),
         )
         .route(
             "/client/prefill/individual_contractor_bank_details",
-            get(prefill::bank::individual_contractor_get_one)
-                .post(prefill::bank::individual_contractor_post_one),
+            get(prefill::bank::user_get_one_individual_contractor)
+                .post(prefill::bank::user_post_one_individual_contractor),
         )
         .route(
             "/client-contractors/search",
@@ -503,6 +503,10 @@ async fn main() {
         .route(
             "/eor-admin/sap/mulesoft/payroll_journal/entries",
             get(eor_admin::sap::s4_hana::get_many_entries),
+        )
+        .route(
+            "/eor-admin/sap/mulesoft/payroll_journal/entry/:entry_ulid/download",
+            get(eor_admin::sap::s4_hana::download_one_entry),
         )
         .route(
             "/eor-admin/sap/mulesoft/payroll_journal/rows",
