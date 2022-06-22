@@ -75,8 +75,8 @@ impl Database {
         role: UserRole,
     ) -> GlobeliseResult<Option<EntityPicDetails>> {
         let table = match role {
-            UserRole::Client => "entity_contractor_pic_details",
-            UserRole::Contractor => "entity_client_pic_details",
+            UserRole::Client => "entity_client_pic_details",
+            UserRole::Contractor => "entity_contractor_pic_details",
         };
 
         let query = format!(
