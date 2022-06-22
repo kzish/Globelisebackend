@@ -505,6 +505,10 @@ async fn main() {
             get(eor_admin::sap::s4_hana::get_many_entries),
         )
         .route(
+            "/eor-admin/sap/mulesoft/payroll_journal/entry/:entry_ulid/download",
+            get(eor_admin::sap::s4_hana::download_one_entry),
+        )
+        .route(
             "/eor-admin/sap/mulesoft/payroll_journal/rows",
             get(eor_admin::sap::s4_hana::get_many_rows),
         )
