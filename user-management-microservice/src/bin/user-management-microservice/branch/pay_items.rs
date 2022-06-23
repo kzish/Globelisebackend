@@ -117,7 +117,9 @@ pub async fn delete_pay_item(
 
         Ok(())
     } else {
-        Err(GlobeliseError::NotFound)
+        Err(GlobeliseError::not_found(
+            "Cannot find pay item from this UUID",
+        ))
     }
 }
 
@@ -142,7 +144,9 @@ pub async fn get_pay_item_by_id(
 
         Ok(Json(pay_item))
     } else {
-        Err(GlobeliseError::NotFound)
+        Err(GlobeliseError::not_found(
+            "Cannot find pay item from this UUID",
+        ))
     }
 }
 

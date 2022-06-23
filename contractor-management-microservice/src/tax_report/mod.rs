@@ -76,7 +76,7 @@ pub async fn admin_get_one_tax_report_index(
             query.query,
         )
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| GlobeliseError::not_found("Cannot find the tax report with that query"))?;
     Ok(Json(result))
 }
 
