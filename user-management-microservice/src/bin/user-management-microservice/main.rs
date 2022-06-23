@@ -170,13 +170,13 @@ async fn main() {
         )
         .route(
             "/client/prefill/individual_contractor_account_details",
-            get(prefill::account::individual_contractor_get_one)
-                .post(prefill::account::individual_contractor_post_one),
+            get(prefill::account::user_get_one_individual_contractor)
+                .post(prefill::account::user_post_one_individual_contractor),
         )
         .route(
             "/client/prefill/individual_contractor_bank_details",
-            get(prefill::bank::individual_contractor_get_one)
-                .post(prefill::bank::individual_contractor_post_one),
+            get(prefill::bank::user_get_one_individual_contractor)
+                .post(prefill::bank::user_post_one_individual_contractor),
         )
         .route(
             "/client-contractors/search",
@@ -190,6 +190,61 @@ async fn main() {
             "/users/notifications",
             get(notification::get_many).
             put(notification::put_one),
+        )
+        .route(
+            "/admin-pic/teams/create-team",
+            post(branch::teams::create_team),
+        ).
+        route(
+            "/admin-pic/teams/delete-team/:team_ulid",
+            post(branch::teams::delete_team),
+        )
+        .route(
+            "/admin-pic/teams/update-team",
+            post(branch::teams::update_team),
+        )
+        .route(
+            "/admin-pic/teams/list-teams",
+            get(branch::teams::list_teams),
+        )
+        .route(
+            "/admin-pic/teams/add-contrator-to-team",
+            post(branch::teams::add_contrator_to_team),
+        )
+         .route(
+            "/admin-pic/teams/delete-contrator-from-team",
+            post(branch::teams::delete_contrator_from_team),
+        )
+        .route(
+            "/admin-pic/teams/list-team-contractors",
+            get(branch::teams::list_team_contractors),
+        )
+        .route(
+            "/admin-pic/cost-center/create-cost-center",
+            post(branch::cost_center::create_cost_center),
+        )
+        .route(
+            "/admin-pic/cost-center/update-cost-center",
+            post(branch::cost_center::update_cost_center),
+        )
+        .route(
+            "/admin-pic/cost-center/delete-cost-center/:cost_center_ulid",
+            post(branch::cost_center::delete_cost_center),
+        ).route(
+            "/admin-pic/cost-center/list-cost-centers",
+            get(branch::cost_center::list_cost_centers),
+        )
+        .route(
+            "/admin-pic/cost-center/list-cost-center-contractors",
+            get(branch::cost_center::list_cost_center_contractors),
+        )
+        .route(
+            "/admin-pic/cost-center/add-contractor-to-cost-center",
+            post(branch::cost_center::add_contractor_to_cost_center),
+        )
+        .route(
+            "/admin-pic/cost-center/delete-contractor-from-cost-center",
+            post(branch::cost_center::delete_contractor_from_cost_center),
         )
          .route(
             "/admin-pic/account-settings/contractors/payroll-information/entity/:contractor_ulid",
@@ -240,6 +295,61 @@ async fn main() {
             get(contractor_account_settings::eor_admin::payroll_information::get_payroll_information_all)
         )
         // ========== ADMIN APIS ==========
+        .route(
+            "/eor-admin/teams/create-team",
+            post(eor_admin::teams::create_team),
+        ).
+        route(
+            "/eor-admin/teams/delete-team/:team_ulid",
+            post(eor_admin::teams::delete_team),
+        )
+        .route(
+            "/eor-admin/teams/update-team",
+            post(eor_admin::teams::update_team),
+        )
+        .route(
+            "/eor-admin/teams/list-teams",
+            get(eor_admin::teams::list_teams),
+        )
+        .route(
+            "/eor-admin/teams/add-contrator-to-team",
+            post(eor_admin::teams::add_contrator_to_team),
+        )
+         .route(
+            "/eor-admin/teams/delete-contrator-from-team",
+            post(eor_admin::teams::delete_contrator_from_team),
+        )
+        .route(
+            "/eor-admin/teams/list-team-contractors",
+            get(eor_admin::teams::list_team_contractors),
+        )
+        .route(
+            "/eor-admin/cost-center/create-cost-center",
+            post(eor_admin::cost_center::create_cost_center),
+        )
+        .route(
+            "/eor-admin/cost-center/update-cost-center",
+            post(eor_admin::cost_center::update_cost_center),
+        )
+        .route(
+            "/eor-admin/cost-center/delete-cost-center/:cost_center_ulid",
+            post(eor_admin::cost_center::delete_cost_center),
+        ).route(
+            "/eor-admin/cost-center/list-cost-centers",
+            get(eor_admin::cost_center::list_cost_centers),
+        )
+        .route(
+            "/eor-admin/cost-center/list-cost-center-contractors",
+            get(eor_admin::cost_center::list_cost_center_contractors),
+        )
+        .route(
+            "/eor-admin/cost-center/add-contractor-to-cost-center",
+            post(eor_admin::cost_center::add_contractor_to_cost_center),
+        )
+        .route(
+            "/eor-admin/cost-center/delete-contractor-from-cost-center",
+            post(eor_admin::cost_center::delete_contractor_from_cost_center),
+        )
         .route(
             "/eor-admin/citibank/download-citibank-transfer-initiation-template",
             post(eor_admin::bank_transfer::citi_bank::download_citibank_transfer_initiation_template),
@@ -393,6 +503,10 @@ async fn main() {
         .route(
             "/eor-admin/sap/mulesoft/payroll_journal/entries",
             get(eor_admin::sap::s4_hana::get_many_entries),
+        )
+        .route(
+            "/eor-admin/sap/mulesoft/payroll_journal/entry/:entry_ulid/download",
+            get(eor_admin::sap::s4_hana::download_one_entry),
         )
         .route(
             "/eor-admin/sap/mulesoft/payroll_journal/rows",
