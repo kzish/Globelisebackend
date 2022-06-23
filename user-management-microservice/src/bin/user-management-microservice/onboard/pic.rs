@@ -51,7 +51,7 @@ pub async fn get_onboard_entity_pic_details(
     let result = database
         .select_one_onboard_entity_pic_details(claims.payload.ulid, user_role)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| GlobeliseError::not_found("Cannot find PIC details for this user"))?;
 
     Ok(Json(result))
 }

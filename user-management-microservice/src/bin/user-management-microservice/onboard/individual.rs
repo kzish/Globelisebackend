@@ -43,7 +43,9 @@ pub async fn get_onboard_individual_client_account_details(
     let result = database
         .select_one_onboard_individual_client_account_details(claims.payload.ulid)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found("Cannot find individual client account details for this user")
+        })?;
 
     Ok(Json(result))
 }
@@ -81,7 +83,11 @@ pub async fn get_onboard_individual_contractor_account_details(
     let result = database
         .select_one_onboard_individual_contractor_account_details(claims.payload.ulid)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found(
+                "Cannot find individual contractor account details for this user",
+            )
+        })?;
 
     Ok(Json(result))
 }

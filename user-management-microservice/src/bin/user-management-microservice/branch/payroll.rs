@@ -64,7 +64,9 @@ pub async fn user_get_branch_payroll_details(
     let result = database
         .get_one_branch_payroll_details(branch_ulid)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found("Cannot find branch payroll details from this UUID")
+        })?;
 
     Ok(Json(result))
 }
@@ -95,7 +97,9 @@ pub async fn admin_get_branch_payroll_details(
     let result = database
         .get_one_branch_payroll_details(branch_ulid)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found("Cannot find branch payroll details from this UUID")
+        })?;
 
     Ok(Json(result))
 }
