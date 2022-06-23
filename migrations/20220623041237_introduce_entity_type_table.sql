@@ -1,0 +1,1216 @@
+CREATE TABLE IF NOT EXISTS public.entity_types
+(
+    entity_name text NOT NULL,
+    country_code text NOT NULL REFERENCES public.country_codes(code),
+    created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT entity_types_pkey PRIMARY KEY (entity_name, country_code)
+);
+
+ALTER TABLE IF EXISTS public.entity_types
+    OWNER to postgres;
+
+
+-- Singapore
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+    'Other', 'SG'
+), (
+    'LLP', 'SG'
+), (
+    'Pte', 'SG'
+), (
+    'Ltd', 'SG'
+), (
+    'Pte Ltd', 'SG'
+), (
+    'Sdn Bhd', 'SG'
+), (
+    'Bhd', 'SG'
+), (
+    'Pte Ltd/Sdn Bhd', 'SG'
+), (
+    'Ltd/Bhd', 'SG'
+);
+
+-- India
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+    'Other', 'IN'
+), (
+    'Sole Proprietorship', 'IN'
+), (
+    'Partnership', 'IN'
+), (
+    'Limited Liability', 'IN'
+), (
+    'Private Limited Company', 'IN'
+), (
+    'Public Limited Company', 'IN'
+), (
+    'One-person company', 'IN'
+), (
+    'Unlimited Company', 'IN'
+), (
+    'Public Sector Enterprise (PSE)', 'IN'
+), (
+    'Public sector undertaking (PSU)', 'IN'
+), (
+    'Cooperative Societies', 'IN'
+), (
+    'NGO', 'IN'
+), (
+    'Ltd', 'IN'
+), (
+    'Pvt Ltd', 'IN'
+);
+
+-- Vietnam
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+    'Other', 'VN'
+), (
+    'Cty TNHH', 'VN'
+), (
+    'Ltd', 'VN'
+), (
+    'Cty TNHH MTV', 'VN'
+), (
+    'Cty CP', 'VN'
+), (
+    'Công ty hợp danh', 'VN'
+), (
+    'Doanh nghiệp hợp danh', 'VN'
+), (
+    'DNNN', 'VN'
+), (
+    'DNTN', 'VN'
+), (
+    'DTNN', 'VN'
+), (
+    'HTX', 'VN'
+), (
+    'Chi nhánh', 'VN'
+), (
+    'Nhóm Cty', 'VN'
+);
+
+-- Turkey
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+    'Other', 'TR'
+), (
+    'Adi Şirket', 'TR'
+), (
+    'Koll. Şti.', 'TR'
+), (
+    'Kom. Şti', 'TR'
+), (
+    'A.Ş. / A.O.', 'TR'
+), (
+    'Ltd. Şti. / L.Ş. / L.O.', 'TR'
+), (
+    'HAAO', 'TR'
+), (
+    'Koop.', 'TR'
+), (
+    'irtibat bürosu', 'TR'
+), (
+    'Şahıs Firması', 'TR'
+), (
+    'Şb.', 'TR'
+);
+
+-- Philippines
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+    'Other', 'PH'
+), (
+    'Co.', 'PH'
+), (
+    'Coop.', 'PH'
+), (
+    'Corp.', 'PH'
+), (
+    'Ent.', 'PH'
+), (
+    'Inc.', 'PH'
+), (
+    'Ltd.', 'PH'
+), (
+    'OPC', 'PH'
+), (
+    'Other', 'TH'
+);
+
+-- Thailand
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+    'plc', 'TH'
+), (
+    'Ltd.', 'TH'
+), (
+    'Limited Partnership', 'TH'
+), (
+    'General Partnership', 'TH'
+);
+
+-- Brazil
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+    'Other', 'BR'
+), (
+    'Ltda.', 'BR'
+), (
+    'S.A', 'BR'
+), (
+    'Sociedade simples', 'BR'
+), (
+    'Sociedade em comandita simples', 'BR'
+), (
+    'Sociedade anônima', 'BR'
+), (
+    'Sociedade limitada', 'BR'
+), (
+    'Sociedade em nome coletivo', 'BR'
+), (
+    'Sociedade em conta de participação', 'BR'
+), (
+    'Sociedade em comum', 'BR'
+), (
+    'Cooperativa', 'BR'
+), (
+    'Empresa Individual de Responsabilidade Limitada', 'BR'
+), (
+    'Empresa individual', 'BR'
+);
+
+-- Argentina
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+    'Other', 'AR'
+), (
+    'S.A.S', 'AR'
+), (
+    'S.A', 'AR'
+), (
+    'S.R.L', 'AR'
+), (
+    'S.C.S', 'AR'
+), (
+    'S.C.p.A', 'AR'
+), (
+    'Soc.Col', 'AR'
+), (
+    'S.C.e.I', 'AR'
+), (
+    'S.E', 'AR'
+), (
+    'S.G.R', 'AR'
+);
+
+-- Chile
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+    'Other', 'CL'
+), (
+    'SpA', 'CL'
+), (
+    'SRL', 'CL'
+), (
+    'EIRL', 'CL'
+), (
+    'S.A', 'CL'
+), (
+    'S.G.R', 'CL'
+), (
+    'LTDA.', 'CL'
+);
+
+-- Colombia
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+    'Other', 'CO'
+), (
+    'S.A', 'CO'
+), (
+    'S.A.S', 'CO'
+), (
+    'Ltda.', 'CO'
+), (
+    'S.C', 'CO'
+), (
+    'S. en C.', 'CO'
+), (
+    'S.C.A', 'CO'
+), (
+    'E.U.', 'CO'
+);
+
+-- Pakistan
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+    'Other', 'PK'
+), (
+    'Sole Proprietorship', 'PK'
+), (
+    'Partnership', 'PK'
+), (
+    'Limited', 'PK'
+);
+
+-- Indonesia
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+    'Other', 'ID'
+), (
+    'Yayasan', 'ID'
+), (
+    'UD', 'ID'
+), (
+    'Koperasi', 'ID'
+), (
+    'CV', 'ID'
+), (
+    'PT', 'ID'
+), (
+    'PT Tbk', 'ID'
+), (
+    'Persero', 'ID'
+);
+
+-- Others
+
+INSERT INTO public.entity_types (
+    entity_name, country_code
+) VALUES (
+	'Other', 'AD'
+), (
+	'Ltd.', 'AD'
+), (
+	'Other', 'AE'
+), (
+	'Ltd.', 'AE'
+), (
+	'Other', 'AF'
+), (
+	'Ltd.', 'AF'
+), (
+	'Other', 'AG'
+), (
+	'Ltd.', 'AG'
+), (
+	'Other', 'AI'
+), (
+	'Ltd.', 'AI'
+), (
+	'Other', 'AL'
+), (
+	'Ltd.', 'AL'
+), (
+	'Other', 'AM'
+), (
+	'Ltd.', 'AM'
+), (
+	'Other', 'AN'
+), (
+	'Ltd.', 'AN'
+), (
+	'Other', 'AO'
+), (
+	'Ltd.', 'AO'
+), (
+	'Other', 'AQ'
+), (
+	'Ltd.', 'AQ'
+), (
+	'Other', 'AS'
+), (
+	'Ltd.', 'AS'
+), (
+	'Other', 'AT'
+), (
+	'Ltd.', 'AT'
+), (
+	'Other', 'AU'
+), (
+	'Ltd.', 'AU'
+), (
+	'Other', 'AW'
+), (
+	'Ltd.', 'AW'
+), (
+	'Other', 'AZ'
+), (
+	'Ltd.', 'AZ'
+), (
+	'Other', 'BA'
+), (
+	'Ltd.', 'BA'
+), (
+	'Other', 'BB'
+), (
+	'Ltd.', 'BB'
+), (
+	'Other', 'BD'
+), (
+	'Ltd.', 'BD'
+), (
+	'Other', 'BE'
+), (
+	'Ltd.', 'BE'
+), (
+	'Other', 'BF'
+), (
+	'Ltd.', 'BF'
+), (
+	'Other', 'BG'
+), (
+	'Ltd.', 'BG'
+), (
+	'Other', 'BH'
+), (
+	'Ltd.', 'BH'
+), (
+	'Other', 'BI'
+), (
+	'Ltd.', 'BI'
+), (
+	'Other', 'BJ'
+), (
+	'Ltd.', 'BJ'
+), (
+	'Other', 'BM'
+), (
+	'Ltd.', 'BM'
+), (
+	'Other', 'BN'
+), (
+	'Ltd.', 'BN'
+), (
+	'Other', 'BO'
+), (
+	'Ltd.', 'BO'
+), (
+	'Other', 'BS'
+), (
+	'Ltd.', 'BS'
+), (
+	'Other', 'BT'
+), (
+	'Ltd.', 'BT'
+), (
+	'Other', 'BV'
+), (
+	'Ltd.', 'BV'
+), (
+	'Other', 'BW'
+), (
+	'Ltd.', 'BW'
+), (
+	'Other', 'BY'
+), (
+	'Ltd.', 'BY'
+), (
+	'Other', 'BZ'
+), (
+	'Ltd.', 'BZ'
+), (
+	'Other', 'CA'
+), (
+	'Ltd.', 'CA'
+), (
+	'Other', 'CC'
+), (
+	'Ltd.', 'CC'
+), (
+	'Other', 'CD'
+), (
+	'Ltd.', 'CD'
+), (
+	'Other', 'CF'
+), (
+	'Ltd.', 'CF'
+), (
+	'Other', 'CG'
+), (
+	'Ltd.', 'CG'
+), (
+	'Other', 'CH'
+), (
+	'Ltd.', 'CH'
+), (
+	'Other', 'CI'
+), (
+	'Ltd.', 'CI'
+), (
+	'Other', 'CK'
+), (
+	'Ltd.', 'CK'
+), (
+	'Other', 'CM'
+), (
+	'Ltd.', 'CM'
+), (
+	'Other', 'CN'
+), (
+	'Ltd.', 'CN'
+), (
+	'Other', 'CR'
+), (
+	'Ltd.', 'CR'
+), (
+	'Other', 'CS'
+), (
+	'Ltd.', 'CS'
+), (
+	'Other', 'CU'
+), (
+	'Ltd.', 'CU'
+), (
+	'Other', 'CV'
+), (
+	'Ltd.', 'CV'
+), (
+	'Other', 'CX'
+), (
+	'Ltd.', 'CX'
+), (
+	'Other', 'CY'
+), (
+	'Ltd.', 'CY'
+), (
+	'Other', 'CZ'
+), (
+	'Ltd.', 'CZ'
+), (
+	'Other', 'DE'
+), (
+	'Ltd.', 'DE'
+), (
+	'Other', 'DJ'
+), (
+	'Ltd.', 'DJ'
+), (
+	'Other', 'DK'
+), (
+	'Ltd.', 'DK'
+), (
+	'Other', 'DM'
+), (
+	'Ltd.', 'DM'
+), (
+	'Other', 'DO'
+), (
+	'Ltd.', 'DO'
+), (
+	'Other', 'DZ'
+), (
+	'Ltd.', 'DZ'
+), (
+	'Other', 'EC'
+), (
+	'Ltd.', 'EC'
+), (
+	'Other', 'EE'
+), (
+	'Ltd.', 'EE'
+), (
+	'Other', 'EG'
+), (
+	'Ltd.', 'EG'
+), (
+	'Other', 'EH'
+), (
+	'Ltd.', 'EH'
+), (
+	'Other', 'ER'
+), (
+	'Ltd.', 'ER'
+), (
+	'Other', 'ES'
+), (
+	'Ltd.', 'ES'
+), (
+	'Other', 'ET'
+), (
+	'Ltd.', 'ET'
+), (
+	'Other', 'FI'
+), (
+	'Ltd.', 'FI'
+), (
+	'Other', 'FJ'
+), (
+	'Ltd.', 'FJ'
+), (
+	'Other', 'FK'
+), (
+	'Ltd.', 'FK'
+), (
+	'Other', 'FM'
+), (
+	'Ltd.', 'FM'
+), (
+	'Other', 'FO'
+), (
+	'Ltd.', 'FO'
+), (
+	'Other', 'FR'
+), (
+	'Ltd.', 'FR'
+), (
+	'Other', 'GA'
+), (
+	'Ltd.', 'GA'
+), (
+	'Other', 'GB'
+), (
+	'Ltd.', 'GB'
+), (
+	'Other', 'GD'
+), (
+	'Ltd.', 'GD'
+), (
+	'Other', 'GE'
+), (
+	'Ltd.', 'GE'
+), (
+	'Other', 'GF'
+), (
+	'Ltd.', 'GF'
+), (
+	'Other', 'GH'
+), (
+	'Ltd.', 'GH'
+), (
+	'Other', 'GI'
+), (
+	'Ltd.', 'GI'
+), (
+	'Other', 'GL'
+), (
+	'Ltd.', 'GL'
+), (
+	'Other', 'GM'
+), (
+	'Ltd.', 'GM'
+), (
+	'Other', 'GN'
+), (
+	'Ltd.', 'GN'
+), (
+	'Other', 'GP'
+), (
+	'Ltd.', 'GP'
+), (
+	'Other', 'GQ'
+), (
+	'Ltd.', 'GQ'
+), (
+	'Other', 'GR'
+), (
+	'Ltd.', 'GR'
+), (
+	'Other', 'GS'
+), (
+	'Ltd.', 'GS'
+), (
+	'Other', 'GT'
+), (
+	'Ltd.', 'GT'
+), (
+	'Other', 'GU'
+), (
+	'Ltd.', 'GU'
+), (
+	'Other', 'GW'
+), (
+	'Ltd.', 'GW'
+), (
+	'Other', 'GY'
+), (
+	'Ltd.', 'GY'
+), (
+	'Other', 'HK'
+), (
+	'Ltd.', 'HK'
+), (
+	'Other', 'HM'
+), (
+	'Ltd.', 'HM'
+), (
+	'Other', 'HN'
+), (
+	'Ltd.', 'HN'
+), (
+	'Other', 'HR'
+), (
+	'Ltd.', 'HR'
+), (
+	'Other', 'HT'
+), (
+	'Ltd.', 'HT'
+), (
+	'Other', 'HU'
+), (
+	'Ltd.', 'HU'
+), (
+	'Other', 'IE'
+), (
+	'Ltd.', 'IE'
+), (
+	'Other', 'IL'
+), (
+	'Ltd.', 'IL'
+), (
+	'Other', 'IO'
+), (
+	'Ltd.', 'IO'
+), (
+	'Other', 'IQ'
+), (
+	'Ltd.', 'IQ'
+), (
+	'Other', 'IR'
+), (
+	'Ltd.', 'IR'
+), (
+	'Other', 'IS'
+), (
+	'Ltd.', 'IS'
+), (
+	'Other', 'IT'
+), (
+	'Ltd.', 'IT'
+), (
+	'Other', 'JM'
+), (
+	'Ltd.', 'JM'
+), (
+	'Other', 'JO'
+), (
+	'Ltd.', 'JO'
+), (
+	'Other', 'JP'
+), (
+	'Ltd.', 'JP'
+), (
+	'Other', 'KE'
+), (
+	'Ltd.', 'KE'
+), (
+	'Other', 'KG'
+), (
+	'Ltd.', 'KG'
+), (
+	'Other', 'KH'
+), (
+	'Ltd.', 'KH'
+), (
+	'Other', 'KI'
+), (
+	'Ltd.', 'KI'
+), (
+	'Other', 'KM'
+), (
+	'Ltd.', 'KM'
+), (
+	'Other', 'KN'
+), (
+	'Ltd.', 'KN'
+), (
+	'Other', 'KP'
+), (
+	'Ltd.', 'KP'
+), (
+	'Other', 'KR'
+), (
+	'Ltd.', 'KR'
+), (
+	'Other', 'KW'
+), (
+	'Ltd.', 'KW'
+), (
+	'Other', 'KY'
+), (
+	'Ltd.', 'KY'
+), (
+	'Other', 'KZ'
+), (
+	'Ltd.', 'KZ'
+), (
+	'Other', 'LA'
+), (
+	'Ltd.', 'LA'
+), (
+	'Other', 'LB'
+), (
+	'Ltd.', 'LB'
+), (
+	'Other', 'LC'
+), (
+	'Ltd.', 'LC'
+), (
+	'Other', 'LI'
+), (
+	'Ltd.', 'LI'
+), (
+	'Other', 'LK'
+), (
+	'Ltd.', 'LK'
+), (
+	'Other', 'LR'
+), (
+	'Ltd.', 'LR'
+), (
+	'Other', 'LS'
+), (
+	'Ltd.', 'LS'
+), (
+	'Other', 'LT'
+), (
+	'Ltd.', 'LT'
+), (
+	'Other', 'LU'
+), (
+	'Ltd.', 'LU'
+), (
+	'Other', 'LV'
+), (
+	'Ltd.', 'LV'
+), (
+	'Other', 'LY'
+), (
+	'Ltd.', 'LY'
+), (
+	'Other', 'MA'
+), (
+	'Ltd.', 'MA'
+), (
+	'Other', 'MC'
+), (
+	'Ltd.', 'MC'
+), (
+	'Other', 'MD'
+), (
+	'Ltd.', 'MD'
+), (
+	'Other', 'MG'
+), (
+	'Ltd.', 'MG'
+), (
+	'Other', 'MH'
+), (
+	'Ltd.', 'MH'
+), (
+	'Other', 'MK'
+), (
+	'Ltd.', 'MK'
+), (
+	'Other', 'ML'
+), (
+	'Ltd.', 'ML'
+), (
+	'Other', 'MM'
+), (
+	'Ltd.', 'MM'
+), (
+	'Other', 'MN'
+), (
+	'Ltd.', 'MN'
+), (
+	'Other', 'MO'
+), (
+	'Ltd.', 'MO'
+), (
+	'Other', 'MP'
+), (
+	'Ltd.', 'MP'
+), (
+	'Other', 'MQ'
+), (
+	'Ltd.', 'MQ'
+), (
+	'Other', 'MR'
+), (
+	'Ltd.', 'MR'
+), (
+	'Other', 'MS'
+), (
+	'Ltd.', 'MS'
+), (
+	'Other', 'MT'
+), (
+	'Ltd.', 'MT'
+), (
+	'Other', 'MU'
+), (
+	'Ltd.', 'MU'
+), (
+	'Other', 'MV'
+), (
+	'Ltd.', 'MV'
+), (
+	'Other', 'MW'
+), (
+	'Ltd.', 'MW'
+), (
+	'Other', 'MX'
+), (
+	'Ltd.', 'MX'
+), (
+	'Other', 'MY'
+), (
+	'Ltd.', 'MY'
+), (
+	'Other', 'MZ'
+), (
+	'Ltd.', 'MZ'
+), (
+	'Other', 'NA'
+), (
+	'Ltd.', 'NA'
+), (
+	'Other', 'NC'
+), (
+	'Ltd.', 'NC'
+), (
+	'Other', 'NE'
+), (
+	'Ltd.', 'NE'
+), (
+	'Other', 'NF'
+), (
+	'Ltd.', 'NF'
+), (
+	'Other', 'NG'
+), (
+	'Ltd.', 'NG'
+), (
+	'Other', 'NI'
+), (
+	'Ltd.', 'NI'
+), (
+	'Other', 'NL'
+), (
+	'Ltd.', 'NL'
+), (
+	'Other', 'NO'
+), (
+	'Ltd.', 'NO'
+), (
+	'Other', 'NP'
+), (
+	'Ltd.', 'NP'
+), (
+	'Other', 'NR'
+), (
+	'Ltd.', 'NR'
+), (
+	'Other', 'NU'
+), (
+	'Ltd.', 'NU'
+), (
+	'Other', 'NZ'
+), (
+	'Ltd.', 'NZ'
+), (
+	'Other', 'OM'
+), (
+	'Ltd.', 'OM'
+), (
+	'Other', 'PA'
+), (
+	'Ltd.', 'PA'
+), (
+	'Other', 'PE'
+), (
+	'Ltd.', 'PE'
+), (
+	'Other', 'PF'
+), (
+	'Ltd.', 'PF'
+), (
+	'Other', 'PG'
+), (
+	'Ltd.', 'PG'
+), (
+	'Other', 'PL'
+), (
+	'Ltd.', 'PL'
+), (
+	'Other', 'PM'
+), (
+	'Ltd.', 'PM'
+), (
+	'Other', 'PN'
+), (
+	'Ltd.', 'PN'
+), (
+	'Other', 'PR'
+), (
+	'Ltd.', 'PR'
+), (
+	'Other', 'PS'
+), (
+	'Ltd.', 'PS'
+), (
+	'Other', 'PT'
+), (
+	'Ltd.', 'PT'
+), (
+	'Other', 'PW'
+), (
+	'Ltd.', 'PW'
+), (
+	'Other', 'PY'
+), (
+	'Ltd.', 'PY'
+), (
+	'Other', 'QA'
+), (
+	'Ltd.', 'QA'
+), (
+	'Other', 'RE'
+), (
+	'Ltd.', 'RE'
+), (
+	'Other', 'RO'
+), (
+	'Ltd.', 'RO'
+), (
+	'Other', 'RU'
+), (
+	'Ltd.', 'RU'
+), (
+	'Other', 'RW'
+), (
+	'Ltd.', 'RW'
+), (
+	'Other', 'SA'
+), (
+	'Ltd.', 'SA'
+), (
+	'Other', 'SB'
+), (
+	'Ltd.', 'SB'
+), (
+	'Other', 'SC'
+), (
+	'Ltd.', 'SC'
+), (
+	'Other', 'SD'
+), (
+	'Ltd.', 'SD'
+), (
+	'Other', 'SE'
+), (
+	'Ltd.', 'SE'
+), (
+	'Other', 'SH'
+), (
+	'Ltd.', 'SH'
+), (
+	'Other', 'SI'
+), (
+	'Ltd.', 'SI'
+), (
+	'Other', 'SJ'
+), (
+	'Ltd.', 'SJ'
+), (
+	'Other', 'SK'
+), (
+	'Ltd.', 'SK'
+), (
+	'Other', 'SL'
+), (
+	'Ltd.', 'SL'
+), (
+	'Other', 'SM'
+), (
+	'Ltd.', 'SM'
+), (
+	'Other', 'SN'
+), (
+	'Ltd.', 'SN'
+), (
+	'Other', 'SO'
+), (
+	'Ltd.', 'SO'
+), (
+	'Other', 'SR'
+), (
+	'Ltd.', 'SR'
+), (
+	'Other', 'ST'
+), (
+	'Ltd.', 'ST'
+), (
+	'Other', 'SV'
+), (
+	'Ltd.', 'SV'
+), (
+	'Other', 'SY'
+), (
+	'Ltd.', 'SY'
+), (
+	'Other', 'SZ'
+), (
+	'Ltd.', 'SZ'
+), (
+	'Other', 'TC'
+), (
+	'Ltd.', 'TC'
+), (
+	'Other', 'TD'
+), (
+	'Ltd.', 'TD'
+), (
+	'Other', 'TF'
+), (
+	'Ltd.', 'TF'
+), (
+	'Other', 'TG'
+), (
+	'Ltd.', 'TG'
+), (
+	'Other', 'TJ'
+), (
+	'Ltd.', 'TJ'
+), (
+	'Other', 'TK'
+), (
+	'Ltd.', 'TK'
+), (
+	'Other', 'TL'
+), (
+	'Ltd.', 'TL'
+), (
+	'Other', 'TM'
+), (
+	'Ltd.', 'TM'
+), (
+	'Other', 'TN'
+), (
+	'Ltd.', 'TN'
+), (
+	'Other', 'TO'
+), (
+	'Ltd.', 'TO'
+), (
+	'Other', 'TT'
+), (
+	'Ltd.', 'TT'
+), (
+	'Other', 'TV'
+), (
+	'Ltd.', 'TV'
+), (
+	'Other', 'TW'
+), (
+	'Ltd.', 'TW'
+), (
+	'Other', 'TZ'
+), (
+	'Ltd.', 'TZ'
+), (
+	'Other', 'UA'
+), (
+	'Ltd.', 'UA'
+), (
+	'Other', 'UG'
+), (
+	'Ltd.', 'UG'
+), (
+	'Other', 'UM'
+), (
+	'Ltd.', 'UM'
+), (
+	'Other', 'US'
+), (
+	'Ltd.', 'US'
+), (
+	'Other', 'UY'
+), (
+	'Ltd.', 'UY'
+), (
+	'Other', 'UZ'
+), (
+	'Ltd.', 'UZ'
+), (
+	'Other', 'VA'
+), (
+	'Ltd.', 'VA'
+), (
+	'Other', 'VC'
+), (
+	'Ltd.', 'VC'
+), (
+	'Other', 'VE'
+), (
+	'Ltd.', 'VE'
+), (
+	'Other', 'VG'
+), (
+	'Ltd.', 'VG'
+), (
+	'Other', 'VI'
+), (
+	'Ltd.', 'VI'
+), (
+	'Other', 'VU'
+), (
+	'Ltd.', 'VU'
+), (
+	'Other', 'WF'
+), (
+	'Ltd.', 'WF'
+), (
+	'Other', 'WS'
+), (
+	'Ltd.', 'WS'
+), (
+	'Other', 'YE'
+), (
+	'Ltd.', 'YE'
+), (
+	'Other', 'YT'
+), (
+	'Ltd.', 'YT'
+), (
+	'Other', 'ZA'
+), (
+	'Ltd.', 'ZA'
+), (
+	'Other', 'ZM'
+), (
+	'Ltd.', 'ZM'
+), (
+	'Other', 'ZW'
+), (
+	'Ltd.', 'ZW');
