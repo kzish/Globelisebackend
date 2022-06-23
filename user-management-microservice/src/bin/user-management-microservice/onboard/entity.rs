@@ -23,7 +23,9 @@ pub async fn get_onboard_entity_client_account_details(
     let result = database
         .select_one_onboard_entity_client_account_details(claims.payload.ulid)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found("Cannot find entity client account details for this user")
+        })?;
 
     Ok(Json(result))
 }
@@ -89,6 +91,10 @@ pub async fn get_onboard_entity_contractor_account_details(
         database
             .get_onboard_entity_contractor_account_details(claims.payload.ulid)
             .await?
-            .ok_or(GlobeliseError::NotFound)?,
+            .ok_or_else(|| {
+                GlobeliseError::not_found(
+                    "Cannot find entity contractor account details for this user",
+                )
+            })?,
     ))
 }

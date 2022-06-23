@@ -67,7 +67,11 @@ pub async fn entity_client_get_one(
     let result = database
         .select_one_prefill_entity_client_payment_details(query.email)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found(
+                "Cannot find prefilled entity client payment details from this query",
+            )
+        })?;
     Ok(Json(result))
 }
 
