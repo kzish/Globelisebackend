@@ -517,8 +517,9 @@ async fn main() {
             get(eor_admin::sap::s4_hana::download),
         )
         // ========== CONSTANT PAGES ========
-        .route("/country_code",get(constant::country_code::get_many).post(constant::country_code::post_one).delete(constant::country_code::delete_one))
-        .route("/currency_code",get(constant::currency_code::get_many).post(constant::currency_code::post_one).delete(constant::currency_code::delete_one))
+        .route("/constant/country_code",get(constant::country_code::get_many).post(constant::country_code::post_one).delete(constant::country_code::delete_one))
+        .route("/constant/currency_code",get(constant::currency_code::get_many).post(constant::currency_code::post_one).delete(constant::currency_code::delete_one))
+        .route("/constant/entity_type",get(constant::entity_type::get_many).post(constant::entity_type::post_one).delete(constant::entity_type::delete_one))
         // ========== PUBSUB PAGES ==========
         .route("/dapr/subscribe", get(dapr_subscription_list))
         .route("/healthz", get(handle_healthz))
