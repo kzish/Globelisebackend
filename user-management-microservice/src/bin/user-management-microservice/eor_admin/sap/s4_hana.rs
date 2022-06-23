@@ -207,7 +207,12 @@ pub async fn post_one(
 ) -> GlobeliseResult<String> {
     let database = database.lock().await;
 
-    let mut workbook = calamine::open_workbook_auto_from_rs(Cursor::new(&body.file))?;
+    let mut workbook =
+        calamine::open_workbook_auto_from_rs(Cursor::new(&body.file)).map_err(|_| {
+            GlobeliseError::bad_request(
+                "Unsupported file format. Please provide XLSX, XLSB, XLS or ODS files",
+            )
+        })?;
     if let Some((_, data)) = workbook.worksheets().get(0) {
         let des = data.deserialize()?;
 
@@ -277,7 +282,12 @@ pub async fn post_one(
                     Option<String>,
                 )>,
                 _,
-            >>()?
+            >>()
+            .map_err(|_| {
+                GlobeliseError::bad_request(
+                    "Invalid Excel file. Please follow the format in the template",
+                )
+            })?
             .into_iter()
             .map(
                 |(
