@@ -8,7 +8,7 @@ use axum::{
 };
 use calamine::Reader;
 use common_utils::{
-    custom_serde::{Country, EmailWrapper, FORM_DATA_LENGTH_LIMIT},
+    custom_serde::{Country, EmailWrapper, OffsetDateWrapper, FORM_DATA_LENGTH_LIMIT},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -16,7 +16,7 @@ use eor_admin_microservice_sdk::token::AdminAccessToken;
 use itertools::Itertools;
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as};
+use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::{FromRow, Row};
 use strum::IntoStaticStr;
 use uuid::Uuid;
@@ -75,6 +75,7 @@ impl DebitCreditCode {
 pub struct PostPayrollJournalS4Hana {
     #[serde_as(as = "Base64")]
     pub file: Vec<u8>,
+    pub file_name: String,
     pub client_ulid: Uuid,
 }
 
@@ -148,9 +149,14 @@ pub struct SapMulesoftPayrollJournalEntryQuery {
 #[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct SapMulesoftPayrollJournalEntry {
-    pub client_ulid: Uuid,
+pub struct SapMulesoftPayrollJournalEntryIndex {
+    pub ulid: Uuid,
     pub country_code: Country,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
+    pub client_ulid: Uuid,
+    pub file_name: String,
+    pub row_count: i64,
 }
 
 pub async fn get_many_entries(
@@ -158,10 +164,10 @@ pub async fn get_many_entries(
     _: Token<AdminAccessToken>,
     Query(query): Query<SapMulesoftPayrollJournalEntryQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<SapMulesoftPayrollJournalEntry>>> {
+) -> GlobeliseResult<Json<Vec<SapMulesoftPayrollJournalEntryIndex>>> {
     let database = database.lock().await;
     let result = database
-        .select_many_sap_mulesoft_payroll_journal_entries(query.client_ulid, query.country_code)
+        .select_many_sap_mulesoft_payroll_journal_entry_index(query.client_ulid, query.country_code)
         .await?;
     Ok(Json(result))
 }
@@ -201,7 +207,12 @@ pub async fn post_one(
 ) -> GlobeliseResult<String> {
     let database = database.lock().await;
 
-    let mut workbook = calamine::open_workbook_auto_from_rs(Cursor::new(&body.file))?;
+    let mut workbook =
+        calamine::open_workbook_auto_from_rs(Cursor::new(&body.file)).map_err(|_| {
+            GlobeliseError::bad_request(
+                "Unsupported file format. Please provide XLSX, XLSB, XLS or ODS files",
+            )
+        })?;
     if let Some((_, data)) = workbook.worksheets().get(0) {
         let des = data.deserialize()?;
 
@@ -271,7 +282,12 @@ pub async fn post_one(
                     Option<String>,
                 )>,
                 _,
-            >>()?
+            >>()
+            .map_err(|_| {
+                GlobeliseError::bad_request(
+                    "Invalid Excel file. Please follow the format in the template",
+                )
+            })?
             .into_iter()
             .map(
                 |(
@@ -443,6 +459,7 @@ pub async fn post_one(
                 &inferred_country_code,
                 &raw_payroll_journals,
                 &body.file,
+                &body.file_name,
             )
             .await?;
 
@@ -539,17 +556,17 @@ impl Database {
         Ok(result)
     }
 
-    pub async fn select_many_sap_mulesoft_payroll_journal_entries(
+    pub async fn select_many_sap_mulesoft_payroll_journal_entry_index(
         &self,
         client_ulid: Option<Uuid>,
         country_code: Option<Country>,
-    ) -> GlobeliseResult<Vec<SapMulesoftPayrollJournalEntry>> {
+    ) -> GlobeliseResult<Vec<SapMulesoftPayrollJournalEntryIndex>> {
         let result = sqlx::query_as(
             "
         SELECT
-            ulid, client_ulid, country_code
+            ulid, country_code, created_at, client_ulid, file_name, row_count
         FROM
-            sap_mulesoft_payroll_journals_entries
+            sap_mulesoft_payroll_journals_entry_index
         WHERE
             ($1 IS NULL OR client_ulid = $1) AND
             ($2 IS NULL OR country_code = $2)",
@@ -590,21 +607,23 @@ impl Database {
         country_code: &String,
         rows: &[InsertPayrollJournalRowData],
         file: &[u8],
+        file_name: &String,
     ) -> GlobeliseResult<Uuid> {
         let ulid = Uuid::new_v4();
 
         sqlx::query(
             "
         INSERT INTO sap_mulesoft_payroll_journals_entries (
-            ulid, client_ulid, country_code, uploaded_file
+            ulid, country_code, client_ulid, uploaded_file, file_name
         ) VALUES (
-            $1, $2, $3, $4
+            $1, $2, $3, $4, $5
         )",
         )
         .bind(ulid)
-        .bind(client_ulid)
         .bind(country_code)
+        .bind(client_ulid)
         .bind(file)
+        .bind(file_name)
         .execute(&self.0)
         .await?;
 
