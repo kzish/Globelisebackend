@@ -61,7 +61,11 @@ pub async fn user_get_one_individual_contractor(
             query.email,
         )
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found(
+                "Cannot find prefilled individual contractor bank details from the query",
+            )
+        })?;
 
     Ok(Json(result))
 }

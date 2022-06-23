@@ -83,7 +83,11 @@ pub async fn individual_contractor_get_one(
             query.client_ulid,
         )
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found(
+                "Cannot find prefilled individual contractor bank details from this query",
+            )
+        })?;
     Ok(Json(result))
 }
 
@@ -137,7 +141,11 @@ pub async fn entity_client_get_one(
     let result = database
         .select_one_prefilled_entity_client_bank_details(query.email)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found(
+                "Cannot find prefilled entity client bank details from this query",
+            )
+        })?;
     Ok(Json(result))
 }
 

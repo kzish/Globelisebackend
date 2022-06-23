@@ -72,6 +72,8 @@ pub async fn get_pay_item_by_id(
     if let Some(pay_item) = database.get_pay_item_by_id(pay_item_ulid).await? {
         Ok(Json(pay_item))
     } else {
-        Err(GlobeliseError::NotFound)
+        Err(GlobeliseError::not_found(
+            "Cannot find pay item from this UUID",
+        ))
     }
 }

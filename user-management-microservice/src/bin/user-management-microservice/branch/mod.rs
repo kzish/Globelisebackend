@@ -179,7 +179,7 @@ pub mod user {
         let details = database
             .select_one_entity_clients_branch_details(branch_ulid)
             .await?
-            .ok_or(GlobeliseError::NotFound)?;
+            .ok_or_else(|| GlobeliseError::not_found("Cannot find a branch with this UUID"))?;
 
         Ok(Json(details))
     }
@@ -372,7 +372,7 @@ pub mod eor_admin {
         let details = database
             .select_one_entity_clients_branch_details(branch_ulid)
             .await?
-            .ok_or(GlobeliseError::NotFound)?;
+            .ok_or_else(|| GlobeliseError::not_found("Cannot find branch with this UUID"))?;
 
         Ok(Json(details))
     }

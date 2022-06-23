@@ -64,7 +64,11 @@ pub async fn user_get_one_individual_contractor(
             token.payload.ulid,
         )
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found(
+                "Cannot find prefilled individual contractor account details from the query",
+            )
+        })?;
 
     Ok(Json(result))
 }
