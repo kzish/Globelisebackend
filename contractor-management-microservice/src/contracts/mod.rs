@@ -163,7 +163,7 @@ pub async fn user_get_one_contract_index(
                 query.branch_ulid,
             )
             .await?
-            .ok_or(GlobeliseError::NotFound)?,
+            .ok_or_else(|| GlobeliseError::not_found("Cannot find the contract with that query"))?,
         UserRole::Contractor => database
             .select_one_contract(
                 Some(contract_ulid),
@@ -173,7 +173,7 @@ pub async fn user_get_one_contract_index(
                 query.branch_ulid,
             )
             .await?
-            .ok_or(GlobeliseError::NotFound)?,
+            .ok_or_else(|| GlobeliseError::not_found("Cannot find the contract with that query"))?,
     };
 
     Ok(Json(result))
@@ -197,7 +197,7 @@ pub async fn user_sign_one_contract(
     database
         .sign_one_contract(contract_ulid, claims.payload.ulid)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| GlobeliseError::not_found("Cannot find the contract with that query"))?;
 
     Ok(())
 }
@@ -238,7 +238,7 @@ pub async fn admin_get_one_contract_index(
             query.branch_ulid,
         )
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| GlobeliseError::not_found("Cannot find the contract with that query"))?;
     Ok(Json(result))
 }
 

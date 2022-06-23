@@ -161,9 +161,13 @@ pub async fn post_one(
             // Get/remove the first row because its the header.
             let header = records.swap_remove(0);
             for record in records {
-                let value = record.deserialize::<PrefillIndividualContractorDetailsForBulkUpload>(
-                    Some(&header),
-                )?;
+                let value = record
+                    .deserialize::<PrefillIndividualContractorDetailsForBulkUpload>(Some(&header))
+                    .map_err(|_| {
+                        GlobeliseError::bad_request(
+                            "Please provide a CSV file that follows the template",
+                        )
+                    })?;
                 rows_to_enter.push(value);
             }
         }
@@ -185,7 +189,7 @@ pub async fn post_one(
         rows_to_enter.extend(rows);
     } else {
         return Err(GlobeliseError::bad_request(
-            "Please provide either CSV or Excel files",
+            "Please provide either CSV or Excel files that follows the template",
         ));
     }
 
@@ -258,7 +262,11 @@ pub async fn get_one(
     let result = database
         .get_prefilll_individual_contractor_details_for_bulk_upload(query.email)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found(
+                "Cannot find prefilled individual contractor details from the query",
+            )
+        })?;
 
     Ok(Json(result))
 }

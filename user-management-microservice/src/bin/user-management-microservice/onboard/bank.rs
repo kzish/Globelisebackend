@@ -33,7 +33,9 @@ pub async fn get_onboard_contractor_bank_details(
     let result = database
         .select_one_contractor_bank_detail(claims.payload.ulid, claims.payload.user_type)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found("Cannot find contractor bank details for this user")
+        })?;
 
     Ok(Json(result))
 }
