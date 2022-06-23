@@ -17,7 +17,9 @@ pub async fn get_onboard_client_payment_details(
     let result = database
         .select_one_onboard_client_payment_details(claims.payload.ulid, claims.payload.user_type)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found("Cannot find client payment details for this user")
+        })?;
     Ok(Json(result))
 }
 

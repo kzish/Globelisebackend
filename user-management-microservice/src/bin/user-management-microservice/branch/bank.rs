@@ -129,7 +129,9 @@ pub async fn get_branch_bank_details(
     let result = database
         .get_one_branch_bank_details(branch_ulid)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| {
+            GlobeliseError::not_found("Cannot find branch bank details for this branch")
+        })?;
 
     Ok(Json(result))
 }

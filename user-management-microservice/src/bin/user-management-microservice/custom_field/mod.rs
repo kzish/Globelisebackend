@@ -144,7 +144,7 @@ pub async fn admin_get_custom_field_by_ulid(
     let result = database
         .get_custom_field_by_ulid(ulid, None)
         .await?
-        .ok_or(GlobeliseError::NotFound)?;
+        .ok_or_else(|| GlobeliseError::not_found("Cannot find custom field from this UUID"))?;
     Ok(Json(result))
 }
 
