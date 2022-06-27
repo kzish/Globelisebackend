@@ -141,6 +141,7 @@ pub struct ListCitiBankTransferInitiationFilesResponse {
     pub status: String,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub created_at: sqlx::types::time::OffsetDateTime,
+    pub entries: i64,
 }
 
 #[serde_as]
@@ -1140,7 +1141,7 @@ impl Database {
 
         let result = sqlx::query_as(
             "SELECT * FROM
-                        uploaded_citibank_transfer_initiation_files
+                        uploaded_citibank_transfer_initiation_files_index
                     WHERE client_ulid = $3
                     LIMIT $1 OFFSET $2",
         )
