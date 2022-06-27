@@ -1,16 +1,8 @@
-use std::{
-    fs::{self},
-    io::{prelude::*, Write},
-    net::TcpStream,
-    path::Path,
-    str,
-    sync::Arc,
-};
-
 use axum::extract::ContentLengthLimit;
 use axum::extract::{Extension, Json, Query};
 use calamine::{open_workbook, Reader, Xlsx};
 use chrono;
+use common_utils::custom_serde::OffsetDateWrapper;
 use common_utils::token::Token;
 use common_utils::{
     calc_limit_and_offset,
@@ -21,10 +13,19 @@ use eor_admin_microservice_sdk::token::AdminAccessToken;
 use reqwest::header::HeaderMap;
 use reqwest::header::{HeaderName, HeaderValue};
 use serde::{Deserialize, Serialize};
+use serde_with::TryFromInto;
 use serde_with::{base64::Base64, serde_as};
 use sqlx::FromRow;
 use ssh2::Session;
 use std::process::Command;
+use std::{
+    fs::{self},
+    io::{prelude::*, Write},
+    net::TcpStream,
+    path::Path,
+    str,
+    sync::Arc,
+};
 use substring::Substring;
 use tokio::sync::Mutex;
 use umya_spreadsheet::*;
@@ -129,10 +130,23 @@ pub struct InitCitibankTransferRequest {
     pub file_ulid: Uuid,
     pub template_name: String, //eg. template.xml
 }
+
 #[serde_as]
 #[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct ListCitiBankTransferInitiationFiles {
+pub struct ListCitiBankTransferInitiationFilesResponse {
+    pub ulid: Uuid,
+    pub title_identifier: String,
+    pub client_ulid: Uuid,
+    pub status: String,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct ListCitiBankTransferInitiationFilesRequest {
     pub ulid: Uuid,
     pub title_identifier: String,
     pub client_ulid: Uuid,
@@ -514,7 +528,7 @@ pub async fn list_available_templates(
 async fn generate_xml(
     template_name: String,
     local_file: String,
-    transaction_file: ListCitiBankTransferInitiationFiles,
+    transaction_file: ListCitiBankTransferInitiationFilesResponse,
     records: Vec<CitiBankPayRollRecord>,
 ) {
     let base_path = std::env::var("CITIBANK_BASE_PATH").expect("base path not set");
@@ -769,7 +783,7 @@ pub async fn upload_citibank_transfer_initiation_template(
 
         let database = database.lock().await;
         let file_ulid = Uuid::new_v4();
-        let record_file = ListCitiBankTransferInitiationFiles {
+        let record_file = ListCitiBankTransferInitiationFilesRequest {
             ulid: file_ulid,
             title_identifier: request.title_identifier,
             client_ulid: request.client_ulid,
@@ -896,7 +910,7 @@ pub async fn list_all_uploaded_citibank_transfer_initiation_files_for_client(
     _: Token<AdminAccessToken>,
     Query(request): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ListCitiBankTransferInitiationFiles>>> {
+) -> GlobeliseResult<Json<Vec<ListCitiBankTransferInitiationFilesResponse>>> {
     let database = database.lock().await;
 
     let files = database
@@ -1037,7 +1051,7 @@ impl Database {
     pub async fn get_uploaded_citibank_transfer_initiation_file(
         &self,
         file_ulid: Uuid,
-    ) -> GlobeliseResult<ListCitiBankTransferInitiationFiles> {
+    ) -> GlobeliseResult<ListCitiBankTransferInitiationFilesResponse> {
         let result = sqlx::query_as(
             "SELECT * FROM 
                             uploaded_citibank_transfer_initiation_files
@@ -1052,7 +1066,7 @@ impl Database {
 
     pub async fn create_uploaded_citibank_transfer_initiation_file(
         &self,
-        request: ListCitiBankTransferInitiationFiles,
+        request: ListCitiBankTransferInitiationFilesRequest,
     ) -> GlobeliseResult<()> {
         //remove old data with same title, cascades delete records
         sqlx::query(
@@ -1121,7 +1135,7 @@ impl Database {
     pub async fn list_all_uploaded_citibank_transfer_initiation_files_for_client(
         &self,
         request: PaginatedQuery,
-    ) -> GlobeliseResult<Vec<ListCitiBankTransferInitiationFiles>> {
+    ) -> GlobeliseResult<Vec<ListCitiBankTransferInitiationFilesResponse>> {
         let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
 
         let result = sqlx::query_as(
