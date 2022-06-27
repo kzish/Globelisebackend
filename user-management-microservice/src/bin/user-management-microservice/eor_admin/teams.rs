@@ -119,12 +119,23 @@ pub struct ListTeamsRequest {
 }
 
 #[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ListTeamsClientUlidRequest {
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+    pub client_ulid: Uuid,
+    pub team_name: Option<String>,
+}
+
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 #[serde(rename_all = "kebab-case")]
 pub struct ListTeamsResponse {
     pub member: i64,
     pub team_ulid: Uuid,
     pub branch_ulid: Uuid,
+    pub client_ulid: Uuid,
     pub team_name: String,
     pub schedule_type: String,
     pub time_zone: String,
@@ -243,6 +254,18 @@ pub async fn list_teams(
     let database = database.lock().await;
 
     let response = database.list_teams(request).await?;
+
+    Ok(Json(response))
+}
+
+pub async fn list_teams_by_client_ulid(
+    _: Token<AdminAccessToken>,
+    Query(request): Query<ListTeamsClientUlidRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ListTeamsResponse>>> {
+    let database = database.lock().await;
+
+    let response = database.list_teams_by_client_ulid(request).await?;
 
     Ok(Json(response))
 }
@@ -446,6 +469,32 @@ impl Database {
         .bind(limit)
         .bind(offset)
         .bind(request.branch_ulid)
+        .bind(format!("%{}%", request.team_name.unwrap_or_default()))
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(response)
+    }
+
+    pub async fn list_teams_by_client_ulid(
+        &self,
+        request: ListTeamsClientUlidRequest,
+    ) -> GlobeliseResult<Vec<ListTeamsResponse>> {
+        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+
+        let response = sqlx::query_as(
+            "SELECT * FROM
+                    teams_index
+                WHERE
+                    client_ulid = $3
+                AND
+                    ($4 IS NULL OR team_name LIKE $4)
+                    LIMIT $1
+                    OFFSET $2",
+        )
+        .bind(limit)
+        .bind(offset)
+        .bind(request.client_ulid)
         .bind(format!("%{}%", request.team_name.unwrap_or_default()))
         .fetch_all(&self.0)
         .await?;
