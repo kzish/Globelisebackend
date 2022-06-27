@@ -17,6 +17,7 @@ pub struct GetCostCenterResponse {
     pub cost_center_name: String,
     pub member: i64,
     pub currency: String,
+    pub client_ulid: Uuid,
 }
 
 #[serde_as]
@@ -36,6 +37,15 @@ pub struct ListCostCentersRequest {
     pub page: Option<u32>,
     pub per_page: Option<u32>,
     pub branch_ulid: Uuid,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
+pub struct ListCostCentersClientUlidRequest {
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+    pub client_ulid: Uuid,
 }
 
 #[serde_as]
@@ -100,6 +110,19 @@ pub async fn list_cost_centers(
     let database = database.lock().await;
 
     let result = database.list_cost_centers(request).await?;
+
+    Ok(Json(result))
+}
+
+//list the cost centers for a client
+pub async fn list_cost_centers_by_client_ulid(
+    _: Token<AdminAccessToken>,
+    Query(request): Query<ListCostCentersClientUlidRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<GetCostCenterResponse>>> {
+    let database = database.lock().await;
+
+    let result = database.list_cost_centers_by_client_ulid(request).await?;
 
     Ok(Json(result))
 }
@@ -198,6 +221,29 @@ impl Database {
                 OFFSET $3",
         )
         .bind(request.branch_ulid)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(response)
+    }
+
+    pub async fn list_cost_centers_by_client_ulid(
+        &self,
+        request: ListCostCentersClientUlidRequest,
+    ) -> GlobeliseResult<Vec<GetCostCenterResponse>> {
+        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+
+        let response = sqlx::query_as(
+            "SELECT * FROM 
+                    cost_center_index 
+                WHERE
+                    client_ulid = $1
+                LIMIT $2
+                OFFSET $3",
+        )
+        .bind(request.client_ulid)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)

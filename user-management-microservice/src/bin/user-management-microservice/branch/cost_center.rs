@@ -3,8 +3,8 @@
 use crate::database::{Database, SharedDatabase};
 use crate::eor_admin::cost_center::{
     AddContractorToCostCenterRequest, CostCenterContractorResponse, GetCostCenterResponse,
-    ListCostCentersContractorsRequest, ListCostCentersRequest, PostCostCenterRequest,
-    UpdateCostCenterRequest,
+    ListCostCentersClientUlidRequest, ListCostCentersContractorsRequest, ListCostCentersRequest,
+    PostCostCenterRequest, UpdateCostCenterRequest,
 };
 use axum::extract::{Extension, Json, Query};
 use common_utils::error::GlobeliseError;
@@ -48,6 +48,23 @@ pub async fn list_cost_centers(
     }
 
     let result = database.list_cost_centers(request).await?;
+
+    Ok(Json(result))
+}
+
+//list the cost centers for a branch
+pub async fn list_cost_centers_by_client_ulid(
+    claims: Token<UserAccessToken>,
+    Query(request): Query<ListCostCentersClientUlidRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<GetCostCenterResponse>>> {
+    if request.client_ulid != claims.payload.ulid {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    let database = database.lock().await;
+
+    let result = database.list_cost_centers_by_client_ulid(request).await?;
 
     Ok(Json(result))
 }
