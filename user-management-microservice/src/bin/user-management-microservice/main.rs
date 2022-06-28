@@ -205,7 +205,11 @@ async fn main() {
         )
         .route(
             "/admin-pic/teams/list-teams",
-            get(branch::teams::list_teams),
+            get(branch::teams::list_teams),//filter by branch ulid
+        )
+        .route(
+            "/admin-pic/teams/list-teams-by-client-ulid",
+            get(branch::teams::list_teams_by_client_ulid),//filter by client ulid
         )
         .route(
             "/admin-pic/teams/add-contrator-to-team",
@@ -232,7 +236,11 @@ async fn main() {
             post(branch::cost_center::delete_cost_center),
         ).route(
             "/admin-pic/cost-center/list-cost-centers",
-            get(branch::cost_center::list_cost_centers),
+            get(branch::cost_center::list_cost_centers),//filter by branch ulid
+        )
+        .route(
+            "/admin-pic/cost-center/list-cost-centers-by-client-ulid",
+            get(branch::cost_center::list_cost_centers_by_client_ulid),//filter by client-ulid
         )
         .route(
             "/admin-pic/cost-center/list-cost-center-contractors",
@@ -344,7 +352,11 @@ async fn main() {
         )
         .route(
             "/eor-admin/teams/list-teams",
-            get(eor_admin::teams::list_teams),
+            get(eor_admin::teams::list_teams),//filter by branch ulid
+        )
+        .route(
+            "/eor-admin/teams/list-teams-by-client-ulid",
+            get(eor_admin::teams::list_teams_by_client_ulid),//filter by client ulid
         )
         .route(
             "/eor-admin/teams/add-contrator-to-team",
@@ -371,7 +383,11 @@ async fn main() {
             post(eor_admin::cost_center::delete_cost_center),
         ).route(
             "/eor-admin/cost-center/list-cost-centers",
-            get(eor_admin::cost_center::list_cost_centers),
+            get(eor_admin::cost_center::list_cost_centers),//filter by branch ulid
+        )
+        .route(
+            "/eor-admin/cost-center/list-cost-centers-by-client-ulid",
+            get(eor_admin::cost_center::list_cost_centers_by_client_ulid),//filter by client ulid
         )
         .route(
             "/eor-admin/cost-center/list-cost-center-contractors",
