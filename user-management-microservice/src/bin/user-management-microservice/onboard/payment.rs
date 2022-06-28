@@ -1,29 +1,50 @@
-use axum::extract::{ContentLengthLimit, Extension, Json};
+use axum::extract::{ContentLengthLimit, Extension, Json, Path};
 use common_utils::{
     custom_serde::{UserType, FORM_DATA_LENGTH_LIMIT},
     database::{onboard::payment::OnboardClientPaymentDetails, CommonDatabase},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
+use eor_admin_microservice_sdk::token::AdminAccessToken;
 use user_management_microservice_sdk::token::UserAccessToken;
+use uuid::Uuid;
 
 use crate::database::SharedDatabase;
 
-pub async fn get_onboard_client_payment_details(
+pub async fn user_get_one_payment_details(
     claims: Token<UserAccessToken>,
     Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<OnboardClientPaymentDetails>> {
     let database = database.lock().await;
+
     let result = database
         .select_one_onboard_client_payment_details(claims.payload.ulid, claims.payload.user_type)
         .await?
         .ok_or_else(|| {
             GlobeliseError::not_found("Cannot find client payment details for this user")
         })?;
+
     Ok(Json(result))
 }
 
-pub async fn post_onboard_client_payment_details(
+pub async fn admin_get_one_payment_details(
+    _: Token<AdminAccessToken>,
+    Path((user_ulid, user_type)): Path<(Uuid, UserType)>,
+    Extension(database): Extension<CommonDatabase>,
+) -> GlobeliseResult<Json<OnboardClientPaymentDetails>> {
+    let database = database.lock().await;
+
+    let result = database
+        .select_one_onboard_client_payment_details(user_ulid, user_type)
+        .await?
+        .ok_or_else(|| {
+            GlobeliseError::not_found("Cannot find client payment details for this user")
+        })?;
+
+    Ok(Json(result))
+}
+
+pub async fn user_post_one_payment_details(
     claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<OnboardClientPaymentDetails>,
@@ -47,7 +68,12 @@ pub async fn post_onboard_client_payment_details(
 
     // ADDITIONAL SIDE-EFFECTS FROM SIGNING UP ENTITY CLIENT
     // Since this is the last step for the onboarding of entity clients
-    if claims.payload.user_type == UserType::Entity {
+    if claims.payload.user_type == UserType::Entity
+        && shared_database
+            .select_one_entity_clients_branch_details(None, Some(claims.payload.ulid))
+            .await?
+            .is_none()
+    {
         let branch_ulid = shared_database
             .insert_one_entity_client_branch(claims.payload.ulid)
             .await?;
@@ -93,5 +119,29 @@ pub async fn post_onboard_client_payment_details(
             .post_branch_payroll_details(branch_ulid, body.payment_date, body.cutoff_date)
             .await?;
     }
+    Ok(())
+}
+
+pub async fn admin_post_one_payment_details(
+    _: Token<AdminAccessToken>,
+    Path((user_ulid, user_type)): Path<(Uuid, UserType)>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<OnboardClientPaymentDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(common_database): Extension<CommonDatabase>,
+) -> GlobeliseResult<()> {
+    let common_database = common_database.lock().await;
+
+    common_database
+        .insert_one_onboard_client_payment_details(
+            user_ulid,
+            user_type,
+            body.currency,
+            &body.payment_date,
+            &body.cutoff_date,
+        )
+        .await?;
+
     Ok(())
 }
