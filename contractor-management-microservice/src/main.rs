@@ -76,7 +76,11 @@ async fn main() {
         .route("/payslips/:role", get(payslips::user_find_many_payslips))
         .route(
             "/payslips/:role/:payslip_ulid",
-            get(payslips::user_get_one_payslip),
+            get(payslips::user_get_one_payslip_index).delete(payslips::user_delete_one_payslip),
+        )
+        .route(
+            "/payslips/:role/:payslip_ulid/file",
+            get(payslips::user_download_one_payslip_index),
         )
         .route(
             "/tax-reports/:role",
@@ -105,7 +109,11 @@ async fn main() {
         )
         .route(
             "/eor-admin/payslips/:payslip_ulid",
-            get(payslips::admin_get_one_payslip_index),
+            get(payslips::admin_get_one_payslip_index).delete(payslips::admin_delete_one_payslip),
+        )
+        .route(
+            "/eor-admin/payslips/:payslip_ulid/file",
+            get(payslips::admin_download_one_payslip_index),
         )
         .route(
             "/eor-admin/tax-reports",
