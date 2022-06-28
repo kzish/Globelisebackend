@@ -3,7 +3,8 @@
 use crate::database::{Database, SharedDatabase};
 use crate::eor_admin::teams::{
     AddContractorToTeamRequest, CreateTeamRequest, ListTeamContractorsRequest,
-    ListTeamContractorsResponse, ListTeamsRequest, ListTeamsResponse, UpdateTeamRequest,
+    ListTeamContractorsResponse, ListTeamsClientUlidRequest, ListTeamsRequest, ListTeamsResponse,
+    UpdateTeamRequest,
 };
 use axum::extract::{Extension, Json, Path, Query};
 use common_utils::error::GlobeliseError;
@@ -86,6 +87,22 @@ pub async fn list_teams(
     }
 
     let response = database.list_teams(request).await?;
+
+    Ok(Json(response))
+}
+
+pub async fn list_teams_by_client_ulid(
+    claims: Token<UserAccessToken>,
+    Query(request): Query<ListTeamsClientUlidRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ListTeamsResponse>>> {
+    if request.client_ulid != claims.payload.ulid {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    let database = database.lock().await;
+
+    let response = database.list_teams_by_client_ulid(request).await?;
 
     Ok(Json(response))
 }

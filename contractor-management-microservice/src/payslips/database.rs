@@ -1,4 +1,5 @@
 use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
+use sqlx::Row;
 use uuid::Uuid;
 
 use crate::database::Database;
@@ -39,7 +40,7 @@ impl Database {
         Ok(index)
     }
 
-    pub async fn select_one_payslip(
+    pub async fn select_one_payslip_index(
         &self,
         ulid: Uuid,
         client_ulid: Option<Uuid>,
@@ -61,6 +62,34 @@ impl Database {
             .bind(contractor_ulid)
             .fetch_optional(&self.0)
             .await?;
+
+        Ok(result)
+    }
+
+    pub async fn download_one_payslip_file(
+        &self,
+        ulid: Uuid,
+        client_ulid: Option<Uuid>,
+        contractor_ulid: Option<Uuid>,
+    ) -> GlobeliseResult<Option<Vec<u8>>> {
+        let query = "
+            SELECT
+                payslip_file
+            FROM
+                payslips
+            WHERE
+                ulid = $1 AND
+                ($2 IS NULL OR client_ulid = $2) AND
+                ($3 IS NULL OR contractor_ulid = $3)";
+
+        let result = sqlx::query(query)
+            .bind(ulid)
+            .bind(client_ulid)
+            .bind(contractor_ulid)
+            .fetch_optional(&self.0)
+            .await?
+            .map(|v| v.try_get("payslip_file"))
+            .transpose()?;
 
         Ok(result)
     }
@@ -101,5 +130,29 @@ impl Database {
             .await?;
 
         Ok(ulid)
+    }
+
+    pub async fn delete_one_payslip(
+        &self,
+        payslip_ulid: Uuid,
+        client_ulid: Option<Uuid>,
+        contractor_ulid: Option<Uuid>,
+    ) -> GlobeliseResult<()> {
+        let query = "
+        DELETE FROM
+            payslips
+        WHERE 
+            (ulid = $1) AND
+            ($2 IS NULL OR client_ulid = $2) AND
+            ($3 IS NULL OR contractor_ulid = $3)";
+
+        sqlx::query(query)
+            .bind(payslip_ulid)
+            .bind(client_ulid)
+            .bind(contractor_ulid)
+            .execute(&self.0)
+            .await?;
+
+        Ok(())
     }
 }
