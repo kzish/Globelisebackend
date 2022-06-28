@@ -13,515 +13,6 @@
           "name": "Users",
           "item": [
             {
-              "name": "Onboarding",
-              "item": [
-                {
-                  "name": "Client",
-                  "item": [
-                    {
-                      "name": "Individual details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"first-name\": \"First\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"country\": \"US\",\n    \"city\": \"Big City\",\n    \"address\": \"1234 Address Street\",\n    \"postal-code\": \"99999\",\n    \"tax-id\": null,\n    \"time-zone\": \"US/Eastern\",\n    \"profile-picture\": null\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/individual-details/client",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "individual-details", "client"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "Individual details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/individual-details/client",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "individual-details", "client"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "Entity details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"company-name\": \"Big Company\",\n    \"country\": \"MY\",\n    \"entity-type\": \"Big\",\n    \"registration-number\": \"99999999\",\n    \"tax-id\": \"57963434\",\n    \"company-address\": \"1234 Big Street\",\n    \"city\": \"Big City\",\n    \"postal-code\": \"777777\",\n    \"time-zone\": \"US/Eastern\"\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/entity-details/client",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "entity-details", "client"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "Entity details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/entity-details/client",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "entity-details", "client"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIC details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"first-name\": \"First\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"profile-picture\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\"\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/pic-details/contractor",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "pic-details", "contractor"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIC details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/pic-details/client",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "pic-details", "client"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "Payment details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"currency\": \"USD\",\n    \"payment-date\": \"2022-02-22T00:00:00.000Z\",\n    \"cutoff-date\": \"2022-02-19T00:00:00.000Z\"\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/payment-details",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "payment-details"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "Payment details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/payment-details",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "payment-details"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "Client Fully Onboarded",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/fully_onboarded/client",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "fully_onboarded", "client"]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                },
-                {
-                  "name": "Contractor",
-                  "item": [
-                    {
-                      "name": "Individual details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"first-name\": \"Test\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"country\": \"United States\",\n    \"city\": \"Big City\",\n    \"address\": \"1234 Address Street\",\n    \"postal-code\": \"99999\",\n    \"tax-id\": \"2304803309\",\n    \"time-zone\": \"US/Eastern\",\n    \"profile-picture\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\",\n    \"cv\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\"\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/individual-details/contractor",
-                          "host": ["{{user-management-host}}"],
-                          "path": [
-                            "onboard",
-                            "individual-details",
-                            "contractor"
-                          ]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "Individual details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/individual-details/contractor",
-                          "host": ["{{user-management-host}}"],
-                          "path": [
-                            "onboard",
-                            "individual-details",
-                            "contractor"
-                          ]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "Entity details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"company-name\": \"fgdfdfdg\",\n    \"time-zone\": \"dsf\",\n    \"country\": \"AM\",\n    \"entity-type\": \"Big\",\n    \"registration-number\": \"122323\",\n    \"tax-id\": \"123123\",\n    \"company-address\": \"sdfsdf\",\n    \"city\": \"asdasd\",\n    \"postal-code\": \"123123\"\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/entity-details/contractor",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "entity-details", "contractor"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "Entity details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/entity-details/contractor",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "entity-details", "contractor"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIC details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"first-name\": \"First\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"profile-picture\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\"\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/pic-details/contractor",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "pic-details", "contractor"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "PIC details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/pic-details/contractor",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "pic-details", "contractor"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "Bank details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n    \"bank-name\": \"Big Bank\",\n    \"bank-account-name\": \"First Last\",\n    \"bank-account-number\": \"2983457\",\n    \"bank-code\": \"some-bank-code\",\n    \"branch-code\": \"some-branch-code\"\n}",
-                          "options": {
-                            "raw": {
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/bank-details",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "bank-details"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "Bank details",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/bank-details",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "bank-details"]
-                        }
-                      },
-                      "response": []
-                    },
-                    {
-                      "name": "Contractor Fully Onboarded",
-                      "request": {
-                        "auth": {
-                          "type": "bearer",
-                          "bearer": [
-                            {
-                              "key": "token",
-                              "value": "{{user-access-token}}",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                          "raw": "{{user-management-host}}/onboard/fully_onboarded/contractor",
-                          "host": ["{{user-management-host}}"],
-                          "path": ["onboard", "fully_onboarded", "contractor"]
-                        }
-                      },
-                      "response": []
-                    }
-                  ]
-                }
-              ]
-            },
-            {
               "name": "Authentication",
               "item": [
                 {
@@ -537,7 +28,7 @@
                             "header": [],
                             "body": {
                               "mode": "raw",
-                              "raw": "{\n    \"email\": \"test1@gmail.com\",\n    \"password\": \"Password@123\",\n    \"confirm-password\": \"Password@123\"\n}",
+                              "raw": "{\n    \"email\": \"kzish@gmail.com\",\n    \"password\": \"pass1234\",\n    \"confirm-password\": \"pass1234\"\n}",
                               "options": {
                                 "raw": {
                                   "language": "json"
@@ -687,7 +178,7 @@
                     "header": [],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n    \"email\": \"cleta44@hotmail.com\",\n    \"password\": \"RR_Hc1nh3JCsUjz\"\n}",
+                      "raw": "{\n    \"email\": \"kzish@gmail.com\",\n    \"password\": \"pass1234\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -963,6 +454,19 @@
                       "host": ["api-dev", "globelise", "com"],
                       "path": ["api", "login"]
                     }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Account Settings",
+              "item": [
+                {
+                  "name": "New Request",
+                  "request": {
+                    "method": "GET",
+                    "header": []
                   },
                   "response": []
                 }
@@ -1543,7 +1047,7 @@
                     "header": [],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\r\n    \"file-ulid\": \"state\",\r\n    \"template-name\": \"citi_bank_usd_vn.xml\"\r\n}",
+                      "raw": "{\r\n    \"file-ulid\": \"357f27a3-837d-43b7-b28d-bd016ebfb2bd\",\r\n    \"template-name\": \"citi_bank_usd_vn.xml\"\r\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1578,7 +1082,7 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "{{user-management-host}}/eor-admin/citibank/list-all-uploaded-citibank-transfer-initiation-files-for-client?page=1&per-page=100&client-ulid=9bfb5cf9-25f6-4d56-a9a6-82565f2c3f9f",
+                      "raw": "{{user-management-host}}/eor-admin/citibank/list-all-uploaded-citibank-transfer-initiation-files-for-client?page=1&per-page=100&client-ulid=98cf1207-2d2b-4a2e-8fcc-9c5711ab8d4b",
                       "host": ["{{user-management-host}}"],
                       "path": [
                         "eor-admin",
@@ -1596,7 +1100,7 @@
                         },
                         {
                           "key": "client-ulid",
-                          "value": "9bfb5cf9-25f6-4d56-a9a6-82565f2c3f9f"
+                          "value": "98cf1207-2d2b-4a2e-8fcc-9c5711ab8d4b"
                         }
                       ]
                     }
@@ -1619,7 +1123,7 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "{{user-management-host}}/eor-admin/citibank/list-uploaded-citibank-transfer-initiation-files-records?page=1&per-page=100&file-ulid=6047f477-9027-4bb7-88ed-64da40bf1c89",
+                      "raw": "{{user-management-host}}/eor-admin/citibank/list-uploaded-citibank-transfer-initiation-files-records?page=1&per-page=100&file-ulid=f10459cd-db25-431e-b664-f7f66800a528",
                       "host": ["{{user-management-host}}"],
                       "path": [
                         "eor-admin",
@@ -1637,7 +1141,7 @@
                         },
                         {
                           "key": "file-ulid",
-                          "value": "6047f477-9027-4bb7-88ed-64da40bf1c89"
+                          "value": "f10459cd-db25-431e-b664-f7f66800a528"
                         }
                       ]
                     }
@@ -1893,7 +1397,7 @@
               ]
             },
             {
-              "name": "CostCenter",
+              "name": "Cost Center",
               "item": [
                 {
                   "name": "CreateCostCenter",
@@ -1943,7 +1447,7 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "{{user-management-host}}/eor-admin/cost-center/list-cost-centers?page=1&per-page=100&branch-ulid=9bfb5cf9-25f6-4d56-a9a6-82565f2c3f9f",
+                      "raw": "{{user-management-host}}/eor-admin/cost-center/list-cost-centers?page=1&per-page=100&branch-ulid=33ff11fc-68a4-4a4c-b3a2-ee8ccecb78d1",
                       "host": ["{{user-management-host}}"],
                       "path": ["eor-admin", "cost-center", "list-cost-centers"],
                       "query": [
@@ -1957,7 +1461,48 @@
                         },
                         {
                           "key": "branch-ulid",
-                          "value": "9bfb5cf9-25f6-4d56-a9a6-82565f2c3f9f"
+                          "value": "33ff11fc-68a4-4a4c-b3a2-ee8ccecb78d1"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "List Cost Centers By Client Ulid",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/cost-center/list-cost-centers-by-client-ulid?page=1&per-page=100&client-ulid=33ff11fc-68a4-4a4c-b3a2-ee8ccecb78dd",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "cost-center",
+                        "list-cost-centers-by-client-ulid"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "per-page",
+                          "value": "100"
+                        },
+                        {
+                          "key": "client-ulid",
+                          "value": "33ff11fc-68a4-4a4c-b3a2-ee8ccecb78dd"
                         }
                       ]
                     }
@@ -2179,6 +1724,51 @@
                   "response": []
                 },
                 {
+                  "name": "List Teams By Client Uid",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/teams/list-teams-by-client-ulid?page=1&per-page=100&client-ulid=33ff11fc-68a4-4a4c-b3a2-ee8ccecb78dd&team-name=alpha",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "teams",
+                        "list-teams-by-client-ulid"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "per-page",
+                          "value": "100"
+                        },
+                        {
+                          "key": "client-ulid",
+                          "value": "33ff11fc-68a4-4a4c-b3a2-ee8ccecb78dd"
+                        },
+                        {
+                          "key": "team-name",
+                          "value": "alpha"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
                   "name": "List Teams For Branch",
                   "request": {
                     "auth": {
@@ -2194,7 +1784,7 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "{{user-management-host}}/eor-admin/teams/list-teams?page=1&per-page=100&branch-ulid=e7cb94a6-cad5-41aa-999e-f43826daecfb&team-name=alpha",
+                      "raw": "{{user-management-host}}/eor-admin/teams/list-teams?page=1&per-page=100&branch-ulid=33ff11fc-68a4-4a4c-b3a2-ee8ccecb78dd&team-name=alpha",
                       "host": ["{{user-management-host}}"],
                       "path": ["eor-admin", "teams", "list-teams"],
                       "query": [
@@ -2208,7 +1798,7 @@
                         },
                         {
                           "key": "branch-ulid",
-                          "value": "e7cb94a6-cad5-41aa-999e-f43826daecfb"
+                          "value": "33ff11fc-68a4-4a4c-b3a2-ee8ccecb78dd"
                         },
                         {
                           "key": "team-name",
@@ -2391,122 +1981,6 @@
               ]
             },
             {
-              "name": "Users Index",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{admin-access-token}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{user-management-host}}/eor-admin/users",
-                  "host": ["{{user-management-host}}"],
-                  "path": ["eor-admin", "users"],
-                  "query": [
-                    {
-                      "key": "page",
-                      "value": "1",
-                      "disabled": true
-                    },
-                    {
-                      "key": "per-page",
-                      "value": "100",
-                      "disabled": true
-                    },
-                    {
-                      "key": "created-after",
-                      "value": "2022-05-29T13%3A03%3A16%2B00%3A00",
-                      "disabled": true
-                    },
-                    {
-                      "key": "created-before",
-                      "value": "2022-05-31T13%3A03%3A16%2B00%3A00",
-                      "disabled": true
-                    },
-                    {
-                      "key": "user-type",
-                      "value": "individual",
-                      "disabled": true
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Onboarded Users Index",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{admin-access-token}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Origin",
-                    "value": "http://localhost",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{user-management-host}}/eor-admin/onboarded-users",
-                  "host": ["{{user-management-host}}"],
-                  "path": ["eor-admin", "onboarded-users"],
-                  "query": [
-                    {
-                      "key": "page",
-                      "value": "1",
-                      "disabled": true
-                    },
-                    {
-                      "key": "per-page",
-                      "value": "2",
-                      "disabled": true
-                    },
-                    {
-                      "key": "user-role",
-                      "value": "contractor",
-                      "disabled": true
-                    },
-                    {
-                      "key": "user-type",
-                      "value": "individual",
-                      "disabled": true
-                    },
-                    {
-                      "key": "query",
-                      "value": "awaisbutt49@globelise.com",
-                      "disabled": true
-                    },
-                    {
-                      "key": "created-after",
-                      "value": "2022-05-29T13%3A03%3A16%2B00%3A00",
-                      "disabled": true
-                    },
-                    {
-                      "key": "created-before",
-                      "value": "2022-05-31T13%3A03%3A16%2B00%3A00",
-                      "disabled": true
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
               "name": "Add Individual Contractor",
               "request": {
                 "auth": {
@@ -2591,6 +2065,35 @@
           "item": [
             {
               "name": "Get Notifications",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{user-access-token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{user-management-host}}/users/notifications?user-role=client",
+                  "host": ["{{user-management-host}}"],
+                  "path": ["users", "notifications"],
+                  "query": [
+                    {
+                      "key": "user-role",
+                      "value": "client"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Notifications Copy",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -4728,7 +4231,7 @@
                   "response": []
                 },
                 {
-                  "name": "Get Branch",
+                  "name": "Get Many Branch",
                   "request": {
                     "auth": {
                       "type": "bearer",
@@ -4754,6 +4257,35 @@
                         {
                           "key": "per-page",
                           "value": "100"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get One Branch",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/client/branch/:branch-ulid",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["client", "branch", ":branch-ulid"],
+                      "variable": [
+                        {
+                          "key": "branch-ulid",
+                          "value": "25b1e755-f862-4042-8807-21cc13901e9b"
                         }
                       ]
                     }
@@ -5129,6 +4661,52 @@
                       "response": []
                     },
                     {
+                      "name": "List Teams By Client Ulid",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{user-management-host}}/admin-pic/teams/list-teams-by-client-ulid?page=1&per-page=100&client-ulid=33ff11fc-68a4-4a4c-b3a2-ee8ccecb78dd",
+                          "host": ["{{user-management-host}}"],
+                          "path": [
+                            "admin-pic",
+                            "teams",
+                            "list-teams-by-client-ulid"
+                          ],
+                          "query": [
+                            {
+                              "key": "page",
+                              "value": "1"
+                            },
+                            {
+                              "key": "per-page",
+                              "value": "100"
+                            },
+                            {
+                              "key": "client-ulid",
+                              "value": "33ff11fc-68a4-4a4c-b3a2-ee8ccecb78dd"
+                            },
+                            {
+                              "key": "team-name",
+                              "value": "be",
+                              "disabled": true
+                            }
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
                       "name": "List Team Contractors",
                       "request": {
                         "auth": {
@@ -5389,6 +4967,47 @@
                       "response": []
                     },
                     {
+                      "name": "List Cost Centers By Client Ulid",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{user-management-host}}/admin-pic/cost-center/list-cost-centers-by-client-ulid?page=1&per-page=100&client-ulid=33ff11fc-68a4-4a4c-b3a2-ee8ccecb78dd",
+                          "host": ["{{user-management-host}}"],
+                          "path": [
+                            "admin-pic",
+                            "cost-center",
+                            "list-cost-centers-by-client-ulid"
+                          ],
+                          "query": [
+                            {
+                              "key": "page",
+                              "value": "1"
+                            },
+                            {
+                              "key": "per-page",
+                              "value": "100"
+                            },
+                            {
+                              "key": "client-ulid",
+                              "value": "33ff11fc-68a4-4a4c-b3a2-ee8ccecb78dd"
+                            }
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
                       "name": "List CostCenter Contractors",
                       "request": {
                         "auth": {
@@ -5637,6 +5256,35 @@
                   "response": []
                 },
                 {
+                  "name": "Get One Branch",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/branch/:branch_ulid",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["eor-admin", "branch", ":branch_ulid"],
+                      "variable": [
+                        {
+                          "key": "branch_ulid",
+                          "value": "25b1e755-f862-4042-8807-21cc13901e9b"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
                   "name": "Delete Branch",
                   "request": {
                     "auth": {
@@ -5866,6 +5514,1355 @@
           ]
         },
         {
+          "name": "Onboarding",
+          "item": [
+            {
+              "name": "User",
+              "item": [
+                {
+                  "name": "Contractor",
+                  "item": [
+                    {
+                      "name": "Individual details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"first-name\": \"Test\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"country\": \"United States\",\n    \"city\": \"Big City\",\n    \"address\": \"1234 Address Street\",\n    \"postal-code\": \"99999\",\n    \"tax-id\": \"2304803309\",\n    \"time-zone\": \"US/Eastern\",\n    \"profile-picture\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\",\n    \"cv\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/individual-details/contractor",
+                          "host": ["{{user-management-host}}"],
+                          "path": [
+                            "onboard",
+                            "individual-details",
+                            "contractor"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "Individual details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/individual-details/contractor",
+                          "host": ["{{user-management-host}}"],
+                          "path": [
+                            "onboard",
+                            "individual-details",
+                            "contractor"
+                          ]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "Entity details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"company-name\": \"fgdfdfdg\",\n    \"time-zone\": \"dsf\",\n    \"country\": \"AM\",\n    \"entity-type\": \"Big\",\n    \"registration-number\": \"122323\",\n    \"tax-id\": \"123123\",\n    \"company-address\": \"sdfsdf\",\n    \"city\": \"asdasd\",\n    \"postal-code\": \"123123\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/entity-details/contractor",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "entity-details", "contractor"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "Entity details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/entity-details/contractor",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "entity-details", "contractor"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIC details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"first-name\": \"First\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"profile-picture\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/pic-details/contractor",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "pic-details", "contractor"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIC details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/pic-details/contractor",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "pic-details", "contractor"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "Bank details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"bank-name\": \"Big Bank\",\n    \"bank-account-name\": \"First Last\",\n    \"bank-account-number\": \"2983457\",\n    \"bank-code\": \"some-bank-code\",\n    \"branch-code\": \"some-branch-code\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/bank-details",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "bank-details"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "Bank details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/bank-details",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "bank-details"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "Contractor Fully Onboarded",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/fully_onboarded/contractor",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "fully_onboarded", "contractor"]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "Client",
+                  "item": [
+                    {
+                      "name": "Individual details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"first-name\": \"First\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"country\": \"US\",\n    \"city\": \"Big City\",\n    \"address\": \"1234 Address Street\",\n    \"postal-code\": \"99999\",\n    \"tax-id\": null,\n    \"time-zone\": \"US/Eastern\",\n    \"profile-picture\": null\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/individual-details/client",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "individual-details", "client"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "Individual details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/individual-details/client",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "individual-details", "client"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "Entity details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"company-name\": \"Big Company\",\n    \"country\": \"MY\",\n    \"entity-type\": \"Big\",\n    \"registration-number\": \"99999999\",\n    \"tax-id\": \"57963434\",\n    \"company-address\": \"1234 Big Street\",\n    \"city\": \"Big City\",\n    \"postal-code\": \"777777\",\n    \"time-zone\": \"US/Eastern\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/entity-details/client",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "entity-details", "client"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "Entity details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/entity-details/client",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "entity-details", "client"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIC details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"first-name\": \"First\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"profile-picture\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/pic-details/contractor",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "pic-details", "contractor"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "PIC details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/pic-details/client",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "pic-details", "client"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "Payment details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n    \"currency\": \"USD\",\n    \"payment-date\": \"2022-02-22T00:00:00.000Z\",\n    \"cutoff-date\": \"2022-02-19T00:00:00.000Z\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/payment-details",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "payment-details"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "Payment details",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/payment-details",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "payment-details"]
+                        }
+                      },
+                      "response": []
+                    },
+                    {
+                      "name": "Client Fully Onboarded",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{user-access-token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                          "raw": "{{user-management-host}}/onboard/fully_onboarded/client",
+                          "host": ["{{user-management-host}}"],
+                          "path": ["onboard", "fully_onboarded", "client"]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Admin",
+              "item": [
+                {
+                  "name": "Individual Client Account Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/individual-details/client",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "individual-details",
+                        "client"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Individual Client Account Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"first-name\": \"First\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"country\": \"US\",\n    \"city\": \"Big City\",\n    \"address\": \"1234 Address Street\",\n    \"postal-code\": \"99999\",\n    \"tax-id\": null,\n    \"time-zone\": \"US/Eastern\",\n    \"profile-picture\": null\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/individual-details/client",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "individual-details",
+                        "client"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Individual Contractor Account Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/individual-details/contractor",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "individual-details",
+                        "contractor"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": "dde346b6-2138-43a5-b67c-8c97932289ad"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Individual Contractor Account Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"first-name\": \"Test\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"country\": \"United States\",\n    \"city\": \"Big City\",\n    \"address\": \"1234 Address Street\",\n    \"postal-code\": \"99999\",\n    \"tax-id\": \"2304803309\",\n    \"time-zone\": \"US/Eastern\",\n    \"profile-picture\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\",\n    \"cv\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/individual-details/contractor",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "individual-details",
+                        "contractor"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": "dde346b6-2138-43a5-b67c-8c97932289ad"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Entity Client Account Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/entity-details/client",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "entity-details",
+                        "client"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Entity Client Account Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"company-name\": \"Big Company\",\n    \"country\": \"MY\",\n    \"entity-type\": \"Big\",\n    \"registration-number\": \"99999999\",\n    \"tax-id\": \"57963434\",\n    \"company-address\": \"1234 Big Street\",\n    \"city\": \"Big City\",\n    \"postal-code\": \"777777\",\n    \"time-zone\": \"US/Eastern\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/entity-details/client",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "entity-details",
+                        "client"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Entity Contractor Account Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/entity-details/contractor",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "entity-details",
+                        "contractor"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": "dde346b6-2138-43a5-b67c-8c97932289ad"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Entity Contractor Account Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"company-name\": \"fgdfdfdg\",\n    \"time-zone\": \"dsf\",\n    \"country\": \"AM\",\n    \"entity-type\": \"Big\",\n    \"registration-number\": \"122323\",\n    \"tax-id\": \"123123\",\n    \"company-address\": \"sdfsdf\",\n    \"city\": \"asdasd\",\n    \"postal-code\": \"123123\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/entity-details/contractor",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "entity-details",
+                        "contractor"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": "dde346b6-2138-43a5-b67c-8c97932289ad"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Contractor PIC Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/pic-details/contractor",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "pic-details",
+                        "contractor"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": "dde346b6-2138-43a5-b67c-8c97932289ad"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Contractor PIC Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"first-name\": \"First\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"profile-picture\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/pic-details/contractor",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "pic-details",
+                        "contractor"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": "dde346b6-2138-43a5-b67c-8c97932289ad"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Client PIC Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/pic-details/client",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "pic-details",
+                        "client"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Client PIC Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"first-name\": \"First\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"profile-picture\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/pic-details/client",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "pic-details",
+                        "client"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Individual Bank Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/bank-details/individual",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "bank-details",
+                        "individual"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": "dde346b6-2138-43a5-b67c-8c97932289ad"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Individual Bank Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"bank-name\": \"Big Bank\",\n    \"bank-account-name\": \"First Last\",\n    \"bank-account-number\": \"2983457\",\n    \"bank-code\": \"some-bank-code\",\n    \"branch-code\": \"some-branch-code\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/bank-details/individual",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "bank-details",
+                        "individual"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": "dde346b6-2138-43a5-b67c-8c97932289ad"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Entity Bank Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/bank-details/entity",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "bank-details",
+                        "entity"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": "dde346b6-2138-43a5-b67c-8c97932289ad"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Entity Bank Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"bank-name\": \"Big Bank\",\n    \"bank-account-name\": \"First Last\",\n    \"bank-account-number\": \"2983457\",\n    \"bank-code\": \"some-bank-code\",\n    \"branch-code\": \"some-branch-code\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/bank-details/entity",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "bank-details",
+                        "entity"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": "dde346b6-2138-43a5-b67c-8c97932289ad"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Entity Payment Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/payment-details/entity",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "payment-details",
+                        "entity"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Entity Payment Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"currency\": \"USD\",\n    \"payment-date\": \"2022-02-22T00:00:00.000Z\",\n    \"cutoff-date\": \"2022-02-19T00:00:00.000Z\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/onboard/:user_ulid/payment-details/entity",
+                      "host": ["{{user-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "onboard",
+                        ":user_ulid",
+                        "payment-details",
+                        "entity"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "User Indices",
+          "item": [
+            {
+              "name": "Users Index",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin-access-token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{user-management-host}}/eor-admin/users",
+                  "host": ["{{user-management-host}}"],
+                  "path": ["eor-admin", "users"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "per-page",
+                      "value": "100",
+                      "disabled": true
+                    },
+                    {
+                      "key": "created-after",
+                      "value": "2022-05-29T13%3A03%3A16%2B00%3A00",
+                      "disabled": true
+                    },
+                    {
+                      "key": "created-before",
+                      "value": "2022-05-31T13%3A03%3A16%2B00%3A00",
+                      "disabled": true
+                    },
+                    {
+                      "key": "user-type",
+                      "value": "individual",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Onboarded Users Index",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin-access-token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "http://localhost",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{user-management-host}}/eor-admin/onboarded-users?page=1&per-page=25",
+                  "host": ["{{user-management-host}}"],
+                  "path": ["eor-admin", "onboarded-users"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "per-page",
+                      "value": "25"
+                    },
+                    {
+                      "key": "user-role",
+                      "value": "contractor",
+                      "disabled": true
+                    },
+                    {
+                      "key": "user-type",
+                      "value": "individual",
+                      "disabled": true
+                    },
+                    {
+                      "key": "query",
+                      "value": "awaisbutt49@globelise.com",
+                      "disabled": true
+                    },
+                    {
+                      "key": "created-after",
+                      "value": "2022-05-29T13%3A03%3A16%2B00%3A00",
+                      "disabled": true
+                    },
+                    {
+                      "key": "created-before",
+                      "value": "2022-05-31T13%3A03%3A16%2B00%3A00",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
           "name": "Healthz",
           "request": {
             "method": "GET",
@@ -6066,7 +7063,7 @@
                     "header": [],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n    \"email\": \"hanif-admin@email.com\",\n    \"password\": \"hanif-admin@email.com\",\n    \"confirm-password\": \"hanif-admin@email.com\"\n}",
+                      "raw": "{\n    \"email\": \"hanif-admin2@email.com\",\n    \"password\": \"hanif-admin2@email.com\",\n    \"confirm-password\": \"hanif-admin2@email.com\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -6088,7 +7085,7 @@
                     "header": [],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n    \"email\": \"hanif-admin@email.com\",\n    \"password\": \"hanif-admin@email.com\"\n}",
+                      "raw": "{\n    \"email\": \"hanif-admin2@email.com\",\n    \"password\": \"hanif-admin2@email.com\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -6761,327 +7758,6 @@
       "name": "Contractor Microservice",
       "item": [
         {
-          "name": "Account Settings",
-          "item": [
-            {
-              "name": "Entity",
-              "item": [
-                {
-                  "name": "bank details",
-                  "protocolProfileBehavior": {
-                    "disableBodyPruning": true
-                  },
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "{{user-access-token}}",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "GET",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{contractor-management-host}}/account-settings/bank-details/entity",
-                      "host": ["{{contractor-management-host}}"],
-                      "path": ["account-settings", "bank-details", "entity"]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "bank details",
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "{{user-access-token}}",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n\t\"bank-name\": \"bank abc2\",\r\n\t\"bank-account-name\": \"kz2\",\r\n\t\"bank-account-number\": \"1234\"\r\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{contractor-management-host}}/account-settings/bank-details/entity",
-                      "host": ["{{contractor-management-host}}"],
-                      "path": ["account-settings", "bank-details", "entity"]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "profile_details",
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "{{user-access-token}}",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n   \"company-name\": \"sircorp2\",\r\n   \"country\": \"zim2\",\r\n   \"entity-type\": \"type of entity2\",\r\n   \"registration-number\": \"12345678902\",\r\n   \"tax-id\": \"ewijniwnedi2\",\r\n   \"company-address\": \"right here2\",\r\n   \"city\": \"joina2\",\r\n   \"postal-code\": \"2262\",\r\n   \"time-zone\": \"harare/joburg2\"\r\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{contractor-management-host}}/account-settings/profile/entity",
-                      "host": ["{{contractor-management-host}}"],
-                      "path": ["account-settings", "profile", "entity"]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "profile_details",
-                  "protocolProfileBehavior": {
-                    "disableBodyPruning": true
-                  },
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "{{user-access-token}}",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "GET",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{contractor-management-host}}/account-settings/profile/entity",
-                      "host": ["{{contractor-management-host}}"],
-                      "path": ["account-settings", "profile", "entity"]
-                    }
-                  },
-                  "response": []
-                }
-              ]
-            },
-            {
-              "name": "Individual",
-              "item": [
-                {
-                  "name": "bank details",
-                  "protocolProfileBehavior": {
-                    "disableBodyPruning": true
-                  },
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "{{user-access-token}}",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "GET",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{contractor-management-host}}/account-settings/bank-details/individual",
-                      "host": ["{{contractor-management-host}}"],
-                      "path": ["account-settings", "bank-details", "individual"]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "bank details",
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "{{user-access-token}}",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n\t\"bank-name\": \"individual\",\r\n\t\"bank-account-name\": \"kz\",\r\n\t\"bank-account-number\": \"1234-individual\"\r\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{contractor-management-host}}/account-settings/bank-details/individual",
-                      "host": ["{{contractor-management-host}}"],
-                      "path": ["account-settings", "bank-details", "individual"]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "profile_details",
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "{{user-access-token}}",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n   \"first-name\": \"kz\",\r\n   \"last-name\": \"z\",\r\n   \"dob\": \"10-09-1222\",\r\n   \"dial-code\": \"234\",\r\n   \"phone-number\": \"07733773\",\r\n   \"country\": \"bots\",\r\n   \"city\": \"joina\",\r\n   \"address\": \"3k k w k kjs k\",\r\n   \"postal-code\": \"234\",\r\n   \"tax-id\": \"xxww\",\r\n   \"time-zone\": \"swswsww\"\r\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{contractor-management-host}}/account-settings/profile/individual",
-                      "host": ["{{contractor-management-host}}"],
-                      "path": ["account-settings", "profile", "individual"]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "profile_details",
-                  "protocolProfileBehavior": {
-                    "disableBodyPruning": true
-                  },
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "{{user-access-token}}",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "GET",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{contractor-management-host}}/account-settings/profile/individual",
-                      "host": ["{{contractor-management-host}}"],
-                      "path": ["account-settings", "profile", "individual"]
-                    }
-                  },
-                  "response": []
-                }
-              ]
-            },
-            {
-              "name": "ChangePassword",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{user-access-token}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\r\n  \"current-password\": \"password2\",\r\n  \"new-password\": \"password\",\r\n  \"confirm-password\": \"password2\"\r\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{contractor-management-host}}/account-settings/change-password",
-                  "host": ["{{contractor-management-host}}"],
-                  "path": ["account-settings", "change-password"]
-                }
-              },
-              "response": []
-            }
-          ]
-        },
-        {
           "name": "User indices",
           "item": [
             {
@@ -7306,13 +7982,9 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "{{contractor-management-host}}/eor-admin/payslips/94ba5f98-5dfd-4e4f-a38d-5d2dbae31c3f",
+                      "raw": "{{contractor-management-host}}/eor-admin/payslips/:payslip_ulid",
                       "host": ["{{contractor-management-host}}"],
-                      "path": [
-                        "eor-admin",
-                        "payslips",
-                        "94ba5f98-5dfd-4e4f-a38d-5d2dbae31c3f"
-                      ],
+                      "path": ["eor-admin", "payslips", ":payslip_ulid"],
                       "query": [
                         {
                           "key": "query",
@@ -7330,6 +8002,60 @@
                           "value": "",
                           "description": "ULID of the client",
                           "disabled": true
+                        }
+                      ],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete One Payslip",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{contractor-management-host}}/eor-admin/payslips/:payslip_ulid",
+                      "host": ["{{contractor-management-host}}"],
+                      "path": ["eor-admin", "payslips", ":payslip_ulid"],
+                      "query": [
+                        {
+                          "key": "query",
+                          "value": "",
+                          "disabled": true
+                        },
+                        {
+                          "key": "contractor_ulid",
+                          "value": "",
+                          "description": "ULID of the contractor",
+                          "disabled": true
+                        },
+                        {
+                          "key": "client_ulid",
+                          "value": "",
+                          "description": "ULID of the client",
+                          "disabled": true
+                        }
+                      ],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
                         }
                       ]
                     }
@@ -7436,13 +8162,9 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "{{contractor-management-host}}/payslips/contractor/94ba5f98-5dfd-4e4f-a38d-5d2dbae31c3f",
+                      "raw": "{{contractor-management-host}}/payslips/contractor/:payslip_ulid",
                       "host": ["{{contractor-management-host}}"],
-                      "path": [
-                        "payslips",
-                        "contractor",
-                        "94ba5f98-5dfd-4e4f-a38d-5d2dbae31c3f"
-                      ],
+                      "path": ["payslips", "contractor", ":payslip_ulid"],
                       "query": [
                         {
                           "key": "query",
@@ -7455,6 +8177,12 @@
                           "value": "",
                           "description": "ULID of the contractor",
                           "disabled": true
+                        }
+                      ],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
                         }
                       ]
                     }
@@ -7535,13 +8263,9 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "{{contractor-management-host}}/payslips/client/94ba5f98-5dfd-4e4f-a38d-5d2dbae31c3f",
+                      "raw": "{{contractor-management-host}}/payslips/client/:payslip_ulid",
                       "host": ["{{contractor-management-host}}"],
-                      "path": [
-                        "payslips",
-                        "client",
-                        "94ba5f98-5dfd-4e4f-a38d-5d2dbae31c3f"
-                      ],
+                      "path": ["payslips", "client", ":payslip_ulid"],
                       "query": [
                         {
                           "key": "query",
@@ -7554,6 +8278,12 @@
                           "value": "",
                           "description": "ULID of the contractor",
                           "disabled": true
+                        }
+                      ],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
                         }
                       ]
                     }
@@ -7641,12 +8371,14 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "{{contractor-management-host}}/eor-admin/contracts/d084f542-a6ce-4071-9b4b-7b96c1385c10",
+                      "raw": "{{contractor-management-host}}/eor-admin/contracts/:payslip_ulid",
                       "host": ["{{contractor-management-host}}"],
-                      "path": [
-                        "eor-admin",
-                        "contracts",
-                        "d084f542-a6ce-4071-9b4b-7b96c1385c10"
+                      "path": ["eor-admin", "contracts", ":payslip_ulid"],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
+                        }
                       ]
                     }
                   },
@@ -7746,19 +8478,21 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "{{contractor-management-host}}/contracts/contractor/d084f542-a6ce-4071-9b4b-7b96c1385c10",
+                      "raw": "{{contractor-management-host}}/contracts/contractor/:payslip_ulid",
                       "host": ["{{contractor-management-host}}"],
-                      "path": [
-                        "contracts",
-                        "contractor",
-                        "d084f542-a6ce-4071-9b4b-7b96c1385c10"
-                      ],
+                      "path": ["contracts", "contractor", ":payslip_ulid"],
                       "query": [
                         {
                           "key": "branch-ulid",
                           "value": "1234",
                           "description": "Optional ULID",
                           "disabled": true
+                        }
+                      ],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
                         }
                       ]
                     }
@@ -7781,13 +8515,19 @@
                     "method": "POST",
                     "header": [],
                     "url": {
-                      "raw": "{{contractor-management-host}}/contracts/contractor/d084f542-a6ce-4071-9b4b-7b96c1385c10/sign",
+                      "raw": "{{contractor-management-host}}/contracts/contractor/:payslip_ulid/sign",
                       "host": ["{{contractor-management-host}}"],
                       "path": [
                         "contracts",
                         "contractor",
-                        "d084f542-a6ce-4071-9b4b-7b96c1385c10",
+                        ":payslip_ulid",
                         "sign"
+                      ],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
+                        }
                       ]
                     }
                   },
@@ -7855,13 +8595,9 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "{{contractor-management-host}}/contracts/client/d084f542-a6ce-4071-9b4b-7b96c1385c10",
+                      "raw": "{{contractor-management-host}}/contracts/client/:payslip_ulid",
                       "host": ["{{contractor-management-host}}"],
-                      "path": [
-                        "contracts",
-                        "client",
-                        "d084f542-a6ce-4071-9b4b-7b96c1385c10"
-                      ],
+                      "path": ["contracts", "client", ":payslip_ulid"],
                       "query": [
                         {
                           "key": "branch-ulid",
@@ -7869,13 +8605,19 @@
                           "description": "Optional ULID",
                           "disabled": true
                         }
+                      ],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
+                        }
                       ]
                     }
                   },
                   "response": []
                 },
                 {
-                  "name": "Sign One Contract Copy",
+                  "name": "Sign One Contract",
                   "request": {
                     "auth": {
                       "type": "bearer",
@@ -7890,13 +8632,14 @@
                     "method": "POST",
                     "header": [],
                     "url": {
-                      "raw": "{{contractor-management-host}}/contracts/client/d084f542-a6ce-4071-9b4b-7b96c1385c10/sign",
+                      "raw": "{{contractor-management-host}}/contracts/client/:payslip_ulid/sign",
                       "host": ["{{contractor-management-host}}"],
-                      "path": [
-                        "contracts",
-                        "client",
-                        "d084f542-a6ce-4071-9b4b-7b96c1385c10",
-                        "sign"
+                      "path": ["contracts", "client", ":payslip_ulid", "sign"],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
+                        }
                       ]
                     }
                   },
