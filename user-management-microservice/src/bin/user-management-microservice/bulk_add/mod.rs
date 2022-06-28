@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::{io::Cursor, str::FromStr};
 
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use calamine::Reader;
@@ -28,9 +28,11 @@ use crate::{
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct PostPrefillIndividualContractorDetailsForBulkUpload {
+pub struct PostOneAddBulkEmployee {
+    pub file_name: String,
     #[serde_as(as = "Base64")]
-    pub uploaded_file: Vec<u8>,
+    pub file_data: Vec<u8>,
+    pub client_ulid: Uuid,
     pub debug: Option<bool>,
 }
 
@@ -45,13 +47,6 @@ pub struct GetPrefillIndividualContractorDetailsForBulkUpload {
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualContractorDetailsForBulkUpload {
-    #[serde(rename = "Client")]
-    pub client_ulid: Uuid,
-    #[serde(rename = "Sub Entity")]
-    pub branch_ulid: Uuid,
-    #[serde(rename = "Cost Centre")]
-    #[serde(default)]
-    pub department_ulid: Option<Uuid>,
     #[serde(rename = "First Name")]
     pub first_name: String,
     #[serde(rename = "Last Name")]
@@ -145,53 +140,73 @@ pub async fn post_one(
     // Only for validation
     _: Token<AdminAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<PostPrefillIndividualContractorDetailsForBulkUpload>,
+        Json<PostOneAddBulkEmployee>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let mut rows_to_enter = vec![];
-    if let Ok(mut records) = ReaderBuilder::new()
-        .has_headers(false)
-        .from_reader(body.uploaded_file.as_slice())
-        .records()
-        .collect::<Result<Vec<StringRecord>, _>>()
-    {
-        if !records.is_empty() {
-            // Get/remove the first row because its the header.
-            let header = records.swap_remove(0);
-            for record in records {
-                let value = record
-                    .deserialize::<PrefillIndividualContractorDetailsForBulkUpload>(Some(&header))
-                    .map_err(|_| {
-                        GlobeliseError::bad_request(
-                            "Please provide a CSV file that follows the template",
-                        )
-                    })?;
-                rows_to_enter.push(value);
+
+    let file_name = std::path::PathBuf::from_str(&body.file_name)?;
+
+    enum FileType {
+        Csv,
+        Excel,
+    }
+
+    let file_extension = match file_name.extension().and_then(|s| s.to_str()) {
+        Some("xls") | Some("xlsx") | Some("xlsb") | Some("ods") => Ok(FileType::Excel),
+        Some("csv") => Ok(FileType::Csv),
+        _ => Err(GlobeliseError::bad_request(
+            "Cannot determine the file type from the file name",
+        )),
+    }?;
+
+    match file_extension {
+        FileType::Csv => {
+            let mut records = ReaderBuilder::new()
+                .has_headers(false)
+                .from_reader(body.file_data.as_slice())
+                .records()
+                .collect::<Result<Vec<StringRecord>, _>>()?;
+
+            if !records.is_empty() {
+                // Get/remove the first row because its the header.
+                let header = records.swap_remove(0);
+                for record in records {
+                    let value = record
+                        .deserialize::<PrefillIndividualContractorDetailsForBulkUpload>(Some(
+                            &header,
+                        ))
+                        .map_err(|_| {
+                            GlobeliseError::bad_request(
+                                "Please provide a CSV file that follows the template",
+                            )
+                        })?;
+                    rows_to_enter.push(value);
+                }
             }
         }
-    } else if let Ok(excel_sheet_des) =
-        calamine::open_workbook_auto_from_rs(Cursor::new(body.uploaded_file.as_slice()))?
-            .worksheets()
-            .get(0)
-            .ok_or_else(|| {
+        FileType::Excel => {
+            let excel_workbook =
+                calamine::open_workbook_auto_from_rs(Cursor::new(body.file_data.as_slice()))?
+                    .worksheets();
+
+            let first_worksheet = excel_workbook.first().ok_or_else(|| {
                 GlobeliseError::bad_request(
                     "Please provide an excel file with at least 1 worksheet",
                 )
-            })?
-            .1
-            .deserialize()
-    {
-        let rows = excel_sheet_des
-            .into_iter()
-            .collect::<Result<Vec<PrefillIndividualContractorDetailsForBulkUpload>, _>>()?;
-        rows_to_enter.extend(rows);
-    } else {
-        return Err(GlobeliseError::bad_request(
-            "Please provide either CSV or Excel files that follows the template",
-        ));
-    }
+            })?;
+
+            let row_deserializer = first_worksheet.1.deserialize()?;
+
+            let rows = row_deserializer
+                .into_iter()
+                .collect::<Result<Vec<PrefillIndividualContractorDetailsForBulkUpload>, _>>()?;
+
+            rows_to_enter.extend(rows);
+        }
+    };
 
     for value in rows_to_enter {
         let receiver_email = value
@@ -204,7 +219,7 @@ pub async fn post_one(
         let database = database.lock().await;
 
         database
-            .post_prefilll_individual_contractor_details_for_bulk_upload(value)
+            .post_prefilll_individual_contractor_details_for_bulk_upload(body.client_ulid, value)
             .await?;
 
         if let Some(true) = body.debug {
@@ -274,19 +289,20 @@ pub async fn get_one(
 impl Database {
     pub async fn post_prefilll_individual_contractor_details_for_bulk_upload(
         &self,
+        client_ulid: Uuid,
         details: PrefillIndividualContractorDetailsForBulkUpload,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO prefilled_individual_contractor_details_for_bulk_upload (
-                client_ulid, branch_ulid, department_ulid, first_name, last_name, 
-                gender, marital_status, nationality, dob, dial_code,
-                phone_number, email, address, country, city, 
-                postal_code, national_id, passport_number, passport_expiry_date, work_permit, 
-                tax_id, contribution_id_1, contribution_id_2, total_dependants, time_zone,
-                employee_id, designation, start_date, end_date, employment_status, 
-                bank_name, bank_account_owner_name, bank_account_number, bank_code, bank_branch_code, 
-                currency, basic_salary, additional_item_1, additional_item_2, deduction_1, 
-                deduction_2, other_pay_item_1, other_pay_item_2
+                client_ulid, first_name, last_name, gender, marital_status, 
+                nationality, dob, dial_code, phone_number, email, 
+                address, country, city, postal_code, national_id, 
+                passport_number, passport_expiry_date, work_permit, tax_id, contribution_id_1, 
+                contribution_id_2, total_dependants, time_zone, employee_id, designation, 
+                start_date, end_date, employment_status, bank_name, bank_account_owner_name, 
+                bank_account_number, bank_code, bank_branch_code, currency, basic_salary, 
+                additional_item_1, additional_item_2, deduction_1, deduction_2, other_pay_item_1, 
+                other_pay_item_2
             ) VALUES (
                 $1, $2, $3, $4, $5, 
                 $6, $7, $8, $9, $10,
@@ -296,21 +312,19 @@ impl Database {
                 $26, $27, $28, $29, $30,
                 $31, $32, $33, $34, $35,
                 $36, $37, $38, $39, $40,
-                $41, $42, $43
-            ) ON CONFLICT(email, client_ulid, branch_ulid) DO UPDATE SET 
-                client_ulid = $1, branch_ulid = $2, department_ulid = $3, first_name = $4, last_name = $5, 
-                gender = $6, marital_status = $7, nationality = $8, dob = $9, dial_code = $10,
-                phone_number = $11, email = $12, address = $13, country = $14, city = $15, 
-                postal_code = $16, national_id = $17, passport_number = $18, passport_expiry_date = $19, work_permit = $20, 
-                tax_id = $21, contribution_id_1 = $22, contribution_id_2 = $23, total_dependants = $24, time_zone = $25,
-                employee_id = $26, designation = $27, start_date = $28, end_date = $29, employment_status = $30, 
-                bank_name = $31, bank_account_owner_name = $32, bank_account_number = $33, bank_code = $34, bank_branch_code = $35, 
-                currency = $36, basic_salary = $37, additional_item_1 = $38, additional_item_2 = $39, deduction_1 = $40, 
-                deduction_2 = $41, other_pay_item_1 = $42, other_pay_item_2 = $43";
+                $41
+            ) ON CONFLICT(email, client_ulid) DO UPDATE SET 
+                client_ulid = $1, first_name = $2, last_name = $3, gender = $4, marital_status = $5, 
+                nationality = $6, dob = $7, dial_code = $8, phone_number = $9, email = $10, 
+                address = $11, country = $12, city = $13, postal_code = $14, national_id = $15, 
+                passport_number = $16, passport_expiry_date = $17, work_permit = $18, tax_id = $19, contribution_id_1 = $20, 
+                contribution_id_2 = $21, total_dependants = $22, time_zone = $23, employee_id = $24, designation = $25, 
+                start_date = $26, end_date = $27, employment_status = $28, bank_name = $29, bank_account_owner_name = $30, 
+                bank_account_number = $31, bank_code = $32, bank_branch_code = $33, currency = $34, basic_salary = $35, 
+                additional_item_1 = $36, additional_item_2 = $37, deduction_1 = $38, deduction_2 = $39, other_pay_item_1 = $40, 
+                other_pay_item_2 = $41";
         sqlx::query(query)
-            .bind(details.client_ulid)
-            .bind(details.branch_ulid)
-            .bind(details.department_ulid)
+            .bind(client_ulid)
             .bind(details.first_name)
             .bind(details.last_name)
             .bind(details.gender)
