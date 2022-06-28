@@ -16,7 +16,7 @@ pub async fn user_get_one_client_account_details(
     claims: Token<UserAccessToken>,
     Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<EntityClientAccountDetails>> {
-    if !matches!(claims.payload.user_type, UserType::Entity) {
+    if matches!(claims.payload.user_type, UserType::Entity) {
         let database = database.lock().await;
 
         let result = database
@@ -27,17 +27,7 @@ pub async fn user_get_one_client_account_details(
             })?;
 
         Ok(Json(result))
-    } else if matches!(claims.payload.user_type, UserType::Individual) {
-        let database = database.lock().await;
-
-        let result = database
-            .select_one_onboard_entity_client_account_details(claims.payload.ulid)
-            .await?
-            .ok_or_else(|| {
-                GlobeliseError::not_found("Cannot find entity client account details for this user")
-            })?;
-
-        Ok(Json(result))
+        // TODO: PIC accessing this information
     } else {
         Err(GlobeliseError::Forbidden)
     }

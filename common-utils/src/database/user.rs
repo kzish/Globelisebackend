@@ -16,7 +16,8 @@ use super::Database;
 #[derive(Debug, FromRow, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct OnboardedUserIndex {
-    pub ulid: Uuid,
+    // NOTE: Since we also join with prefilled_individual_contractor table
+    pub ulid: Option<Uuid>,
     pub name: String,
     pub user_role: UserRole,
     pub user_type: UserType,
