@@ -5,9 +5,11 @@ use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
+use eor_admin_microservice_sdk::token::AdminAccessToken;
 use user_management_microservice_sdk::token::UserAccessToken;
+use uuid::Uuid;
 
-pub async fn post_onboard_entity_pic_details(
+pub async fn user_post_one_onboard_entity_pic_details(
     claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<EntityPicDetails>,
@@ -38,7 +40,34 @@ pub async fn post_onboard_entity_pic_details(
     Ok(())
 }
 
-pub async fn get_onboard_entity_pic_details(
+pub async fn admin_post_one_onboard_entity_pic_details(
+    _: Token<AdminAccessToken>,
+    Path((user_ulid, user_role)): Path<(Uuid, UserRole)>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<EntityPicDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<CommonDatabase>,
+) -> GlobeliseResult<()> {
+    let database = database.lock().await;
+
+    database
+        .insert_one_onboard_entity_pic_details(
+            user_ulid,
+            user_role,
+            body.first_name,
+            body.last_name,
+            body.dob,
+            body.dial_code,
+            body.phone_number,
+            body.profile_picture,
+        )
+        .await?;
+
+    Ok(())
+}
+
+pub async fn user_get_one_onboard_entity_pic_details(
     claims: Token<UserAccessToken>,
     Path(user_role): Path<UserRole>,
     Extension(database): Extension<CommonDatabase>,
@@ -48,8 +77,24 @@ pub async fn get_onboard_entity_pic_details(
     }
 
     let database = database.lock().await;
+
     let result = database
         .select_one_onboard_entity_pic_details(claims.payload.ulid, user_role)
+        .await?
+        .ok_or_else(|| GlobeliseError::not_found("Cannot find PIC details for this user"))?;
+
+    Ok(Json(result))
+}
+
+pub async fn admin_get_one_onboard_entity_pic_details(
+    _: Token<AdminAccessToken>,
+    Path((user_ulid, user_role)): Path<(Uuid, UserRole)>,
+    Extension(database): Extension<CommonDatabase>,
+) -> GlobeliseResult<Json<EntityPicDetails>> {
+    let database = database.lock().await;
+
+    let result = database
+        .select_one_onboard_entity_pic_details(user_ulid, user_role)
         .await?
         .ok_or_else(|| GlobeliseError::not_found("Cannot find PIC details for this user"))?;
 

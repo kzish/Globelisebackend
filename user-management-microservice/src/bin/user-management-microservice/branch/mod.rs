@@ -177,7 +177,7 @@ pub mod user {
         }
 
         let details = database
-            .select_one_entity_clients_branch_details(branch_ulid)
+            .select_one_entity_clients_branch_details(Some(branch_ulid), None)
             .await?
             .ok_or_else(|| GlobeliseError::not_found("Cannot find a branch with this UUID"))?;
 
@@ -370,7 +370,7 @@ pub mod eor_admin {
         let database = database.lock().await;
 
         let details = database
-            .select_one_entity_clients_branch_details(branch_ulid)
+            .select_one_entity_clients_branch_details(Some(branch_ulid), None)
             .await?
             .ok_or_else(|| GlobeliseError::not_found("Cannot find branch with this UUID"))?;
 
@@ -563,12 +563,13 @@ impl Database {
 
     pub async fn select_one_entity_clients_branch_details(
         &self,
-        branch_ulid: Uuid,
+        branch_ulid: Option<Uuid>,
+        client_ulid: Option<Uuid>,
     ) -> GlobeliseResult<Option<BranchDetails>> {
         let query = "
             SELECT
                 -- branch details
-                ulid, client_ulid
+                ulid, client_ulid,
                 -- account details
                 branch_name, country, entity_type, registration_number, tax_id, 
                 statutory_contribution_submission_number, company_address, city, 
@@ -581,10 +582,12 @@ impl Database {
             FROM
                 entity_client_branch_details
             WHERE
-                ulid = $1";
+                ($1 IS NULL OR ulid = $1) AND
+                ($2 IS NULL OR client_ulid = $2)";
 
         let result = sqlx::query_as(query)
             .bind(branch_ulid)
+            .bind(client_ulid)
             .fetch_optional(&self.0)
             .await?;
 

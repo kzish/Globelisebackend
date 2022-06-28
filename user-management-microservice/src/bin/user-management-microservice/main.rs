@@ -89,38 +89,38 @@ async fn main() {
         )
         .route(
             "/onboard/individual-details/client",
-            get(onboard::individual::get_onboard_individual_client_account_details)
-                .post(onboard::individual::post_onboard_individual_client_account_details),
+            get(onboard::individual::user_get_one_client_account_details)
+                .post(onboard::individual::user_post_one_client_account_details),
         )
         .route(
             "/onboard/individual-details/contractor",
-            get(onboard::individual::get_onboard_individual_contractor_account_details)
-                .post(onboard::individual::post_onboard_individual_contractor_account_details),
+            get(onboard::individual::user_get_one_contractor_account_details)
+                .post(onboard::individual::user_post_one_contractor_account_details),
         )
         .route(
             "/onboard/entity-details/client",
-            get(onboard::entity::get_onboard_entity_client_account_details)
-                .post(onboard::entity::post_onboard_entity_client_account_details),
+            get(onboard::entity::user_get_one_client_account_details)
+                .post(onboard::entity::user_post_one_client_account_details),
         )
         .route(
             "/onboard/entity-details/contractor",
-            get(onboard::entity::get_onboard_entity_contractor_account_details)
-                .post(onboard::entity::post_onboard_entity_contractor_account_details),
+            get(onboard::entity::user_get_one_contractor_account_details)
+                .post(onboard::entity::user_post_one_contractor_account_details),
         )
         .route(
-            "/onboard/pic-details/:role",
-            get(onboard::pic::get_onboard_entity_pic_details)
-                .post(onboard::pic::post_onboard_entity_pic_details),
+            "/onboard/pic-details/:user_role",
+            get(onboard::pic::user_get_one_onboard_entity_pic_details)
+                .post(onboard::pic::user_post_one_onboard_entity_pic_details),
         )
         .route(
             "/onboard/bank-details",
-            get(onboard::bank::get_onboard_contractor_bank_details)
-                .post(onboard::bank::post_onboard_contractor_bank_details),
+            get(onboard::bank::user_get_one_bank_details)
+                .post(onboard::bank::user_post_one_bank_details),
         )
         .route(
             "/onboard/payment-details",
-            get(onboard::payment::get_onboard_client_payment_details)
-                .post(onboard::payment::post_onboard_client_payment_details),
+            get(onboard::payment::user_get_one_payment_details)
+                .post(onboard::payment::user_post_one_payment_details),
         )
         .route(
             "/client/branch",
@@ -303,6 +303,41 @@ async fn main() {
             get(contractor_account_settings::eor_admin::payroll_information::get_payroll_information_all)
         )
         // ========== ADMIN APIS ==========
+        .route(
+            "/eor-admin/onboard/:user_ulid/individual-details/client",
+            get(onboard::individual::admin_get_one_client_account_details)
+                .post(onboard::individual::admin_post_one_client_account_details),
+        )
+        .route(
+            "/eor-admin/onboard/:user_ulid/individual-details/contractor",
+            get(onboard::individual::admin_get_one_contractor_account_details)
+                .post(onboard::individual::admin_post_one_contractor_account_details),
+        )
+        .route(
+            "/eor-admin/onboard/:user_ulid/entity-details/client",
+            get(onboard::entity::admin_get_one_client_account_details)
+                .post(onboard::entity::admin_post_one_client_account_details),
+        )
+        .route(
+            "/eor-admin/onboard/:user_ulid/entity-details/contractor",
+            get(onboard::entity::admin_get_one_contractor_account_details)
+                .post(onboard::entity::admin_post_one_contractor_account_details),
+        )
+        .route(
+            "/eor-admin/onboard/:user_ulid/pic-details/:user_role",
+            get(onboard::pic::admin_get_one_onboard_entity_pic_details)
+                .post(onboard::pic::admin_post_one_onboard_entity_pic_details),
+        )
+        .route(
+            "/eor-admin/onboard/:user_ulid/bank-details/:user_type",
+            get(onboard::bank::admin_get_one_bank_details)
+                .post(onboard::bank::admin_post_one_bank_details),
+        )
+        .route(
+            "/eor-admin/onboard/:user_ulid/payment-details/:user_type",
+            get(onboard::payment::admin_get_one_payment_details)
+                .post(onboard::payment::admin_post_one_payment_details),
+        )
         .route(
             "/eor-admin/teams/create-team",
             post(eor_admin::teams::create_team),
