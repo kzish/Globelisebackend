@@ -145,6 +145,18 @@ pub struct ListCitiBankTransferInitiationFilesResponse {
 }
 
 #[serde_as]
+#[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct ListCitiBankTransferInitiationFilesResponseNoEntries {
+    pub ulid: Uuid,
+    pub title_identifier: String,
+    pub client_ulid: Uuid,
+    pub status: String,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
+}
+
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct ListCitiBankTransferInitiationFilesRequest {
@@ -529,7 +541,7 @@ pub async fn list_available_templates(
 async fn generate_xml(
     template_name: String,
     local_file: String,
-    transaction_file: ListCitiBankTransferInitiationFilesResponse,
+    transaction_file: ListCitiBankTransferInitiationFilesResponseNoEntries,
     records: Vec<CitiBankPayRollRecord>,
 ) {
     let base_path = std::env::var("CITIBANK_BASE_PATH").expect("base path not set");
@@ -857,19 +869,15 @@ pub async fn init_citibank_transfer(
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
 
-    let uploaded_file = database
+    let transaction_file = database
         .get_uploaded_citibank_transfer_initiation_file(request.file_ulid)
         .await?;
 
-    if uploaded_file.status != "pending" {
+    if transaction_file.status != "pending" {
         return Err(GlobeliseError::bad_request(
             "This file is already pushed to city bank",
         ));
     }
-
-    let transaction_file = database
-        .get_uploaded_citibank_transfer_initiation_file(request.file_ulid)
-        .await?;
 
     let records = database
         .list_uploaded_citibank_transfer_initiation_files_records(request.file_ulid)
@@ -1052,7 +1060,7 @@ impl Database {
     pub async fn get_uploaded_citibank_transfer_initiation_file(
         &self,
         file_ulid: Uuid,
-    ) -> GlobeliseResult<ListCitiBankTransferInitiationFilesResponse> {
+    ) -> GlobeliseResult<ListCitiBankTransferInitiationFilesResponseNoEntries> {
         let result = sqlx::query_as(
             "SELECT * FROM 
                             uploaded_citibank_transfer_initiation_files
