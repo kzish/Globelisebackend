@@ -78,6 +78,45 @@ pub async fn user_get_one_payslip_index(
     Ok(Json(result))
 }
 
+pub async fn user_download_one_payslip_index(
+    claims: Token<UserAccessToken>,
+    Path((user_role, payslip_ulid)): Path<(UserRole, Uuid)>,
+    Extension(shared_database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Vec<u8>> {
+    let database = shared_database.lock().await;
+
+    let result = match user_role {
+        UserRole::Client => {
+            database
+                .download_one_payslip_file(payslip_ulid, Some(claims.payload.ulid), None)
+                .await?
+        }
+        UserRole::Contractor => {
+            database
+                .download_one_payslip_file(payslip_ulid, None, Some(claims.payload.ulid))
+                .await?
+        }
+    }
+    .ok_or_else(|| GlobeliseError::not_found("Cannot find a payslip file with that UUID"))?;
+
+    Ok(result)
+}
+
+pub async fn admin_download_one_payslip_index(
+    _: Token<AdminAccessToken>,
+    Path(payslip_ulid): Path<Uuid>,
+    Extension(shared_database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Vec<u8>> {
+    let database = shared_database.lock().await;
+
+    let result = database
+        .download_one_payslip_file(payslip_ulid, None, None)
+        .await?
+        .ok_or_else(|| GlobeliseError::not_found("Cannot find a payslip file with that UUID"))?;
+
+    Ok(result)
+}
+
 pub async fn admin_get_many_payslip_index(
     _: Token<AdminAccessToken>,
     Query(query): Query<PaginatedQuery>,

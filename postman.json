@@ -178,7 +178,7 @@
                     "header": [],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n    \"email\": \"kzish@gmail.com\",\n    \"password\": \"pass1234\"\n}",
+                      "raw": "{\n    \"email\": \"test@testing.com\",\n    \"password\": \"123456789\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1047,7 +1047,7 @@
                     "header": [],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\r\n    \"file-ulid\": \"357f27a3-837d-43b7-b28d-bd016ebfb2bd\",\r\n    \"template-name\": \"citi_bank_usd_vn.xml\"\r\n}",
+                      "raw": "{\r\n    \"file-ulid\": \"8f3970c2-cdd1-4dbc-adde-5fde364c10a5\",\r\n    \"template-name\": \"citi_bank_sg.xml\"\r\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1082,7 +1082,7 @@
                     "method": "GET",
                     "header": [],
                     "url": {
-                      "raw": "{{user-management-host}}/eor-admin/citibank/list-all-uploaded-citibank-transfer-initiation-files-for-client?page=1&per-page=100&client-ulid=98cf1207-2d2b-4a2e-8fcc-9c5711ab8d4b",
+                      "raw": "{{user-management-host}}/eor-admin/citibank/list-all-uploaded-citibank-transfer-initiation-files-for-client?page=1&per-page=100&client-ulid=9bfb5cf9-25f6-4d56-a9a6-82565f2c3f9f",
                       "host": ["{{user-management-host}}"],
                       "path": [
                         "eor-admin",
@@ -1100,7 +1100,7 @@
                         },
                         {
                           "key": "client-ulid",
-                          "value": "98cf1207-2d2b-4a2e-8fcc-9c5711ab8d4b"
+                          "value": "9bfb5cf9-25f6-4d56-a9a6-82565f2c3f9f"
                         }
                       ]
                     }
@@ -6818,17 +6818,19 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{user-management-host}}/eor-admin/onboarded-users?page=1&per-page=25",
+                  "raw": "{{user-management-host}}/eor-admin/onboarded-users?query=test@testing.com",
                   "host": ["{{user-management-host}}"],
                   "path": ["eor-admin", "onboarded-users"],
                   "query": [
                     {
                       "key": "page",
-                      "value": "1"
+                      "value": "1",
+                      "disabled": true
                     },
                     {
                       "key": "per-page",
-                      "value": "25"
+                      "value": "25",
+                      "disabled": true
                     },
                     {
                       "key": "user-role",
@@ -6842,8 +6844,7 @@
                     },
                     {
                       "key": "query",
-                      "value": "awaisbutt49@globelise.com",
-                      "disabled": true
+                      "value": "test@testing.com"
                     },
                     {
                       "key": "created-after",
@@ -8007,7 +8008,60 @@
                       "variable": [
                         {
                           "key": "payslip_ulid",
-                          "value": null
+                          "value": "94e4b4ce-e0e0-43cf-a7c4-4f4299edd604"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get One Payslip File",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{contractor-management-host}}/eor-admin/payslips/:payslip_ulid/file",
+                      "host": ["{{contractor-management-host}}"],
+                      "path": [
+                        "eor-admin",
+                        "payslips",
+                        ":payslip_ulid",
+                        "file"
+                      ],
+                      "query": [
+                        {
+                          "key": "query",
+                          "value": "",
+                          "disabled": true
+                        },
+                        {
+                          "key": "contractor_ulid",
+                          "value": "",
+                          "description": "ULID of the contractor",
+                          "disabled": true
+                        },
+                        {
+                          "key": "client_ulid",
+                          "value": "",
+                          "description": "ULID of the client",
+                          "disabled": true
+                        }
+                      ],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": "94e4b4ce-e0e0-43cf-a7c4-4f4299edd604"
                         }
                       ]
                     }
@@ -8055,7 +8109,7 @@
                       "variable": [
                         {
                           "key": "payslip_ulid",
-                          "value": null
+                          "value": "c0a17123-8a43-41f8-b9ef-6aed336084c6"
                         }
                       ]
                     }
@@ -8147,6 +8201,54 @@
                   "response": []
                 },
                 {
+                  "name": "Delete One Payslip",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{contractor-management-host}}/payslips/contractor/:payslip_ulid",
+                      "host": ["{{contractor-management-host}}"],
+                      "path": ["payslips", "contractor", ":payslip_ulid"],
+                      "query": [
+                        {
+                          "key": "query",
+                          "value": "",
+                          "disabled": true
+                        },
+                        {
+                          "key": "contractor_ulid",
+                          "value": "",
+                          "description": "ULID of the contractor",
+                          "disabled": true
+                        },
+                        {
+                          "key": "client_ulid",
+                          "value": "",
+                          "description": "ULID of the client",
+                          "disabled": true
+                        }
+                      ],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
                   "name": "Get One Payslip",
                   "request": {
                     "auth": {
@@ -8165,6 +8267,54 @@
                       "raw": "{{contractor-management-host}}/payslips/contractor/:payslip_ulid",
                       "host": ["{{contractor-management-host}}"],
                       "path": ["payslips", "contractor", ":payslip_ulid"],
+                      "query": [
+                        {
+                          "key": "query",
+                          "value": "",
+                          "description": "Name of contractor/client",
+                          "disabled": true
+                        },
+                        {
+                          "key": "contractor_ulid",
+                          "value": "",
+                          "description": "ULID of the contractor",
+                          "disabled": true
+                        }
+                      ],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get One Payslip File",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{contractor-management-host}}/payslips/contractor/:payslip_ulid/file",
+                      "host": ["{{contractor-management-host}}"],
+                      "path": [
+                        "payslips",
+                        "contractor",
+                        ":payslip_ulid",
+                        "file"
+                      ],
                       "query": [
                         {
                           "key": "query",
@@ -8261,6 +8411,92 @@
                       ]
                     },
                     "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{contractor-management-host}}/payslips/client/:payslip_ulid",
+                      "host": ["{{contractor-management-host}}"],
+                      "path": ["payslips", "client", ":payslip_ulid"],
+                      "query": [
+                        {
+                          "key": "query",
+                          "value": "",
+                          "description": "Name of contractor/client",
+                          "disabled": true
+                        },
+                        {
+                          "key": "contractor_ulid",
+                          "value": "",
+                          "description": "ULID of the contractor",
+                          "disabled": true
+                        }
+                      ],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get One Payslip File",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{contractor-management-host}}/payslips/client/:payslip_ulid/file",
+                      "host": ["{{contractor-management-host}}"],
+                      "path": ["payslips", "client", ":payslip_ulid", "file"],
+                      "query": [
+                        {
+                          "key": "query",
+                          "value": "",
+                          "description": "Name of contractor/client",
+                          "disabled": true
+                        },
+                        {
+                          "key": "contractor_ulid",
+                          "value": "",
+                          "description": "ULID of the contractor",
+                          "disabled": true
+                        }
+                      ],
+                      "variable": [
+                        {
+                          "key": "payslip_ulid",
+                          "value": null
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete One Payslip",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
                     "header": [],
                     "url": {
                       "raw": "{{contractor-management-host}}/payslips/client/:payslip_ulid",
