@@ -39,7 +39,7 @@ impl Database {
         Ok(index)
     }
 
-    pub async fn select_one_payslip(
+    pub async fn select_one_payslip_index(
         &self,
         ulid: Uuid,
         client_ulid: Option<Uuid>,
@@ -101,5 +101,29 @@ impl Database {
             .await?;
 
         Ok(ulid)
+    }
+
+    pub async fn delete_one_payslip(
+        &self,
+        payslip_ulid: Uuid,
+        client_ulid: Option<Uuid>,
+        contractor_ulid: Option<Uuid>,
+    ) -> GlobeliseResult<()> {
+        let query = "
+        DELETE FROM
+            payslips
+        WHERE 
+            (ulid = $1) AND
+            ($2 IS NULL OR client_ulid = $2) AND
+            ($3 IS NULL OR contractor_ulid = $3)";
+
+        sqlx::query(query)
+            .bind(payslip_ulid)
+            .bind(client_ulid)
+            .bind(contractor_ulid)
+            .execute(&self.0)
+            .await?;
+
+        Ok(())
     }
 }
