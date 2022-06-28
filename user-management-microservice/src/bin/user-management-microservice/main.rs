@@ -447,6 +447,10 @@ async fn main() {
             get(eor_admin::bank_transfer::citi_bank::update_transaction_status),
         )
         .route(
+            "/eor-admin/:user_role/users",
+            get(user::admin_get_many_users),
+        )
+        .route(
             "/eor-admin/onboarded-users",
             get(eor_admin::admin_get_many_onboarded_user_index),
         )
