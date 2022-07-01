@@ -188,8 +188,8 @@ async fn main() {
         )
         .route(
             "/users/notifications",
-            get(notification::get_many).
-            put(notification::put_one),
+            get(notification::user_get_many).
+            put(notification::user_put_one),
         )
         .route(
             "/admin-pic/teams/create-team",
@@ -570,6 +570,15 @@ async fn main() {
         .route(
             "/eor-admin/sap/journal_template.xlsx",
             get(eor_admin::sap::s4_hana::download),
+        )
+        .route(
+            "/eor-admin/notifications",
+            get(notification::admin_get_many_for_user).
+            post(notification::admin_post_one_for_user),
+        )
+        .route(
+            "/eor-admin/admin-notifications",
+            get(notification::admin_get_many)
         )
         // ========== CONSTANT PAGES ========
         .route("/constant/country_code",get(constant::country_code::get_many).post(constant::country_code::post_one).delete(constant::country_code::delete_one))
