@@ -463,12 +463,17 @@
               "name": "Account Settings",
               "item": [
                 {
-                  "name": "New Request",
-                  "request": {
-                    "method": "GET",
-                    "header": []
-                  },
-                  "response": []
+                  "name": "client_pic",
+                  "item": [
+                    {
+                      "name": "get_entity_contractor_account_details",
+                      "request": {
+                        "method": "GET",
+                        "header": []
+                      },
+                      "response": []
+                    }
+                  ]
                 }
               ]
             }
@@ -1047,7 +1052,7 @@
                     "header": [],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\r\n    \"file-ulid\": \"8f3970c2-cdd1-4dbc-adde-5fde364c10a5\",\r\n    \"template-name\": \"citi_bank_sg.xml\"\r\n}",
+                      "raw": "{\r\n    \"file-ulid\": \"5e192101-392c-4411-af3a-22cb7b72613d\",\r\n    \"template-name\": \"citi_bank_sg.xml\"\r\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -2064,62 +2069,191 @@
           "name": "Notifications",
           "item": [
             {
-              "name": "Get Notifications",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{user-access-token}}",
-                      "type": "string"
+              "name": "Admin",
+              "item": [
+                {
+                  "name": "Get Many User Notifications",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/notifications?per-page=25&page=1",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["eor-admin", "notifications"],
+                      "query": [
+                        {
+                          "key": "per-page",
+                          "value": "25"
+                        },
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "read",
+                          "value": "true",
+                          "disabled": true
+                        }
+                      ]
                     }
-                  ]
+                  },
+                  "response": []
                 },
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{user-management-host}}/users/notifications?user-role=client",
-                  "host": ["{{user-management-host}}"],
-                  "path": ["users", "notifications"],
-                  "query": [
-                    {
-                      "key": "user-role",
-                      "value": "client"
+                {
+                  "name": "Post One User Notifications Based On User Group",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"message\" : \"Some notification message\",\n    \"audience\" : {\n        \"user-group\" : {\n            \"user-type\" : \"individual\",\n            \"user-role\" : \"contractor\"\n        }\n    }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/notifications",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["eor-admin", "notifications"]
                     }
-                  ]
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Post One User Notifications For Specific Users",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{admin-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"message\": \"Some notification message\",\n    \"audience\": {\n        \"specific-users\": [\n            \"e1c881a9-cadf-4ccb-956f-dd3d853276f3\"\n        ]\n    }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/eor-admin/notifications",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["eor-admin", "notifications"]
+                    }
+                  },
+                  "response": []
                 }
-              },
-              "response": []
+              ]
             },
             {
-              "name": "Get Notifications Copy",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{user-access-token}}",
-                      "type": "string"
+              "name": "User",
+              "item": [
+                {
+                  "name": "Get Many Notifications",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{user-management-host}}/users/notifications?per-page=25&page=1",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["users", "notifications"],
+                      "query": [
+                        {
+                          "key": "per-page",
+                          "value": "25"
+                        },
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "query",
+                          "value": "some text",
+                          "disabled": true
+                        },
+                        {
+                          "key": "read",
+                          "value": "true",
+                          "disabled": true
+                        }
+                      ]
                     }
-                  ]
+                  },
+                  "response": []
                 },
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{user-management-host}}/users/notifications?user-role=client",
-                  "host": ["{{user-management-host}}"],
-                  "path": ["users", "notifications"],
-                  "query": [
-                    {
-                      "key": "user-role",
-                      "value": "client"
+                {
+                  "name": "Put One Notifications As Read",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{user-access-token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"ulid\" : \"bab331f6-e7af-4289-964a-0593a5873ffc\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{user-management-host}}/users/notifications",
+                      "host": ["{{user-management-host}}"],
+                      "path": ["users", "notifications"]
                     }
-                  ]
+                  },
+                  "response": []
                 }
-              },
-              "response": []
+              ]
             }
           ]
         },
@@ -5539,7 +5673,7 @@
                         "header": [],
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n    \"first-name\": \"Test\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"country\": \"United States\",\n    \"city\": \"Big City\",\n    \"address\": \"1234 Address Street\",\n    \"postal-code\": \"99999\",\n    \"tax-id\": \"2304803309\",\n    \"time-zone\": \"US/Eastern\",\n    \"profile-picture\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\",\n    \"cv\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\"\n}",
+                          "raw": "{\n    \"first-name\": \"Test\",\n    \"last-name\": \"Last\",\n    \"dob\": \"1970-01-01T00:00:00.000Z\",\n    \"dial-code\": \"+1\",\n    \"phone-number\": \"8005555555\",\n    \"country\": \"US\",\n    \"city\": \"Big City\",\n    \"address\": \"1234 Address Street\",\n    \"postal-code\": \"99999\",\n    \"tax-id\": \"2304803309\",\n    \"time-zone\": \"US/Eastern\",\n    \"profile-picture\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\",\n    \"cv\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==\",\n    \"gender\" : \"male\",\n    \"marital-status\" : \"single\"\n}",
                           "options": {
                             "raw": {
                               "language": "json"

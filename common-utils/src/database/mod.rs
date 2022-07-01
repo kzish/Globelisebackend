@@ -3,6 +3,7 @@ use std::{sync::Arc, time::Duration};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
 
+pub mod notification;
 pub mod onboard;
 pub mod prefill;
 pub mod user;
