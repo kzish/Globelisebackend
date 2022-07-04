@@ -1,48 +1,39 @@
-use common_utils::{calc_limit_and_offset, custom_serde::Currency, error::GlobeliseResult};
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, TryFromInto};
+use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::database::Database;
+use crate::{
+    calc_limit_and_offset,
+    custom_serde::{Currency, OffsetDateWrapper},
+    database::Database,
+    error::GlobeliseResult,
+};
 
-use super::{ClientContractorPair, ContractsIndex};
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractsIndex {
+    contract_ulid: Uuid,
+    client_ulid: Uuid,
+    branch_ulid: Option<Uuid>,
+    client_name: Option<String>,
+    contractor_ulid: Uuid,
+    contractor_name: Option<String>,
+    contract_name: String,
+    contract_type: String,
+    contract_status: String,
+    contract_amount: sqlx::types::Decimal,
+    currency: Currency,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    begin_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    end_at: sqlx::types::time::OffsetDateTime,
+    job_title: String,
+    seniority: String,
+}
 
 impl Database {
-    /// Indexes clients that a contractor works for.
-    pub async fn select_many_client_contractor_pairs(
-        &self,
-        page: Option<u32>,
-        per_page: Option<u32>,
-        query: Option<String>,
-        client_ulid: Option<Uuid>,
-        contractor_ulid: Option<Uuid>,
-    ) -> GlobeliseResult<Vec<ClientContractorPair>> {
-        let (limit, offset) = calc_limit_and_offset(per_page, page);
-
-        let result = sqlx::query_as(
-            "
-            SELECT DISTINCT ON (client_ulid, contractor_ulid)
-                client_ulid, client_name, contractor_ulid, contractor_name
-            FROM
-                contracts_index
-            WHERE
-                ($1 IS NULL OR client_ulid = $1) AND
-                ($2 IS NULL OR contractor_ulid = $2) AND
-                ($3 IS NULL OR client_name ~* $3 OR contractor_name ~* $3)
-            LIMIT
-                $4
-            OFFSET
-                $5",
-        )
-        .bind(client_ulid)
-        .bind(contractor_ulid)
-        .bind(query)
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&self.0)
-        .await?;
-
-        Ok(result)
-    }
-
     pub async fn select_many_contracts(
         &self,
         page: Option<u32>,

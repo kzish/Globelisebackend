@@ -100,10 +100,6 @@ async fn main() {
         )
         // ========== ADMIN PAGES ==========
         .route(
-            "/eor-admin/users",
-            get(contracts::admin_get_many_user_index),
-        )
-        .route(
             "/eor-admin/payslips",
             get(payslips::admin_get_many_payslip_index).post(payslips::admin_post_one_payslip),
         )

@@ -22,6 +22,7 @@ mod auth;
 mod branch;
 mod bulk_add;
 mod client_account_settings;
+mod client_contractor_pair;
 mod constant;
 mod contractor_account_settings;
 mod custom_field;
@@ -666,6 +667,11 @@ async fn main() {
             get(eor_admin::admin_get_many_onboarded_user_index),
         )
         .route("/eor-admin/users", get(eor_admin::admin_get_many_user_index))
+        .route(
+            "/eor-admin/client-contractor-pair",
+            get(client_contractor_pair::admin_get_many_client_contractor_pair_index)
+                .post(client_contractor_pair::admin_post_one_client_contractor_pair),
+        )
         .route(
             "/eor-admin/users/individual/contractor_branch_pairs",
             get(eor_admin::individual_contractor_branch_pair::get_many)
