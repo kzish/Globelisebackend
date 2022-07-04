@@ -7,6 +7,7 @@ use axum::{
 };
 use common_utils::{
     custom_serde::UserType,
+    database::CommonDatabase,
     error::{GlobeliseError, GlobeliseResult},
     token::ISSUER,
 };
@@ -15,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
-use crate::auth::{SharedDatabase, SharedState};
+use crate::auth::SharedState;
 
 use super::KEYS;
 
@@ -110,7 +111,7 @@ where
         let Query(params) = Query::<HashMap<String, String>>::from_request(req)
             .await
             .map_err(GlobeliseError::internal)?;
-        let Extension(database) = Extension::<SharedDatabase>::from_request(req)
+        let Extension(database) = Extension::<CommonDatabase>::from_request(req)
             .await
             .map_err(GlobeliseError::internal)?;
         let Extension(shared_state) = Extension::<SharedState>::from_request(req)
@@ -180,7 +181,7 @@ where
             TypedHeader::<Authorization<Bearer>>::from_request(req)
                 .await
                 .map_err(GlobeliseError::internal)?;
-        let Extension(database) = Extension::<SharedDatabase>::from_request(req)
+        let Extension(database) = Extension::<CommonDatabase>::from_request(req)
             .await
             .map_err(GlobeliseError::internal)?;
         let Extension(shared_state) = Extension::<SharedState>::from_request(req)
