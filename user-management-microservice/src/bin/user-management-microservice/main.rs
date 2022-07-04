@@ -19,6 +19,7 @@ use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer, Origin};
 
 mod auth;
+mod benefits_market_place;
 mod branch;
 mod bulk_add;
 mod client_account_settings;

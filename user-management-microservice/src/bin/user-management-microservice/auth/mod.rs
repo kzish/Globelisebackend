@@ -1,5 +1,9 @@
 //! Endpoints for user authentication and authorization.
 
+use super::benefits_market_place::users::UserProfile;
+use super::benefits_market_place::users::UserSignupRequest;
+use super::benefits_market_place::users::*;
+use crate::database::SharedDatabase;
 use argon2::{self, hash_encoded, verify_encoded, Config};
 use axum::{
     extract::{ContentLengthLimit, Extension, Path},
@@ -15,8 +19,6 @@ use rand::Rng;
 use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 use user_management_microservice_sdk::token::UserAccessToken;
-
-use crate::database::SharedDatabase;
 
 pub mod google;
 pub mod password;
@@ -70,6 +72,21 @@ pub async fn signup(
         ));
     }
 
+    //register user for benefits marketplace
+    let email = &(body.email.0.clone()).to_string();
+    let benefits_user = UserSignupRequest {
+        username: email.to_string(),
+        password: password,
+        user_profile: UserProfile {
+            firstname: "Globelise".to_string(),
+            lastname: "User".to_string(),
+            email: email.to_string(),
+        },
+    };
+    let res = user_registration(benefits_user).await?;
+    if res.0 != "200" {
+        return Err(GlobeliseError::bad_request(res.1));
+    }
     let ulid = database
         .create_user(
             body.email,
@@ -87,6 +104,7 @@ pub async fn signup(
     let refresh_token = shared_state
         .open_session(&database, ulid, user_type)
         .await?;
+
     Ok(refresh_token)
 }
 

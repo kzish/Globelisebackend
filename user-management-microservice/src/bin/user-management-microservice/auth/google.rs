@@ -8,7 +8,10 @@ use common_utils::{
 };
 use google_auth::IdToken;
 
-use crate::env::GOOGLE_CLIENT_ID;
+use crate::{
+    benefits_market_place::users::{user_registration, UserProfile, UserSignupRequest},
+    env::GOOGLE_CLIENT_ID,
+};
 
 use super::{SharedDatabase, SharedState};
 
@@ -68,6 +71,21 @@ pub async fn signup(
 
         Ok(refresh_token)
     } else {
+        //register user for benefits marketplace
+        let email = &(claims.email.0.clone()).to_string();
+        let benefits_user = UserSignupRequest {
+            username: email.to_string(),
+            password: "Password@123".to_string(),
+            user_profile: UserProfile {
+                firstname: "Globelise".to_string(),
+                lastname: "User".to_string(),
+                email: email.to_string(),
+            },
+        };
+        let res = user_registration(benefits_user).await?;
+        if res.0 != "200" {
+            return Err(GlobeliseError::bad_request(res.1));
+        }
         let ulid = database
             .create_user(
                 claims.email,
