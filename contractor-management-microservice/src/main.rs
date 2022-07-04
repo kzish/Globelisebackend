@@ -102,7 +102,7 @@ async fn main() {
         // ========== ADMIN PAGES ==========
         .route(
             "/eor-admin/users",
-            get(client_contractor_pair::admin_get_many_client_contractor_pair_index),
+            get(client_contractor_pair::admin_get_many_onboarded_user_index),
         )
         .route(
             "/eor-admin/payslips",

@@ -199,7 +199,7 @@ pub async fn admin_post_one_contract(
 ) -> GlobeliseResult<String> {
     let database = database.lock().await;
 
-    let ulid = database
+    let contract_ulid = database
         .insert_one_contract(
             body.client_ulid,
             body.contractor_ulid,
@@ -216,5 +216,13 @@ pub async fn admin_post_one_contract(
         )
         .await?;
 
-    Ok(ulid.to_string())
+    database
+        .insert_one_client_contractor_pair(
+            body.client_ulid,
+            body.contractor_ulid,
+            Some(contract_ulid),
+        )
+        .await?;
+
+    Ok(contract_ulid.to_string())
 }
