@@ -1,8 +1,5 @@
 //! Endpoints for user authentication and authorization.
 
-use super::benefits_market_place::users::UserProfile;
-use super::benefits_market_place::users::UserSignupRequest;
-use super::benefits_market_place::users::*;
 use argon2::{self, hash_encoded, verify_encoded, Config};
 use axum::{
     extract::{ContentLengthLimit, Extension, Path},
@@ -17,19 +14,18 @@ use common_utils::{
 use once_cell::sync::Lazy;
 use rand::Rng;
 use serde::Deserialize;
+use token::RefreshToken;
 use unicode_normalization::UnicodeNormalization;
 use user_management_microservice_sdk::token::UserAccessToken;
 
 pub mod google;
 pub mod password;
-mod state;
+pub mod state;
 pub mod token;
 
-use token::RefreshToken;
+use crate::benefits_market_place::users::{user_registration, UserProfile, UserSignupRequest};
 
-pub use state::{SharedState, State};
-
-use self::token::KEYS;
+use self::{state::SharedState, token::KEYS};
 
 /// Creates an account.
 pub async fn signup(
@@ -85,10 +81,11 @@ pub async fn signup(
     if res.0 != "200" {
         return Err(GlobeliseError::bad_request(res.1));
     }
+
     let ulid = database
-        .create_user(
-            body.email,
-            Some(hash),
+        .insert_one_user(
+            &body.email,
+            Some(&hash),
             false,
             false,
             user_type == UserType::Entity,

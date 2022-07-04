@@ -33,7 +33,7 @@ pub struct IndividualContractorAccountDetails {
     pub email_address: EmailWrapper,
     pub national_id: String,
     pub passport_number: String,
-    pub work_permit: bool,
+    pub work_permit: Option<String>,
     pub added_related_pay_item_id: Uuid,
     pub total_dependants: i64,
 
