@@ -1,10 +1,20 @@
 use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
-use sqlx::Row;
+use serde::Serialize;
+use serde_with::serde_as;
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::database::Database;
 
 use super::PayslipsIndex;
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PayslipDownload {
+    pub payslip_file_name: Option<String>,
+    pub payslip_file: Vec<u8>,
+}
 
 impl Database {
     pub async fn select_many_payslips(
@@ -71,10 +81,10 @@ impl Database {
         ulid: Uuid,
         client_ulid: Option<Uuid>,
         contractor_ulid: Option<Uuid>,
-    ) -> GlobeliseResult<Option<Vec<u8>>> {
+    ) -> GlobeliseResult<Option<PayslipDownload>> {
         let query = "
             SELECT
-                payslip_file
+                payslip_file, payslip_file_name
             FROM
                 payslips
             WHERE
@@ -82,14 +92,12 @@ impl Database {
                 ($2 IS NULL OR client_ulid = $2) AND
                 ($3 IS NULL OR contractor_ulid = $3)";
 
-        let result = sqlx::query(query)
+        let result = sqlx::query_as(query)
             .bind(ulid)
             .bind(client_ulid)
             .bind(contractor_ulid)
             .fetch_optional(&self.0)
-            .await?
-            .map(|v| v.try_get("payslip_file"))
-            .transpose()?;
+            .await?;
 
         Ok(result)
     }
@@ -104,6 +112,7 @@ impl Database {
         payment_date: sqlx::types::time::OffsetDateTime,
         begin_period: sqlx::types::time::OffsetDateTime,
         end_period: sqlx::types::time::OffsetDateTime,
+        payslip_file_name: String,
         payslip_file: Vec<u8>,
     ) -> GlobeliseResult<Uuid> {
         let ulid = Uuid::new_v4();
@@ -111,10 +120,10 @@ impl Database {
         let query = "
         INSERT INTO payslips (
             ulid, client_ulid, contractor_ulid, contract_ulid, payslip_title,
-            payment_date, begin_period, end_period, payslip_file
+            payment_date, begin_period, end_period, payslip_file_name, payslip_file
         ) VALUES (
             $1, $2, $3, $4, $5, 
-            $6, $7, $8, $9)";
+            $6, $7, $8, $9, $10)";
 
         sqlx::query(query)
             .bind(ulid)
@@ -125,6 +134,7 @@ impl Database {
             .bind(payment_date)
             .bind(begin_period)
             .bind(end_period)
+            .bind(payslip_file_name)
             .bind(payslip_file)
             .execute(&self.0)
             .await?;

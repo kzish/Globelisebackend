@@ -8,8 +8,6 @@ pub type GlobeliseResult<T> = std::result::Result<T, GlobeliseError>;
 /// Error responses.
 #[derive(Debug)]
 pub enum GlobeliseError {
-    Dapr(String),
-    Database(String),
     UnavailableEmail,
     WrongUserType,
     UnsupportedImageFormat,
@@ -50,13 +48,6 @@ impl GlobeliseError {
         GlobeliseError::PayloadTooLarge(s.to_string())
     }
 
-    pub fn dapr<S>(s: S) -> GlobeliseError
-    where
-        S: ToString,
-    {
-        GlobeliseError::Dapr(s.to_string())
-    }
-
     pub fn not_found<S>(s: S) -> GlobeliseError
     where
         S: ToString,
@@ -68,75 +59,30 @@ impl GlobeliseError {
 impl IntoResponse for GlobeliseError {
     fn into_response(self) -> Response {
         match self {
-            GlobeliseError::Dapr(message) => {
-                #[cfg(debug_assertions)]
-                return (StatusCode::INTERNAL_SERVER_ERROR, message).into_response();
-                #[cfg(not(debug_assertions))]
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-            }
-            GlobeliseError::Database(message) => {
-                #[cfg(debug_assertions)]
-                return (StatusCode::INTERNAL_SERVER_ERROR, message).into_response();
-                #[cfg(not(debug_assertions))]
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-            }
             GlobeliseError::UnavailableEmail => {
-                #[cfg(debug_assertions)]
-                return (StatusCode::UNPROCESSABLE_ENTITY, "Email is unavailable").into_response();
-                #[cfg(not(debug_assertions))]
-                return StatusCode::UNPROCESSABLE_ENTITY.into_response();
+                (StatusCode::UNPROCESSABLE_ENTITY, "Email is unavailable").into_response()
             }
             GlobeliseError::WrongUserType => {
-                #[cfg(debug_assertions)]
-                return (StatusCode::UNAUTHORIZED, "Wrong user type").into_response();
-                #[cfg(not(debug_assertions))]
-                return StatusCode::UNAUTHORIZED.into_response();
+                (StatusCode::UNAUTHORIZED, "Wrong user type").into_response()
             }
-            GlobeliseError::UnsupportedImageFormat => {
-                #[cfg(debug_assertions)]
-                return (
-                    StatusCode::UNSUPPORTED_MEDIA_TYPE,
-                    "Image must be PNG or JPEG",
-                )
-                    .into_response();
-                #[cfg(not(debug_assertions))]
-                return StatusCode::UNSUPPORTED_MEDIA_TYPE.into_response();
-            }
+            GlobeliseError::UnsupportedImageFormat => (
+                StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                "Image must be PNG or JPEG",
+            )
+                .into_response(),
             GlobeliseError::BadRequest(message) => {
-                #[cfg(debug_assertions)]
-                return (StatusCode::BAD_REQUEST, message).into_response();
-                #[cfg(not(debug_assertions))]
-                return StatusCode::BAD_REQUEST.into_response();
+                (StatusCode::BAD_REQUEST, message).into_response()
             }
             GlobeliseError::Unauthorized(message) => {
-                #[cfg(debug_assertions)]
-                return (StatusCode::UNAUTHORIZED, message).into_response();
-                #[cfg(not(debug_assertions))]
-                return StatusCode::UNAUTHORIZED.into_response();
+                (StatusCode::UNAUTHORIZED, message).into_response()
             }
-            GlobeliseError::Forbidden => {
-                #[cfg(debug_assertions)]
-                return StatusCode::FORBIDDEN.into_response();
-                #[cfg(not(debug_assertions))]
-                return StatusCode::FORBIDDEN.into_response();
-            }
-            GlobeliseError::NotFound(message) => {
-                #[cfg(debug_assertions)]
-                return (StatusCode::NOT_FOUND, message).into_response();
-                #[cfg(not(debug_assertions))]
-                return StatusCode::NOT_FOUND.into_response();
-            }
+            GlobeliseError::Forbidden => StatusCode::FORBIDDEN.into_response(),
+            GlobeliseError::NotFound(message) => (StatusCode::NOT_FOUND, message).into_response(),
             GlobeliseError::PayloadTooLarge(message) => {
-                #[cfg(debug_assertions)]
-                return (StatusCode::PAYLOAD_TOO_LARGE, message).into_response();
-                #[cfg(not(debug_assertions))]
-                return StatusCode::PAYLOAD_TOO_LARGE.into_response();
+                (StatusCode::PAYLOAD_TOO_LARGE, message).into_response()
             }
             GlobeliseError::Internal(message) => {
-                #[cfg(debug_assertions)]
-                return (StatusCode::INTERNAL_SERVER_ERROR, message).into_response();
-                #[cfg(not(debug_assertions))]
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                (StatusCode::INTERNAL_SERVER_ERROR, message).into_response()
             }
         }
     }

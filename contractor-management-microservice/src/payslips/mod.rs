@@ -1,5 +1,10 @@
 use axum::{
     extract::{ContentLengthLimit, Extension, Path, Query},
+    http::{
+        header::{CONTENT_DISPOSITION, CONTENT_TYPE},
+        HeaderValue,
+    },
+    response::IntoResponse,
     Json,
 };
 use common_utils::{
@@ -82,7 +87,7 @@ pub async fn user_download_one_payslip_index(
     claims: Token<UserAccessToken>,
     Path((user_role, payslip_ulid)): Path<(UserRole, Uuid)>,
     Extension(shared_database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Vec<u8>> {
+) -> GlobeliseResult<impl IntoResponse> {
     let database = shared_database.lock().await;
 
     let result = match user_role {
@@ -99,14 +104,31 @@ pub async fn user_download_one_payslip_index(
     }
     .ok_or_else(|| GlobeliseError::not_found("Cannot find a payslip file with that UUID"))?;
 
-    Ok(result)
+    Ok((
+        [
+            (
+                CONTENT_TYPE,
+                HeaderValue::from_static("application/octet-stream"),
+            ),
+            (
+                CONTENT_DISPOSITION,
+                HeaderValue::from_str(&format!(
+                    "attachment; filename=\"{}\"",
+                    result
+                        .payslip_file_name
+                        .unwrap_or_else(|| payslip_ulid.to_string())
+                ))?,
+            ),
+        ],
+        result.payslip_file,
+    ))
 }
 
 pub async fn admin_download_one_payslip_index(
     _: Token<AdminAccessToken>,
     Path(payslip_ulid): Path<Uuid>,
     Extension(shared_database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Vec<u8>> {
+) -> GlobeliseResult<impl IntoResponse> {
     let database = shared_database.lock().await;
 
     let result = database
@@ -114,7 +136,24 @@ pub async fn admin_download_one_payslip_index(
         .await?
         .ok_or_else(|| GlobeliseError::not_found("Cannot find a payslip file with that UUID"))?;
 
-    Ok(result)
+    Ok((
+        [
+            (
+                CONTENT_TYPE,
+                HeaderValue::from_static("application/octet-stream"),
+            ),
+            (
+                CONTENT_DISPOSITION,
+                HeaderValue::from_str(&format!(
+                    "attachment; filename=\"{}\"",
+                    result
+                        .payslip_file_name
+                        .unwrap_or_else(|| payslip_ulid.to_string())
+                ))?,
+            ),
+        ],
+        result.payslip_file,
+    ))
 }
 
 pub async fn admin_get_many_payslip_index(
@@ -205,6 +244,7 @@ pub async fn admin_post_one_payslip(
             body.payment_date,
             body.begin_period,
             body.end_period,
+            body.payslip_file_name,
             body.payslip_file,
         )
         .await?;
@@ -244,6 +284,7 @@ pub struct CreatePayslipsIndex {
     pub begin_period: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub end_period: sqlx::types::time::OffsetDateTime,
+    pub payslip_file_name: String,
     #[serde_as(as = "Base64")]
     pub payslip_file: Vec<u8>,
 }

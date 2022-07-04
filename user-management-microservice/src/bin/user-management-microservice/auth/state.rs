@@ -193,7 +193,7 @@ impl State {
         self.dapr_client
             .save_state(Self::STATE_STORE, vec![(&*prefixed_key, value)])
             .await
-            .map_err(GlobeliseError::dapr)?;
+            .map_err(GlobeliseError::internal)?;
         Ok(())
     }
 
@@ -207,7 +207,7 @@ impl State {
             .dapr_client
             .get_state(Self::STATE_STORE, &*prefixed_key, None)
             .await
-            .map_err(GlobeliseError::dapr)?;
+            .map_err(GlobeliseError::internal)?;
 
         if !result.data.is_empty() {
             let value: T =
