@@ -4,7 +4,7 @@ use axum::{
 };
 use common_utils::{
     custom_serde::{Currency, OffsetDateWrapper, UserRole, FORM_DATA_LENGTH_LIMIT},
-    database::{contract::ContractsIndex, CommonDatabase},
+    database::{contract::ContractsIndex, user::OnboardedUserIndex, CommonDatabase},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -13,6 +13,8 @@ use serde::Deserialize;
 use serde_with::{serde_as, TryFromInto};
 use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
+
+use crate::common::PaginatedQuery;
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
@@ -225,4 +227,46 @@ pub async fn admin_post_one_contract(
         .await?;
 
     Ok(contract_ulid.to_string())
+}
+
+pub async fn user_get_many_clients_for_contractors(
+    access_token: Token<UserAccessToken>,
+    Query(query): Query<PaginatedQuery>,
+    Extension(database): Extension<CommonDatabase>,
+) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
+    let database = database.lock().await;
+    let result = database
+        .select_many_clients_index_for_contractors(
+            Some(access_token.payload.ulid),
+            query.page,
+            query.per_page,
+            query.query,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await?;
+    Ok(Json(result))
+}
+
+pub async fn user_get_many_contractors_for_clients(
+    access_token: Token<UserAccessToken>,
+    Query(query): Query<PaginatedQuery>,
+    Extension(database): Extension<CommonDatabase>,
+) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
+    let database = database.lock().await;
+    let result = database
+        .select_many_contractors_index_for_clients(
+            Some(access_token.payload.ulid),
+            query.page,
+            query.per_page,
+            query.query,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await?;
+    Ok(Json(result))
 }

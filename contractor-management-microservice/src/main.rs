@@ -18,7 +18,6 @@ use tokio::sync::Mutex;
 use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer, Origin};
 
-mod client_contractor_pair;
 mod common;
 mod contracts;
 mod database;
@@ -56,11 +55,11 @@ async fn main() {
         // ========== PUBLIC PAGES ==========
         .route(
             "/clients",
-            get(client_contractor_pair::user_get_many_clients_for_contractors),
+            get(contracts::user_get_many_clients_for_contractors),
         )
         .route(
             "/contractors",
-            get(client_contractor_pair::user_get_many_contractors_for_clients),
+            get(contracts::user_get_many_contractors_for_clients),
         )
         .route(
             "/contracts/:role",
@@ -101,10 +100,6 @@ async fn main() {
         )
         // ========== ADMIN PAGES ==========
         .route(
-            "/eor-admin/users",
-            get(client_contractor_pair::admin_get_many_onboarded_user_index),
-        )
-        .route(
             "/eor-admin/payslips",
             get(payslips::admin_get_many_payslip_index).post(payslips::admin_post_one_payslip),
         )
@@ -124,11 +119,6 @@ async fn main() {
         .route(
             "/eor-admin/tax-reports/:tax_report_ulid",
             get(tax_report::admin_get_one_tax_report_index),
-        )
-        .route(
-            "/eor-admin/client-contractor-pair",
-            get(client_contractor_pair::admin_get_many_client_contractor_pair_index)
-                .post(client_contractor_pair::admin_post_one_client_contractor_pair),
         )
         .route(
             "/eor-admin/contracts",
