@@ -74,7 +74,7 @@ pub async fn signup(
     let email = &(body.email.0.clone()).to_string();
     let benefits_user = UserSignupRequest {
         username: email.to_string(),
-        password: password,
+        password,
         user_profile: UserProfile {
             firstname: "Globelise".to_string(),
             lastname: "User".to_string(),
