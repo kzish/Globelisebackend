@@ -5,6 +5,7 @@ use axum::{
 };
 use common_utils::{
     custom_serde::{EmailWrapper, UserType, FORM_DATA_LENGTH_LIMIT},
+    database::CommonDatabase,
     error::{GlobeliseError, GlobeliseResult},
 };
 use lettre::{Message, SmtpTransport, Transport};
@@ -23,7 +24,7 @@ use crate::{
 
 use crate::auth::{
     token::one_time::{OneTimeToken, OneTimeTokenBearer, OneTimeTokenParam},
-    SharedDatabase, SharedState, HASH_CONFIG,
+    SharedState, HASH_CONFIG,
 };
 
 mod token;
@@ -36,7 +37,7 @@ pub async fn send_email(
         Json<LostPasswordRequest>,
         FORM_DATA_LENGTH_LIMIT,
     >,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
@@ -51,7 +52,7 @@ pub async fn send_email(
 
     let mut shared_state = shared_state.lock().await;
     let (one_time_token, created_valid_token) = match shared_state
-        .open_one_time_session::<LostPasswordToken>(&database, user_ulid, user_type)
+        .open_one_time_session::<LostPasswordToken>(user_ulid, user_type)
         .await
     {
         Ok(token) => (token, true),
@@ -113,13 +114,11 @@ pub async fn send_email(
 /// Respond to user clicking the reset password link in their email.
 pub async fn initiate(
     OneTimeTokenParam(claims): OneTimeTokenParam<OneTimeToken<LostPasswordToken>>,
-    Extension(database): Extension<SharedDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<Redirect> {
     let mut shared_state = shared_state.lock().await;
-    let database = database.lock().await;
     let change_password_token = shared_state
-        .open_one_time_session::<ChangePasswordToken>(&database, claims.sub, claims.user_type)
+        .open_one_time_session::<ChangePasswordToken>(claims.sub, claims.user_type)
         .await?;
 
     let redirect_url = format!(
@@ -134,7 +133,7 @@ pub async fn initiate(
 pub async fn execute(
     Json(request): Json<ChangePasswordRequest>,
     OneTimeTokenBearer(claims): OneTimeTokenBearer<OneTimeToken<ChangePasswordToken>>,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<()> {
     let new_password: String = request.new_password.nfc().collect();

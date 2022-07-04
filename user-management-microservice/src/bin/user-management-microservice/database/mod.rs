@@ -3,8 +3,6 @@ use std::{sync::Arc, time::Duration};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::sync::Mutex;
 
-mod auth;
-
 /// Convenience wrapper around PostgreSQL.
 pub struct Database(pub Pool<Postgres>);
 

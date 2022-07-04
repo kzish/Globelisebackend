@@ -15,12 +15,9 @@ use lettre::{Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 
-use crate::{
-    database::SharedDatabase,
-    env::{
-        GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
-        USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
-    },
+use crate::env::{
+    GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
+    USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
 };
 
 pub mod bank_transfer;
@@ -47,7 +44,7 @@ pub async fn add_individual_contractor(
         Json<AddUserRequest>,
         FORM_DATA_LENGTH_LIMIT,
     >,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
 

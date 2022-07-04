@@ -3,6 +3,7 @@
 use axum::extract::{Extension, Path};
 use common_utils::{
     custom_serde::UserType,
+    database::CommonDatabase,
     error::{GlobeliseError, GlobeliseResult},
     token::AuthBearer,
 };
@@ -13,11 +14,11 @@ use crate::{
     env::GOOGLE_CLIENT_ID,
 };
 
-use super::{SharedDatabase, SharedState};
+use super::SharedState;
 
 pub async fn login(
     AuthBearer(id_token): AuthBearer,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
     let claims = IdToken(id_token)
@@ -34,9 +35,7 @@ pub async fn login(
         .await?
     {
         let user_type = user.user_type()?;
-        let refresh_token = shared_state
-            .open_session(&database, user.ulid, user_type)
-            .await?;
+        let refresh_token = shared_state.open_session(user.ulid, user_type).await?;
 
         Ok(refresh_token)
     } else {
@@ -47,7 +46,7 @@ pub async fn login(
 pub async fn signup(
     AuthBearer(id_token): AuthBearer,
     Path(user_type): Path<UserType>,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
     let claims = IdToken(id_token)
@@ -65,9 +64,7 @@ pub async fn signup(
         .await?
     {
         let user_type = user.user_type()?;
-        let refresh_token = shared_state
-            .open_session(&database, user.ulid, user_type)
-            .await?;
+        let refresh_token = shared_state.open_session(user.ulid, user_type).await?;
 
         Ok(refresh_token)
     } else {
@@ -99,9 +96,7 @@ pub async fn signup(
             )
             .await?;
 
-        let refresh_token = shared_state
-            .open_session(&database, ulid, user_type)
-            .await?;
+        let refresh_token = shared_state.open_session(ulid, user_type).await?;
         Ok(refresh_token)
     }
 }
