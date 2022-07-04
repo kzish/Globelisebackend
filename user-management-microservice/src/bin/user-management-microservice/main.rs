@@ -195,6 +195,14 @@ async fn main() {
             put(notification::user_put_one),
         )
         .route(
+            "/admin-pic/teams/contractors-not-in-this-team",
+            get(branch::teams::list_contrators_not_in_this_team),
+        )
+        .route(
+            "/admin-pic/teams/contractors-not-in-any-team",
+            get(branch::teams::list_contrators_not_in_any_team),
+        )
+        .route(
             "/admin-pic/teams/create-team",
             post(branch::teams::create_team),
         ).
@@ -225,6 +233,14 @@ async fn main() {
         .route(
             "/admin-pic/teams/list-team-contractors",
             get(branch::teams::list_team_contractors),
+        )
+        .route(
+            "/admin-pic/cost-center/contrators-not-in-this-cost-center",
+            get(branch::cost_center::list_contrators_not_in_this_cost_center),
+        )
+        .route(
+            "/admin-pic/cost-center/contrators-not-in-any-cost-center",
+            get(branch::cost_center::list_contrators_not_in_any_cost_center),
         )
         .route(
             "/admin-pic/cost-center/create-cost-center",
@@ -551,6 +567,14 @@ async fn main() {
             get(onboard::payment::admin_get_one_payment_details)
                 .post(onboard::payment::admin_post_one_payment_details),
         )
+         .route(
+            "/eor-admin/teams/contractors-not-in-this-team",
+            get(eor_admin::teams::list_contrators_not_in_this_team),
+        )
+         .route(
+            "/eor-admin/teams/contractors-not-in-any-team",
+            get(eor_admin::teams::list_contrators_not_in_any_team),
+        )
         .route(
             "/eor-admin/teams/create-team",
             post(eor_admin::teams::create_team),
@@ -582,6 +606,14 @@ async fn main() {
         .route(
             "/eor-admin/teams/list-team-contractors",
             get(eor_admin::teams::list_team_contractors),
+        )
+        .route(
+            "/eor-admin/cost-center/contrators-not-in-this-cost-center",
+            get(eor_admin::cost_center::list_contrators_not_in_this_cost_center),
+        )
+        .route(
+            "/eor-admin/cost-center/contrators-not-in-any-cost-center",
+            get(eor_admin::cost_center::list_contrators_not_in_any_cost_center),
         )
         .route(
             "/eor-admin/cost-center/create-cost-center",

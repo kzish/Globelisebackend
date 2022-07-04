@@ -61,6 +61,15 @@ pub struct ListCostCentersContractorsRequest {
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 #[serde(rename_all = "kebab-case")]
+pub struct ListFreeCostCentersContractorsRequest {
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+    pub contractor_name: Option<String>,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
 pub struct CostCenterContractorResponse {
     pub contractor_ulid: Uuid,
     pub contractor_name: String,
@@ -70,6 +79,16 @@ pub struct CostCenterContractorResponse {
     pub cost_center_ulid: Uuid,
     pub country: String,
     pub currency: String,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
+pub struct FreeCostCenterContractorResponse {
+    pub contractor_ulid: Uuid,
+    pub contractor_name: String,
+    pub email_address: String,
+    pub cost_center_count: i64,
 }
 
 #[serde_as]
@@ -135,6 +154,34 @@ pub async fn list_cost_center_contractors(
     let database = database.lock().await;
 
     let result = database.list_cost_center_contractors(request).await?;
+
+    Ok(Json(result))
+}
+
+pub async fn list_contrators_not_in_this_cost_center(
+    _: Token<AdminAccessToken>,
+    Query(request): Query<ListCostCentersContractorsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<FreeCostCenterContractorResponse>>> {
+    let database = database.lock().await;
+
+    let result = database
+        .list_contrators_not_in_this_cost_center(request)
+        .await?;
+
+    Ok(Json(result))
+}
+
+pub async fn list_contrators_not_in_any_cost_center(
+    _: Token<AdminAccessToken>,
+    Query(request): Query<ListFreeCostCentersContractorsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<FreeCostCenterContractorResponse>>> {
+    let database = database.lock().await;
+
+    let result = database
+        .list_contrators_not_in_any_cost_center(request)
+        .await?;
 
     Ok(Json(result))
 }
@@ -267,6 +314,54 @@ impl Database {
                 OFFSET $3",
         )
         .bind(request.cost_center_ulid)
+        .bind(limit)
+        .bind(offset)
+        .bind(format!("%{}%", request.contractor_name.unwrap_or_default()))
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(response)
+    }
+
+    pub async fn list_contrators_not_in_this_cost_center(
+        &self,
+        request: ListCostCentersContractorsRequest,
+    ) -> GlobeliseResult<Vec<FreeCostCenterContractorResponse>> {
+        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+        let response = sqlx::query_as(
+            "SELECT * FROM 
+                    cost_center_contractors_details 
+                WHERE
+                    cost_center_ulid NOT IN ($1)
+                AND ($4 IS NULL or contractor_name LIKE $4)
+                LIMIT $2
+                OFFSET $3",
+        )
+        .bind(request.cost_center_ulid)
+        .bind(limit)
+        .bind(offset)
+        .bind(format!("%{}%", request.contractor_name.unwrap_or_default()))
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(response)
+    }
+
+    pub async fn list_contrators_not_in_any_cost_center(
+        &self,
+        request: ListFreeCostCentersContractorsRequest,
+    ) -> GlobeliseResult<Vec<FreeCostCenterContractorResponse>> {
+        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+        let response = sqlx::query_as(
+            "SELECT * FROM 
+                    contractors_not_in_any_cost_center_details 
+                WHERE
+                    ($3 IS NULL or contractor_name LIKE $3)
+                AND
+                    cost_center_count = 0
+                LIMIT $1
+                OFFSET $2",
+        )
         .bind(limit)
         .bind(offset)
         .bind(format!("%{}%", request.contractor_name.unwrap_or_default()))
