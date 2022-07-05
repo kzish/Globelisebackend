@@ -200,7 +200,7 @@ pub async fn get_entity_contractor_bank_details(
     let database = database.lock().await;
 
     let response = database
-        .get_entity_contractor_bank_details(request.branch_ulid)
+        .get_entity_contractor_bank_details(request.ulid)
         .await?;
 
     Ok(Json(response))
@@ -228,7 +228,7 @@ pub async fn delete_entity_contractor_bank_details(
     let database = database.lock().await;
 
     database
-        .delete_entity_contractor_bank_details(request.branch_ulid)
+        .delete_entity_contractor_bank_details(request.ulid)
         .await?;
 
     Ok(())

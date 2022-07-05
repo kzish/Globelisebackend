@@ -273,26 +273,4 @@ impl Database {
 
         Ok(response)
     }
-
-    pub async fn branch_belongs_to_contractor(
-        &self,
-        contractor_ulid: Uuid,
-        branch_ulid: Uuid,
-    ) -> GlobeliseResult<bool> {
-        let response = sqlx::query(
-            "SELECT
-                *
-            FROM
-                entity_contractor_branch_pairs 
-            WHERE contractor_ulid = $1
-            AND branch_ulid = $2",
-        )
-        .bind(contractor_ulid)
-        .bind(branch_ulid)
-        .fetch_optional(&self.0)
-        .await?
-        .is_some();
-
-        Ok(response)
-    }
 }
