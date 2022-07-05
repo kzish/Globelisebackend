@@ -351,7 +351,6 @@ pub async fn update_entity_contractor_bank_details(
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
-
     if claims.payload.ulid != request.ulid {
         return Err(GlobeliseError::Forbidden);
     }
