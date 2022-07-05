@@ -3,8 +3,8 @@
 use crate::database::{Database, SharedDatabase};
 use crate::eor_admin::teams::{
     AddContractorToTeamRequest, CreateTeamRequest, ListTeamContractorsRequest,
-    ListTeamContractorsResponse, ListTeamsClientUlidRequest, ListTeamsRequest, ListTeamsResponse,
-    UpdateTeamRequest,
+    ListTeamContractorsResponse, ListTeamFreeContractorsRequest, ListTeamFreeContractorsResponse,
+    ListTeamsClientUlidRequest, ListTeamsRequest, ListTeamsResponse, UpdateTeamRequest,
 };
 use axum::extract::{Extension, Json, Path, Query};
 use common_utils::error::GlobeliseError;
@@ -180,6 +180,30 @@ pub async fn list_team_contractors(
     }
 
     let response = database.list_team_contractors(request).await?;
+
+    Ok(Json(response))
+}
+
+pub async fn list_contrators_not_in_this_team(
+    _claims: Token<UserAccessToken>,
+    Query(request): Query<ListTeamContractorsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ListTeamContractorsResponse>>> {
+    let database = database.lock().await;
+
+    let response = database.list_contrators_not_in_this_team(request).await?;
+
+    Ok(Json(response))
+}
+
+pub async fn list_contrators_not_in_any_team(
+    _claims: Token<UserAccessToken>,
+    Query(request): Query<ListTeamFreeContractorsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ListTeamFreeContractorsResponse>>> {
+    let database = database.lock().await;
+
+    let response = database.list_contrators_not_in_any_team(request).await?;
 
     Ok(Json(response))
 }
