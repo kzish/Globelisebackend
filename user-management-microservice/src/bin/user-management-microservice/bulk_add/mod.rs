@@ -1,10 +1,16 @@
-use std::{io::Cursor, str::FromStr};
+use std::{io::Cursor, str::FromStr, sync::Arc};
 
-use axum::extract::{ContentLengthLimit, Extension, Json, Query};
+use axum::extract::{ContentLengthLimit, Extension, Json};
 use calamine::Reader;
 use common_utils::{
-    custom_serde::{EmailWrapper, FORM_DATA_LENGTH_LIMIT},
-    database::{bulk_add::PrefillIndividualContractorDetailsForBulkUpload, CommonDatabase},
+    custom_serde::{
+        Country, Currency, EmailWrapper, OffsetDateWrapper, OptionOffsetDateWrapper, UserType,
+        FORM_DATA_LENGTH_LIMIT,
+    },
+    database::{
+        onboard::{bank::ContractorUserDetails, individual::IndividualContractorAccountDetails},
+        CommonDatabase, Database,
+    },
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -12,13 +18,106 @@ use csv::{ReaderBuilder, StringRecord};
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use lettre::{message::Mailbox, Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as};
+use serde_with::{base64::Base64, serde_as, TryFromInto};
+use sqlx::FromRow;
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use crate::env::{
     GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
     USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
 };
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PrefillIndividualContractorDetailsForBulkUpload {
+    #[serde(rename = "First Name")]
+    pub first_name: String,
+    #[serde(rename = "Last Name")]
+    pub last_name: String,
+    #[serde(rename = "Gender")]
+    pub gender: String,
+    #[serde(rename = "Marital Status")]
+    pub marital_status: String,
+    #[serde(rename = "Nationality")]
+    pub nationality: String,
+    #[serde(rename = "Date of Birth")]
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub dob: sqlx::types::time::OffsetDateTime,
+    #[serde(rename = "Dial Code")]
+    pub dial_code: String,
+    #[serde(rename = "Phone Number")]
+    pub phone_number: String,
+    #[serde(rename = "Email Address")]
+    pub email: EmailWrapper,
+    #[serde(rename = "Address")]
+    pub address: String,
+    #[serde(rename = "Country")]
+    pub country: Country,
+    #[serde(rename = "City")]
+    pub city: String,
+    #[serde(rename = "Postal Code")]
+    pub postal_code: String,
+    #[serde(rename = "National ID")]
+    pub national_id: Option<String>,
+    #[serde(rename = "Passport Number")]
+    pub passport_number: Option<String>,
+    #[serde(rename = "Passport Expiry Date")]
+    pub passport_expiry_date: Option<String>,
+    #[serde(rename = "Work Permit")]
+    pub work_permit: Option<String>,
+    #[serde(rename = "Tax ID")]
+    pub tax_id: Option<String>,
+    #[serde(rename = "Contribution ID #1")]
+    pub contribution_id_1: Option<String>,
+    #[serde(rename = "Contribution ID #2")]
+    pub contribution_id_2: Option<String>,
+    #[serde(rename = "Total Dependants")]
+    pub total_dependants: Option<i64>,
+    #[serde(rename = "Timezone")]
+    pub time_zone: String,
+    #[serde(rename = "Employee ID")]
+    pub employee_id: Option<String>,
+    #[serde(rename = "Designation")]
+    pub designation: Option<String>,
+    #[serde(rename = "Start Date")]
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    #[serde(default)]
+    pub start_date: Option<sqlx::types::time::OffsetDateTime>,
+    #[serde(rename = "End Date")]
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    #[serde(default)]
+    pub end_date: Option<sqlx::types::time::OffsetDateTime>,
+    #[serde(rename = "Employment Status")]
+    pub employment_status: Option<String>,
+    #[serde(rename = "Bank Name")]
+    pub bank_name: String,
+    #[serde(rename = "Bank Account Owner Name")]
+    pub bank_account_name: String,
+    #[serde(rename = "Bank Account Number")]
+    pub bank_account_number: String,
+    #[serde(rename = "Bank Code")]
+    pub bank_code: String,
+    #[serde(rename = "Branch Code")]
+    pub bank_branch_code: String,
+    #[serde(rename = "Currency")]
+    pub currency: Currency,
+    #[serde(rename = "Basic Salary")]
+    pub basic_salary: Option<f64>,
+    #[serde(rename = "Additional Item 1")]
+    pub additional_item_1: String,
+    #[serde(rename = "Additional Item 2")]
+    pub additional_item_2: Option<String>,
+    #[serde(rename = "Deduction 1")]
+    pub deduction_1: Option<String>,
+    #[serde(rename = "Deduction 2")]
+    pub deduction_2: Option<String>,
+    #[serde(rename = "Other Pay Item 1")]
+    pub other_pay_item_1: Option<String>,
+    #[serde(rename = "Other Pay Item 2")]
+    pub other_pay_item_2: Option<String>,
+}
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
@@ -110,80 +209,137 @@ pub async fn post_one(
         }
     };
 
+    let mut errors = vec![];
+
     for value in rows_to_enter {
-        let receiver_email = value
-            .email
-            // TODO: Get the name of the person associated to this email address
-            .0
-            .to_display("")
-            .parse::<Mailbox>()?;
-
-        let database = database.lock().await;
-
-        database
-            .post_prefilll_individual_contractor_details_for_bulk_upload(body.client_ulid, &value)
-            .await?;
-
-        if let Some(true) = body.debug {
-            return Ok(());
+        if let Err(err) = process_row(value, database.clone(), body.debug).await {
+            errors.push(err);
         }
-
-        // Send email to the contractor
-
-        let email = Message::builder()
-            .from(GLOBELISE_SENDER_EMAIL.clone())
-            // TODO: Remove this because this is supposed to be a no-reply email?
-            .reply_to(GLOBELISE_SENDER_EMAIL.clone())
-            .to(receiver_email)
-            .subject("Invitation to Globelise")
-            .header(lettre::message::header::ContentType::TEXT_HTML)
-            // TODO: Once designer have a template for this. Use a templating library to populate data.
-            .body(format!(
-                r##"
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Globelise Invitation</title>
-                </head>
-                <body>
-                    <p>
-                   Click the <a href="{}">link</a> to sign up as a Globelise individual contractor.
-                    </p>
-                    <p>If you did not expect to receive this email. Please ignore!</p>
-                </body>
-                </html>
-                "##,
-                (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
-            ))?;
-
-        // Open a remote connection to gmail
-        let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)?
-            .credentials(SMTP_CREDENTIAL.clone())
-            .build();
-
-        // Send the email
-        mailer.send(&email)?;
     }
 
     Ok(())
 }
 
-pub async fn get_one(
-    // Only for validation
-    _: Token<AdminAccessToken>,
-    Query(query): Query<GetPrefillIndividualContractorDetailsForBulkUpload>,
-    Extension(database): Extension<CommonDatabase>,
-) -> GlobeliseResult<Json<PrefillIndividualContractorDetailsForBulkUpload>> {
+async fn process_row(
+    value: PrefillIndividualContractorDetailsForBulkUpload,
+    database: Arc<Mutex<Database>>,
+    debug: Option<bool>,
+) -> GlobeliseResult<()> {
+    let receiver_email = value
+        .email
+        // TODO: Get the name of the person associated to this email address
+        .0
+        .to_display("")
+        .parse::<Mailbox>()?;
+
     let database = database.lock().await;
 
-    let result = database
-        .get_prefilll_individual_contractor_details_for_bulk_upload(query.email)
+    let user_ulid = if let Some(user) = database
+        .find_one_user(None, Some(&value.email), None)
         .await?
-        .ok_or_else(|| {
-            GlobeliseError::not_found(
-                "Cannot find prefilled individual contractor details from the query",
-            )
-        })?;
+    {
+        user.ulid
+    } else {
+        database
+            .insert_one_user(&value.email, None, false, false, false, true, false, true)
+            .await?
+    };
 
-    Ok(Json(result))
+    if database
+        .select_one_onboard_individual_contractor_account_details(user_ulid)
+        .await?
+        .is_none()
+    {
+        database
+            .insert_one_onboard_individual_contractor_account_details(
+                user_ulid,
+                &IndividualContractorAccountDetails {
+                    first_name: value.first_name,
+                    last_name: value.last_name,
+                    dob: value.dob,
+                    dial_code: value.dial_code,
+                    phone_number: value.phone_number,
+                    country: value.country,
+                    city: value.city,
+                    address: value.address,
+                    postal_code: value.postal_code,
+                    tax_id: value.tax_id,
+                    time_zone: value.time_zone,
+                    profile_picture: None,
+                    cv: None,
+                    gender: value.gender,
+                    marital_status: value.marital_status,
+                    nationality: Some(value.nationality),
+                    email_address: None,
+                    national_id: value.national_id,
+                    passport_number: value.passport_number,
+                    passport_expiry_date: value.passport_expiry_date,
+                    work_permit: value.work_permit,
+                    added_related_pay_item_id: None,
+                    total_dependants: value.total_dependants,
+                },
+            )
+            .await?;
+    }
+
+    if database
+        .select_one_onboard_user_bank_detail(user_ulid, UserType::Individual)
+        .await?
+        .is_none()
+    {
+        database
+            .insert_one_onboard_user_bank_details(
+                user_ulid,
+                UserType::Individual,
+                &ContractorUserDetails {
+                    bank_name: value.bank_name,
+                    bank_account_name: value.bank_account_name,
+                    bank_account_number: value.bank_account_number,
+                    bank_code: value.bank_code,
+                    branch_code: value.bank_branch_code,
+                },
+            )
+            .await?;
+    }
+
+    if let Some(true) = debug {
+        return Ok(());
+    }
+
+    // Send email to the contractor
+
+    let email = Message::builder()
+        .from(GLOBELISE_SENDER_EMAIL.clone())
+        // TODO: Remove this because this is supposed to be a no-reply email?
+        .reply_to(GLOBELISE_SENDER_EMAIL.clone())
+        .to(receiver_email)
+        .subject("Invitation to Globelise")
+        .header(lettre::message::header::ContentType::TEXT_HTML)
+        // TODO: Once designer have a template for this. Use a templating library to populate data.
+        .body(format!(
+            r##"
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Globelise Invitation</title>
+        </head>
+        <body>
+            <p>
+           Click the <a href="{}">link</a> to sign up as a Globelise individual contractor.
+            </p>
+            <p>If you did not expect to receive this email. Please ignore!</p>
+        </body>
+        </html>
+        "##,
+            (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
+        ))?;
+
+    // Open a remote connection to gmail
+    let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)?
+        .credentials(SMTP_CREDENTIAL.clone())
+        .build();
+
+    // Send the email
+    mailer.send(&email)?;
+    Ok(())
 }

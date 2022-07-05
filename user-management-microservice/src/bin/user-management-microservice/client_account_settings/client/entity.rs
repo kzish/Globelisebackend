@@ -1,7 +1,7 @@
 use crate::database::{Database, SharedDatabase};
 use axum::extract::Query;
 use axum::{extract::Extension, Json};
-use common_utils::custom_serde::ImageData;
+use common_utils::custom_serde::{Country, ImageData};
 use common_utils::{
     custom_serde::OffsetDateWrapper,
     error::{GlobeliseError, GlobeliseResult},
@@ -44,7 +44,7 @@ pub struct EntityClientPicDetailsRequest {
 pub struct EntityClientAccountDetails {
     pub ulid: Uuid,
     pub company_name: String,
-    pub country: String,
+    pub country: Country,
     pub entity_type: String,
     pub registration_number: String,
     pub tax_id: String,
@@ -70,7 +70,7 @@ pub struct EntityClientAccountDetailsRequest {
 pub struct EntityClientBranchAccountDetails {
     pub ulid: Uuid,
     pub branch_name: String,
-    pub country: String,
+    pub country: Country,
     pub entity_type: String,
     pub registration_number: String,
     pub tax_id: String,

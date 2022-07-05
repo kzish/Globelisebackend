@@ -173,13 +173,11 @@ async fn main() {
         )
         .route(
             "/client/prefill/individual_contractor_account_details",
-            get(prefill::account::user_get_one_individual_contractor)
-                .post(prefill::account::user_post_one_individual_contractor),
+                post(prefill::account::user_post_one_individual_contractor),
         )
         .route(
             "/client/prefill/individual_contractor_bank_details",
-            get(prefill::bank::user_get_one_individual_contractor)
-                .post(prefill::bank::user_post_one_individual_contractor),
+            post(prefill::bank::user_post_one_individual_contractor),
         )
         .route(
             "/client-contractors/search",
@@ -723,37 +721,32 @@ async fn main() {
         )
         .route(
             "/eor-admin/users/add_bulk_employees",
-            get(bulk_add::get_one).post(bulk_add::post_one),
+            post(bulk_add::post_one),
         )
         .route(
             "/eor-admin/users/onboard/prefill_individual_contractor_account_details",
-            get(eor_admin::prefill::account::individual_contractor_get_one)
-                .post(eor_admin::prefill::account::individual_contractor_post_one),
+                post(prefill::account::admin_post_one_individual_contractor),
         )
         .route(
             "/eor-admin/users/onboard/prefill_individual_contractor_bank_details",
-            get(eor_admin::prefill::bank::individual_contractor_get_one)
-                .post(eor_admin::prefill::bank::individual_contractor_post_one),
+                post(prefill::bank::admin_post_one_individual_contractor),
         )
         .route(
             "/eor-admin/entities/onboard/prefill-entity-client",
-            get(eor_admin::prefill::account::entity_client_get_one)
-                .post(eor_admin::prefill::account::entity_client_post_one),
+                post(prefill::account::admin_post_one_entity_client),
         )
         .route(
             "/eor-admin/entities/onboard/prefill-entity-client/pic-details",
-            get(eor_admin::prefill::pic::entity_client_get_one)
-                .post(eor_admin::prefill::pic::entity_client_post_one),
+            post(prefill::pic::admin_post_one_entity_client),
         )
         .route(
             "/eor-admin/entities/onboard/prefill-entity-client/bank-details",
-            get(eor_admin::prefill::bank::entity_client_get_one)
-                .post(eor_admin::prefill::bank::entity_client_post_one),
+                post(prefill::bank::admin_post_one_entity_client),
         )
         .route(
             "/eor-admin/entities/onboard/prefill-entity-client/payment-details",
-            get(eor_admin::prefill::payment::entity_client_get_one)
-                .post(eor_admin::prefill::payment::entity_client_post_one),
+            get(prefill::payment::admin_post_one_entity_client)
+                .post(prefill::payment::admin_post_one_entity_client),
         )
         .route(
             "/eor-admin/department",

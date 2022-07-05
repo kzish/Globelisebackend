@@ -1,7 +1,7 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Path};
 use common_utils::{
     custom_serde::{UserType, FORM_DATA_LENGTH_LIMIT},
-    database::{onboard::bank::ContractorBankDetails, CommonDatabase},
+    database::{onboard::bank::ContractorUserDetails, CommonDatabase},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -12,7 +12,7 @@ use uuid::Uuid;
 pub async fn user_post_one_bank_details(
     claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<ContractorBankDetails>,
+        Json<ContractorUserDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<CommonDatabase>,
@@ -30,7 +30,7 @@ pub async fn admin_post_one_bank_details(
     _: Token<AdminAccessToken>,
     Path((user_ulid, user_type)): Path<(Uuid, UserType)>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<ContractorBankDetails>,
+        Json<ContractorUserDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<CommonDatabase>,
@@ -47,7 +47,7 @@ pub async fn admin_post_one_bank_details(
 pub async fn user_get_one_bank_details(
     claims: Token<UserAccessToken>,
     Extension(database): Extension<CommonDatabase>,
-) -> GlobeliseResult<Json<ContractorBankDetails>> {
+) -> GlobeliseResult<Json<ContractorUserDetails>> {
     let database = database.lock().await;
 
     let result = database
@@ -64,7 +64,7 @@ pub async fn admin_get_one_bank_details(
     _: Token<AdminAccessToken>,
     Path((user_ulid, user_type)): Path<(Uuid, UserType)>,
     Extension(database): Extension<CommonDatabase>,
-) -> GlobeliseResult<Json<ContractorBankDetails>> {
+) -> GlobeliseResult<Json<ContractorUserDetails>> {
     let database = database.lock().await;
 
     let result = database

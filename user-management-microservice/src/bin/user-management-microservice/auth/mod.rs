@@ -56,15 +56,35 @@ pub async fn signup(
 
     let database = database.lock().await;
 
-    if database
+    let ulid = if let Some(user) = database
         .find_one_user(None, Some(&body.email), None)
         .await?
-        .is_some()
     {
-        return Err(GlobeliseError::bad_request(
-            "User with that email already exists. Did you forgot the password?",
-        ));
-    }
+        if user.password == None {
+            database
+                .update_one_user(user.ulid, Some(&password), user.is_google, user.is_outlook)
+                .await?;
+            Ok(user.ulid)
+        } else {
+            Err(GlobeliseError::bad_request(
+                "User with that email already exists. Did you forgot the password?",
+            ))
+        }
+    } else {
+        let ulid = database
+            .insert_one_user(
+                &body.email,
+                Some(&hash),
+                false,
+                false,
+                user_type == UserType::Entity,
+                user_type == UserType::Individual,
+                false,
+                false,
+            )
+            .await?;
+        Ok(ulid)
+    }?;
 
     //register user for benefits marketplace
     let email = &(body.email.0.clone()).to_string();
@@ -81,19 +101,6 @@ pub async fn signup(
     if res.0 != "200" {
         return Err(GlobeliseError::bad_request(res.1));
     }
-
-    let ulid = database
-        .insert_one_user(
-            &body.email,
-            Some(&hash),
-            false,
-            false,
-            user_type == UserType::Entity,
-            user_type == UserType::Individual,
-            false,
-            false,
-        )
-        .await?;
 
     let mut shared_state = shared_state.lock().await;
     let refresh_token = shared_state.open_session(ulid, user_type).await?;

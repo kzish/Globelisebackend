@@ -1,0 +1,12 @@
+DROP VIEW public.prefilled_individual_contractor_account_details_index;
+DROP VIEW public.prefilled_individual_contractor_bank_details_index;
+
+DROP TABLE public.prefilled_entity_client_account_details;
+DROP TABLE public.prefilled_entity_client_bank_details;
+DROP TABLE public.prefilled_entity_client_payment_details;
+DROP TABLE public.prefilled_entity_client_pic_details;
+DROP TABLE public.prefilled_individual_contractor_account_details;
+DROP TABLE public.prefilled_individual_contractor_account_details_no_client_ulid;
+DROP TABLE public.prefilled_individual_contractor_bank_details;
+DROP TABLE public.prefilled_individual_contractor_bank_details_no_client_ulid;
+DROP TABLE public.prefilled_individual_contractor_details_for_bulk_upload;
