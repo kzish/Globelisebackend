@@ -142,6 +142,8 @@ impl Database {
             ($1 IS NULL OR user_ulid = $1) AND
             ($2 IS NULL OR read = $2) AND
             ($3 IS NULL OR message ~* $3)
+        ORDER BY
+            created_at DESC
         LIMIT
             $4
         OFFSET
