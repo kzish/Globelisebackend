@@ -1,7 +1,7 @@
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
     custom_serde::{EmailWrapper, UserType, FORM_DATA_LENGTH_LIMIT},
-    database::{prefill::bank::PrefillIndividualContractorBankDetails, CommonDatabase},
+    database::{prefill::bank::PrefillUserBankDetails, CommonDatabase},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
@@ -13,7 +13,7 @@ use user_management_microservice_sdk::token::UserAccessToken;
 pub async fn user_post_one_individual_contractor(
     token: Token<UserAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<PrefillIndividualContractorBankDetails>,
+        Json<PrefillUserBankDetails>,
         FORM_DATA_LENGTH_LIMIT,
     >,
     Extension(database): Extension<CommonDatabase>,
@@ -49,7 +49,7 @@ pub async fn user_get_one_individual_contractor(
     token: Token<UserAccessToken>,
     Query(query): Query<UserGetOnePrefillIndividualContractorBankDetailsQuery>,
     Extension(database): Extension<CommonDatabase>,
-) -> GlobeliseResult<Json<PrefillIndividualContractorBankDetails>> {
+) -> GlobeliseResult<Json<PrefillUserBankDetails>> {
     if !matches!(token.payload.user_type, UserType::Entity) {
         return Err(GlobeliseError::Forbidden);
     }

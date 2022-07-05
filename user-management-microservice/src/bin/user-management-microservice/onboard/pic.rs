@@ -26,14 +26,14 @@ pub async fn user_post_one_onboard_entity_pic_details(
 
     database
         .insert_one_onboard_entity_pic_details(
-            claims.payload.ulid,
-            role,
-            body.first_name,
-            body.last_name,
-            body.dob,
-            body.dial_code,
-            body.phone_number,
-            body.profile_picture,
+            &claims.payload.ulid,
+            &role,
+            &body.first_name,
+            &body.last_name,
+            &body.dob,
+            &body.dial_code,
+            &body.phone_number,
+            body.profile_picture.as_ref(),
         )
         .await?;
 
@@ -53,14 +53,14 @@ pub async fn admin_post_one_onboard_entity_pic_details(
 
     database
         .insert_one_onboard_entity_pic_details(
-            user_ulid,
-            user_role,
-            body.first_name,
-            body.last_name,
-            body.dob,
-            body.dial_code,
-            body.phone_number,
-            body.profile_picture,
+            &user_ulid,
+            &user_role,
+            &body.first_name,
+            &body.last_name,
+            &body.dob,
+            &body.dial_code,
+            &body.phone_number,
+            body.profile_picture.as_ref(),
         )
         .await?;
 

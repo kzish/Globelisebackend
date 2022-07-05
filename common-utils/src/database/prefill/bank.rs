@@ -8,7 +8,7 @@ use crate::{custom_serde::EmailWrapper, database::Database, error::GlobeliseResu
 #[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct PrefillIndividualContractorBankDetails {
+pub struct PrefillUserBankDetails {
     pub email: EmailWrapper,
     pub client_ulid: Uuid,
     pub bank_name: String,
@@ -59,7 +59,7 @@ impl Database {
         &self,
         client_ulid: Uuid,
         email: EmailWrapper,
-    ) -> GlobeliseResult<Option<PrefillIndividualContractorBankDetails>> {
+    ) -> GlobeliseResult<Option<PrefillUserBankDetails>> {
         let query = "
             SELECT
                 *

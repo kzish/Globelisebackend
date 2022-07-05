@@ -129,23 +129,6 @@ pub struct TaxReportIndex {
 }
 
 #[serde_as]
-#[derive(Debug, FromRow, Serialize)]
-#[serde(rename_all = "kebab-case")]
-struct TaxReportIndexSqlHelper {
-    client_name: String,
-    contractor_name: String,
-    #[serde(default)]
-    contract_name: Option<String>,
-    tax_interval: TaxInterval,
-    tax_name: String,
-    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
-    pub begin_period: sqlx::types::time::OffsetDateTime,
-    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
-    pub end_period: sqlx::types::time::OffsetDateTime,
-    country: String,
-}
-
-#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct CreateTaxReportIndex {

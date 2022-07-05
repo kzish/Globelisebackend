@@ -65,7 +65,7 @@ pub async fn user_post_one_client_account_details(
     let database = database.lock().await;
 
     database
-        .insert_one_onboard_entity_client_account_details(claims.payload.ulid, body)
+        .insert_one_onboard_entity_client_account_details(claims.payload.ulid, &body)
         .await?;
 
     Ok(())
@@ -83,7 +83,7 @@ pub async fn admin_post_one_client_account_details(
     let database = database.lock().await;
 
     database
-        .insert_one_onboard_entity_client_account_details(user_ulid, body)
+        .insert_one_onboard_entity_client_account_details(user_ulid, &body)
         .await?;
 
     Ok(())
@@ -104,7 +104,7 @@ pub async fn user_post_one_contractor_account_details(
     let database = database.lock().await;
 
     database
-        .insert_one_onboard_entity_contractor_account_details(claims.payload.ulid, body)
+        .insert_one_onboard_entity_contractor_account_details(claims.payload.ulid, &body)
         .await
         .map_err(|e| {
             GlobeliseError::internal(format!(
@@ -128,7 +128,7 @@ pub async fn admin_post_one_contractor_account_details(
     let database = database.lock().await;
 
     database
-        .insert_one_onboard_entity_contractor_account_details(user_ulid, body)
+        .insert_one_onboard_entity_contractor_account_details(user_ulid, &body)
         .await
         .map_err(|e| {
             GlobeliseError::internal(format!(

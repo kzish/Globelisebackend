@@ -28,14 +28,14 @@ impl Database {
     #[allow(clippy::too_many_arguments)]
     pub async fn insert_one_onboard_entity_pic_details(
         &self,
-        ulid: Uuid,
-        role: UserRole,
-        first_name: String,
-        last_name: String,
-        dob: sqlx::types::time::OffsetDateTime,
-        dial_code: String,
-        phone_number: String,
-        profile_picture: Option<ImageData>,
+        ulid: &Uuid,
+        role: &UserRole,
+        first_name: &String,
+        last_name: &String,
+        dob: &sqlx::types::time::OffsetDateTime,
+        dial_code: &String,
+        phone_number: &String,
+        profile_picture: Option<&ImageData>,
     ) -> GlobeliseResult<()> {
         let table = match role {
             UserRole::Client => "entity_client_pic_details",
