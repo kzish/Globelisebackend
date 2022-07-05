@@ -51,7 +51,8 @@ async fn main() {
         )
         .route(
             "/onboard/admin-details",
-            post(onboard::individual::account_details),
+            get(onboard::individual::get_account_details)
+                .post(onboard::individual::account_details),
         )
         .route("/auth/access-token", post(auth::access_token))
         .route("/auth/public-key", get(auth::public_key))
