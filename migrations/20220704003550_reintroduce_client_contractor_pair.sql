@@ -16,7 +16,8 @@ INSERT INTO public.client_contractor_pairs (
     client_ulid, contractor_ulid, contract_ulid
 ) SELECT
     client_ulid, contractor_ulid, ulid AS contract_ulid
-FROM public.contracts;
+FROM public.contracts
+ON CONFLICT (client_ulid, contractor_ulid) DO NOTHING;
 
 -- Create views
 
