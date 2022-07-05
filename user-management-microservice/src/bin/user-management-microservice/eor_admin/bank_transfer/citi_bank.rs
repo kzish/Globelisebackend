@@ -19,6 +19,7 @@ use sqlx::FromRow;
 use ssh2::Session;
 use std::process::Command;
 use std::{
+    fmt::Write as FmtWrite,
     fs::{self},
     io::{prelude::*, Write},
     net::TcpStream,
@@ -309,8 +310,8 @@ pub async fn _update_transaction_status(db: Arc<Mutex<Database>>) -> GlobeliseRe
                 let mut reject_reason: String = "".to_string();
 
                 for reason in record.tx_inf_and_sts.sts_rsn_inf {
-                    for aditional_info in reason.addtl_inf {
-                        reject_reason.push_str(&format!("{}, ", &aditional_info));
+                    for additional_info in reason.addtl_inf {
+                        write!(reject_reason, "{}, ", &additional_info)?;
                     }
                 }
 
