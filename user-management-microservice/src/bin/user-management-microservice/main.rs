@@ -529,6 +529,59 @@ async fn main() {
                 .post(contractor_account_settings::eor_admin::individual::update_individual_contractor_payroll_information)
                 .delete(contractor_account_settings::eor_admin::individual::delete_individual_contractor_payroll_information)
         )
+        .route(
+            "/client-view/contractor-account-settings/contractor/entity/entity-contractor-account-settings",
+                get(contractor_account_settings::client_view::entity::get_entity_contractor_account_details)
+                .post(contractor_account_settings::client_view::entity::update_entity_contractor_account_details)
+                .delete(contractor_account_settings::client_view::entity::delete_entity_contractor_account_details)
+        )
+        .route(
+            "/client-view/contractor-account-settings/contractor/entity/entity-contractor-employment-information",
+                get(contractor_account_settings::client_view::entity::get_entity_contractor_employment_information)
+                .post(contractor_account_settings::client_view::entity::update_entity_contractor_employment_information)
+                .delete(contractor_account_settings::client_view::entity::delete_entity_contractor_employment_information)
+        )
+        .route(
+            "/client-view/contractor-account-settings/contractor/entity/entity-contractor-payroll-information",
+                get(contractor_account_settings::client_view::entity::get_entity_contractor_payroll_information)
+                .post(contractor_account_settings::client_view::entity::update_entity_contractor_payroll_information)
+                .delete(contractor_account_settings::client_view::entity::delete_entity_contractor_payroll_information)
+        )
+        .route(
+            "/client-view/contractor-account-settings/contractor/entity/entity-contractor-pic-details",
+                get(contractor_account_settings::client_view::entity::get_entity_contractor_pic_details)
+                .post(contractor_account_settings::client_view::entity::update_entity_contractor_pic_details)
+                .delete(contractor_account_settings::client_view::entity::delete_entity_contractor_pic_details)
+        ) .route(
+            "/client-view/contractor-account-settings/contractor/entity/entity-contractor-bank-details",
+                get(contractor_account_settings::client_view::entity::get_entity_contractor_bank_details)
+                .post(contractor_account_settings::client_view::entity::update_entity_contractor_bank_details)
+                .delete(contractor_account_settings::client_view::entity::delete_entity_contractor_bank_details)
+        )
+        .route(
+            "/client-view/contractor-account-settings/contractor/individual/individual-contractor-account-settings",
+                get(contractor_account_settings::client_view::individual::get_individual_contractor_account_details)
+                .post(contractor_account_settings::client_view::individual::update_individual_contractor_account_details)
+                .delete(contractor_account_settings::client_view::individual::delete_individual_contractor_account_details)
+        )
+        .route(
+            "/client-view/contractor-account-settings/contractor/individual/individual-contractor-bank-details",
+                get(contractor_account_settings::client_view::individual::get_individual_contractor_bank_details)
+                .post(contractor_account_settings::client_view::individual::update_individual_contractor_bank_details)
+                .delete(contractor_account_settings::client_view::individual::delete_individual_contractor_bank_details)
+        )
+         .route(
+            "/client-view/contractor-account-settings/contractor/individual/individual-contractor-employment-information",
+                get(contractor_account_settings::client_view::individual::get_individual_contractor_employment_information)
+                .post(contractor_account_settings::client_view::individual::update_individual_contractor_employment_information)
+                .delete(contractor_account_settings::client_view::individual::delete_individual_contractor_employment_information)
+        )
+        .route(
+            "/client-view/contractor-account-settings/contractor/individual/individual-contractor-payroll-information",
+                get(contractor_account_settings::client_view::individual::get_individual_contractor_payroll_information)
+                .post(contractor_account_settings::client_view::individual::update_individual_contractor_payroll_information)
+                .delete(contractor_account_settings::client_view::individual::delete_individual_contractor_payroll_information)
+        )
         // ========== ADMIN APIS ==========
         .route(
             "/eor-admin/onboard/:user_ulid/individual-details/client",
