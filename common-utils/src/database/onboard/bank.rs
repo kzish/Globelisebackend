@@ -6,7 +6,7 @@ use crate::{custom_serde::UserType, database::Database, error::GlobeliseResult};
 
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct ContractorBankDetails {
+pub struct ContractorUserDetails {
     pub bank_name: String,
     pub bank_account_name: String,
     pub bank_account_number: String,
@@ -19,7 +19,7 @@ impl Database {
         &self,
         ulid: Uuid,
         user_type: UserType,
-        details: &ContractorBankDetails,
+        details: &ContractorUserDetails,
     ) -> GlobeliseResult<()> {
         let table = match user_type {
             UserType::Individual => "individual_contractor_bank_details",
@@ -54,7 +54,7 @@ impl Database {
         &self,
         ulid: Uuid,
         user_type: UserType,
-    ) -> GlobeliseResult<Option<ContractorBankDetails>> {
+    ) -> GlobeliseResult<Option<ContractorUserDetails>> {
         let table = match user_type {
             UserType::Individual => "individual_contractor_bank_details",
             UserType::Entity => "entity_contractor_bank_details",
