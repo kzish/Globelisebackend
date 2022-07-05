@@ -37,7 +37,7 @@ mod onboard;
 mod prefill;
 mod user;
 
-use crate::auth::token::KEYS;
+use crate::auth::{state::State, token::KEYS};
 use env::{DAPR_ADDRESS, DATABASE_URL, FRONTEND_URL, LISTENING_ADDRESS};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -46,7 +46,7 @@ static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_P
 async fn main() {
     dotenv::dotenv().ok();
 
-    let shared_state = auth::State::new().await.expect("Could not connect to Dapr");
+    let shared_state = State::new().await.expect("Could not connect to Dapr");
     let shared_state = Arc::new(Mutex::new(shared_state));
 
     let shared_database = Arc::new(Mutex::new(Database::new().await));

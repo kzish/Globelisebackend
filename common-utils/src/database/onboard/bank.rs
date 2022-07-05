@@ -11,15 +11,16 @@ pub struct ContractorBankDetails {
     pub bank_account_name: String,
     pub bank_account_number: String,
     pub bank_code: String,
-    pub branch_code: String,
+    #[serde(rename = "branch-code")]
+    pub bank_branch_code: String,
 }
 
 impl Database {
-    pub async fn insert_one_contractor_bank_details(
+    pub async fn insert_one_onboard_contractor_bank_details(
         &self,
         ulid: Uuid,
         user_type: UserType,
-        details: ContractorBankDetails,
+        details: &ContractorBankDetails,
     ) -> GlobeliseResult<()> {
         let table = match user_type {
             UserType::Individual => "individual_contractor_bank_details",
@@ -39,11 +40,11 @@ impl Database {
             branch_code = $6",
         ))
         .bind(ulid)
-        .bind(details.bank_name)
-        .bind(details.bank_account_name)
-        .bind(details.bank_account_number)
-        .bind(details.bank_code)
-        .bind(details.branch_code)
+        .bind(&details.bank_name)
+        .bind(&details.bank_account_name)
+        .bind(&details.bank_account_number)
+        .bind(&details.bank_code)
+        .bind(&details.bank_branch_code)
         .execute(&self.0)
         .await?;
 

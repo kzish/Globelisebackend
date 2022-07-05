@@ -84,8 +84,8 @@ pub async fn signup(
             return Err(GlobeliseError::bad_request(res.1));
         }
         let ulid = database
-            .create_user(
-                claims.email,
+            .insert_one_user(
+                &claims.email,
                 None,
                 true,
                 false,

@@ -109,10 +109,10 @@ pub struct UserIndex {
 
 impl Database {
     #[allow(clippy::too_many_arguments)]
-    pub async fn create_user(
+    pub async fn insert_one_user(
         &self,
-        email: EmailWrapper,
-        password: Option<String>,
+        email: &EmailWrapper,
+        password: Option<&String>,
         is_google: bool,
         is_outlook: bool,
         is_entity: bool,
@@ -140,6 +140,36 @@ impl Database {
         .bind(is_individual)
         .bind(is_client)
         .bind(is_contractor)
+        .execute(&self.0)
+        .await?;
+
+        Ok(ulid)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn update_one_user(
+        &self,
+        ulid: Uuid,
+        password: Option<&String>,
+        is_google: bool,
+        is_outlook: bool,
+    ) -> GlobeliseResult<Uuid> {
+        sqlx::query(
+            "
+            UPDATE
+                users
+            SET
+                password = $1,
+                is_google = $2,
+                is_outlook = $3
+            WHERE
+                ulid = $4;
+            ",
+        )
+        .bind(password)
+        .bind(is_google)
+        .bind(is_outlook)
+        .bind(ulid)
         .execute(&self.0)
         .await?;
 

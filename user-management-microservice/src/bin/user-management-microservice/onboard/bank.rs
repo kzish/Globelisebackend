@@ -20,7 +20,11 @@ pub async fn user_post_one_bank_details(
     let database = database.lock().await;
 
     database
-        .insert_one_contractor_bank_details(claims.payload.ulid, claims.payload.user_type, body)
+        .insert_one_onboard_contractor_bank_details(
+            claims.payload.ulid,
+            claims.payload.user_type,
+            &body,
+        )
         .await?;
 
     Ok(())
@@ -38,7 +42,7 @@ pub async fn admin_post_one_bank_details(
     let database = database.lock().await;
 
     database
-        .insert_one_contractor_bank_details(user_ulid, user_type, body)
+        .insert_one_onboard_contractor_bank_details(user_ulid, user_type, &body)
         .await?;
 
     Ok(())
