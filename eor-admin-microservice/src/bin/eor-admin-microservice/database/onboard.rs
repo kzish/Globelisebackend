@@ -40,4 +40,19 @@ impl Database {
 
         Ok(())
     }
+
+    pub async fn get_onboard_admin_details(
+        &self,
+        ulid: Uuid,
+    ) -> GlobeliseResult<IndividualDetails> {
+        let query = "
+            SELECT * FROM
+            onboard_eor_admins 
+            WHERE
+                ulid = $1"
+            .to_string();
+        let response = sqlx::query_as(&query).bind(ulid).fetch_one(&self.0).await?;
+
+        Ok(response)
+    }
 }
