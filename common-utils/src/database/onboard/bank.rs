@@ -11,12 +11,11 @@ pub struct ContractorBankDetails {
     pub bank_account_name: String,
     pub bank_account_number: String,
     pub bank_code: String,
-    #[serde(rename = "branch-code")]
-    pub bank_branch_code: String,
+    pub branch_code: String,
 }
 
 impl Database {
-    pub async fn insert_one_onboard_contractor_bank_details(
+    pub async fn insert_one_onboard_user_bank_details(
         &self,
         ulid: Uuid,
         user_type: UserType,
@@ -44,14 +43,14 @@ impl Database {
         .bind(&details.bank_account_name)
         .bind(&details.bank_account_number)
         .bind(&details.bank_code)
-        .bind(&details.bank_branch_code)
+        .bind(&details.branch_code)
         .execute(&self.0)
         .await?;
 
         Ok(())
     }
 
-    pub async fn select_one_contractor_bank_detail(
+    pub async fn select_one_onboard_user_bank_detail(
         &self,
         ulid: Uuid,
         user_type: UserType,

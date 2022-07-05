@@ -4,7 +4,7 @@ use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::{
-    custom_serde::{EmailWrapper, ImageData, OffsetDateWrapper},
+    custom_serde::{Country, EmailWrapper, ImageData, OffsetDateWrapper},
     database::Database,
     error::GlobeliseResult,
 };
@@ -19,7 +19,7 @@ pub struct IndividualClientAccountDetails {
     pub dob: sqlx::types::time::OffsetDateTime,
     pub dial_code: String,
     pub phone_number: String,
-    pub country: String,
+    pub country: Country,
     pub city: String,
     pub address: String,
     pub postal_code: String,
@@ -101,7 +101,7 @@ pub struct IndividualContractorAccountDetails {
     pub dob: sqlx::types::time::OffsetDateTime,
     pub dial_code: String,
     pub phone_number: String,
-    pub country: String,
+    pub country: Country,
     pub city: String,
     pub address: String,
     pub postal_code: String,

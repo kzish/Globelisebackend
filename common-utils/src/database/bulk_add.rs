@@ -4,7 +4,7 @@ use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::{
-    custom_serde::{Currency, EmailWrapper, OffsetDateWrapper, OptionOffsetDateWrapper},
+    custom_serde::{Country, Currency, EmailWrapper, OffsetDateWrapper, OptionOffsetDateWrapper},
     error::GlobeliseResult,
 };
 
@@ -36,7 +36,7 @@ pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Address")]
     pub address: String,
     #[serde(rename = "Country")]
-    pub country: String,
+    pub country: Country,
     #[serde(rename = "City")]
     pub city: String,
     #[serde(rename = "Postal Code")]
