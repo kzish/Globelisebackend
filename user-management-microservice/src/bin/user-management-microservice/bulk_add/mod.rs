@@ -1,6 +1,10 @@
 use std::{io::Cursor, str::FromStr, sync::Arc};
 
-use axum::extract::{ContentLengthLimit, Extension, Json};
+use axum::{
+    extract::{ContentLengthLimit, Extension, Json},
+    http::{header::CONTENT_TYPE, HeaderValue},
+    response::IntoResponse,
+};
 use calamine::Reader;
 use common_utils::{
     custom_serde::{
@@ -342,4 +346,17 @@ async fn process_row(
     // Send the email
     mailer.send(&email)?;
     Ok(())
+}
+
+pub async fn download(_: Token<AdminAccessToken>) -> impl IntoResponse {
+    let bytes = include_bytes!("add_bulk_employees.xlsx").to_vec();
+    (
+        [(
+            CONTENT_TYPE,
+            HeaderValue::from_static(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ),
+        )],
+        bytes,
+    )
 }

@@ -12582,6 +12582,80 @@
           ]
         },
         {
+          "name": "Bulk Add Employees",
+          "item": [
+            {
+              "name": "Add Bulk Employees",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin-access-token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"file-data\": \"base64file\",\n    \"file-name\": \"filename\",\n    \"client-ulid\": \"\",\n    \"debug\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{user-management-host}}/eor-admin/users/add_bulk_employees",
+                  "host": ["{{user-management-host}}"],
+                  "path": ["eor-admin", "users", "add_bulk_employees"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Download Bulk Add Employees Template",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin-access-token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"uploaded-file\": \"base64file\",\n    \"client-ulid\": \"\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{user-management-host}}/eor-admin/users/add-bulk-employees/download",
+                  "host": ["{{user-management-host}}"],
+                  "path": [
+                    "eor-admin",
+                    "users",
+                    "add-bulk-employees",
+                    "download"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
           "name": "Healthz",
           "request": {
             "method": "GET",
@@ -12613,38 +12687,6 @@
             "url": {
               "raw": "{{user-management-host}}",
               "host": ["{{user-management-host}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Add Bulk Employees",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin-access-token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"uploaded-file\": \"base64file\",\n    \"client-ulid\": \"\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{user-management-host}}/eor-admin/users/add_bulk_employees",
-              "host": ["{{user-management-host}}"],
-              "path": ["eor-admin", "users", "add_bulk_employees"]
             }
           },
           "response": []
@@ -13747,7 +13789,7 @@
                       "variable": [
                         {
                           "key": "payslip_ulid",
-                          "value": "f715b82b-903d-413f-a438-911206ec48a8"
+                          "value": "f1782fc8-5746-4499-b807-c8211a49478f"
                         }
                       ]
                     }
