@@ -25,20 +25,20 @@ pub struct IndividualContractorAccountDetails {
     pub city: String,
     pub address: String,
     pub postal_code: String,
-    pub tax_id: String,
+    pub tax_id: Option<String>,
     pub time_zone: String,
     pub gender: String,
     pub marital_status: String,
-    pub nationality: String,
-    pub email_address: EmailWrapper,
-    pub national_id: String,
-    pub passport_number: String,
+    pub nationality: Option<String>,
+    pub email_address: Option<EmailWrapper>,
+    pub national_id: Option<String>,
+    pub passport_number: Option<String>,
     pub work_permit: Option<String>,
-    pub added_related_pay_item_id: Uuid,
-    pub total_dependants: i64,
+    pub added_related_pay_item_id: Option<Uuid>,
+    pub total_dependants: Option<i64>,
 
     // #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    pub passport_expiry_date: String,
+    pub passport_expiry_date: Option<String>,
 
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     pub dob: sqlx::types::time::OffsetDateTime,
