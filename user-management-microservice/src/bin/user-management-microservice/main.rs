@@ -91,6 +91,10 @@ async fn main() {
             get(user::user_get_many_users),
         )
         .route(
+            "/:user_role/users/:user_ulid",
+            get(user::user_get_one_user),
+        )
+        .route(
             "/onboard/individual-details/client",
             get(onboard::individual::user_get_one_client_account_details)
                 .post(onboard::individual::user_post_one_client_account_details),

@@ -5,7 +5,7 @@ use axum::{
 use common_utils::{
     custom_serde::{OptionOffsetDateWrapper, UserRole, UserType},
     database::{user::OnboardedUserIndex, CommonDatabase},
-    error::GlobeliseResult,
+    error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
@@ -39,7 +39,15 @@ pub async fn user_get_many_users(
     Query(query): Query<GetManyOnboardedUserIndexQuery>,
     Extension(shared_database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
+    if !claims.payload.user_roles.contains(&user_role) {
+        return Err(GlobeliseError::unauthorized(format!(
+            "User is not part of {} role",
+            user_role
+        )));
+    }
+
     let database = shared_database.lock().await;
+
     let result = match user_role {
         UserRole::Client => {
             database
@@ -70,6 +78,55 @@ pub async fn user_get_many_users(
                 .await?
         }
     };
+
+    Ok(Json(result))
+}
+
+pub async fn user_get_one_user(
+    claims: Token<UserAccessToken>,
+    Path((user_role, user_ulid)): Path<(UserRole, Uuid)>,
+    Query(query): Query<GetManyOnboardedUserIndexQuery>,
+    Extension(shared_database): Extension<CommonDatabase>,
+) -> GlobeliseResult<Json<OnboardedUserIndex>> {
+    if !claims.payload.user_roles.contains(&user_role) {
+        return Err(GlobeliseError::unauthorized(format!(
+            "User is not part of {} role",
+            user_role
+        )));
+    }
+
+    let database = shared_database.lock().await;
+
+    let result = match user_role {
+        UserRole::Client => {
+            database
+                .select_one_contractors_index_for_clients(
+                    Some(claims.payload.ulid),
+                    Some(user_ulid),
+                    query.query,
+                    query.user_type,
+                    query.user_role,
+                    query.created_after,
+                    query.created_before,
+                )
+                .await?
+        }
+        UserRole::Contractor => {
+            database
+                .select_one_clients_index_for_contractors(
+                    Some(claims.payload.ulid),
+                    Some(user_ulid),
+                    query.query,
+                    query.user_type,
+                    query.user_role,
+                    query.created_after,
+                    query.created_before,
+                )
+                .await?
+        }
+    }
+    .ok_or_else(|| GlobeliseError::not_found("Cannot find the user with that query"))?;
+
     Ok(Json(result))
 }
 
