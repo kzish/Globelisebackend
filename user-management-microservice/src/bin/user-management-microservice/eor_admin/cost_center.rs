@@ -74,11 +74,11 @@ pub struct CostCenterContractorResponse {
     pub contractor_ulid: Uuid,
     pub contractor_name: String,
     pub branch_ulid: Uuid,
-    pub branch_name: String,
+    pub branch_name: Option<String>,
     pub cost_center_name: String,
     pub cost_center_ulid: Uuid,
-    pub country: String,
-    pub currency: String,
+    pub country: Option<String>,
+    pub currency: Option<String>,
 }
 
 #[serde_as]
@@ -86,9 +86,9 @@ pub struct CostCenterContractorResponse {
 #[serde(rename_all = "kebab-case")]
 pub struct FreeCostCenterContractorResponse {
     pub contractor_ulid: Uuid,
-    pub contractor_name: String,
-    pub email_address: String,
-    pub cost_center_count: i64,
+    pub contractor_name: Option<String>,
+    pub email_address: Option<String>,
+    pub cost_center_count: Option<i64>,
 }
 
 #[serde_as]

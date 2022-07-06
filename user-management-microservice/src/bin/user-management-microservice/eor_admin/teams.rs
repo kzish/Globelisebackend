@@ -211,12 +211,12 @@ pub struct ListTeamFreeContractorsRequest {
 #[serde(rename_all = "kebab-case")]
 pub struct ListTeamContractorsResponse {
     pub contractor_ulid: Uuid,
-    pub contractor_name: String,
-    pub branch_ulid: Uuid,
-    pub branch_name: String,
-    pub team_name: String,
-    pub team_ulid: Uuid,
-    pub country: String,
+    pub contractor_name: Option<String>,
+    pub branch_ulid: Option<Uuid>,
+    pub branch_name: Option<String>,
+    pub team_name: Option<String>,
+    pub team_ulid: Option<Uuid>,
+    pub country: Option<String>,
 }
 
 #[serde_as]
@@ -224,9 +224,9 @@ pub struct ListTeamContractorsResponse {
 #[serde(rename_all = "kebab-case")]
 pub struct ListTeamFreeContractorsResponse {
     pub contractor_ulid: Uuid,
-    pub contractor_name: String,
-    pub email_address: String,
-    pub teams_count: i64,
+    pub contractor_name: Option<String>,
+    pub email_address: Option<String>,
+    pub teams_count: Option<i64>,
 }
 
 pub async fn create_team(
