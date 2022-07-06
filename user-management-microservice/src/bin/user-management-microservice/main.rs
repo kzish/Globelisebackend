@@ -777,6 +777,10 @@ async fn main() {
             post(bulk_add::post_one),
         )
         .route(
+            "/eor-admin/users/add-bulk-employees/download",
+            get(bulk_add::download),
+        )
+        .route(
             "/eor-admin/users/onboard/prefill_individual_contractor_account_details",
                 post(prefill::account::admin_post_one_individual_contractor),
         )
