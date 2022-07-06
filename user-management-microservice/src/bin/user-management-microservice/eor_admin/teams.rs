@@ -200,6 +200,15 @@ pub struct ListTeamContractorsRequest {
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 #[serde(rename_all = "kebab-case")]
+pub struct ListTeamFreeContractorsRequest {
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+    pub contractor_name: Option<String>,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
 pub struct ListTeamContractorsResponse {
     pub contractor_ulid: Uuid,
     pub contractor_name: String,
@@ -208,6 +217,16 @@ pub struct ListTeamContractorsResponse {
     pub team_name: String,
     pub team_ulid: Uuid,
     pub country: String,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
+pub struct ListTeamFreeContractorsResponse {
+    pub contractor_ulid: Uuid,
+    pub contractor_name: String,
+    pub email_address: String,
+    pub teams_count: i64,
 }
 
 pub async fn create_team(
@@ -302,6 +321,30 @@ pub async fn list_team_contractors(
     let database = database.lock().await;
 
     let response = database.list_team_contractors(request).await?;
+
+    Ok(Json(response))
+}
+
+pub async fn list_contrators_not_in_this_team(
+    _: Token<AdminAccessToken>,
+    Query(request): Query<ListTeamContractorsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ListTeamContractorsResponse>>> {
+    let database = database.lock().await;
+
+    let response = database.list_contrators_not_in_this_team(request).await?;
+
+    Ok(Json(response))
+}
+
+pub async fn list_contrators_not_in_any_team(
+    _: Token<AdminAccessToken>,
+    Query(request): Query<ListTeamFreeContractorsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ListTeamFreeContractorsResponse>>> {
+    let database = database.lock().await;
+
+    let response = database.list_contrators_not_in_any_team(request).await?;
 
     Ok(Json(response))
 }
@@ -554,6 +597,54 @@ impl Database {
                 OFFSET $3",
         )
         .bind(request.team_ulid)
+        .bind(limit)
+        .bind(offset)
+        .bind(format!("%{}%", request.contractor_name.unwrap_or_default()))
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(response)
+    }
+
+    pub async fn list_contrators_not_in_this_team(
+        &self,
+        request: ListTeamContractorsRequest,
+    ) -> GlobeliseResult<Vec<ListTeamContractorsResponse>> {
+        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+        let response = sqlx::query_as(
+            "SELECT * FROM 
+                    team_contractors_details 
+                WHERE
+                    team_ulid NOT IN ($1)
+                AND ($4 IS NULL or contractor_name LIKE $4)
+                LIMIT $2
+                OFFSET $3",
+        )
+        .bind(request.team_ulid)
+        .bind(limit)
+        .bind(offset)
+        .bind(format!("%{}%", request.contractor_name.unwrap_or_default()))
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(response)
+    }
+
+    pub async fn list_contrators_not_in_any_team(
+        &self,
+        request: ListTeamFreeContractorsRequest,
+    ) -> GlobeliseResult<Vec<ListTeamFreeContractorsResponse>> {
+        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+        let response = sqlx::query_as(
+            "SELECT * FROM 
+                    contractors_not_in_any_team_details 
+                WHERE
+                    ($3 IS NULL or contractor_name LIKE $3)
+                AND
+                    teams_count = 0
+                LIMIT $1
+                OFFSET $2",
+        )
         .bind(limit)
         .bind(offset)
         .bind(format!("%{}%", request.contractor_name.unwrap_or_default()))

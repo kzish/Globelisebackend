@@ -13,7 +13,7 @@ use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
 use crate::{
-    auth::SharedState,
+    auth::state::SharedState,
     database::{Database, SharedDatabase},
 };
 

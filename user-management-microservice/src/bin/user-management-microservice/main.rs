@@ -19,9 +19,11 @@ use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer, Origin};
 
 mod auth;
+mod benefits_market_place;
 mod branch;
 mod bulk_add;
 mod client_account_settings;
+mod client_contractor_pair;
 mod constant;
 mod contractor_account_settings;
 mod custom_field;
@@ -35,7 +37,7 @@ mod onboard;
 mod prefill;
 mod user;
 
-use crate::auth::token::KEYS;
+use crate::auth::{state::State, token::KEYS};
 use env::{DAPR_ADDRESS, DATABASE_URL, FRONTEND_URL, LISTENING_ADDRESS};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -44,7 +46,7 @@ static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_P
 async fn main() {
     dotenv::dotenv().ok();
 
-    let shared_state = auth::State::new().await.expect("Could not connect to Dapr");
+    let shared_state = State::new().await.expect("Could not connect to Dapr");
     let shared_state = Arc::new(Mutex::new(shared_state));
 
     let shared_database = Arc::new(Mutex::new(Database::new().await));
@@ -171,13 +173,11 @@ async fn main() {
         )
         .route(
             "/client/prefill/individual_contractor_account_details",
-            get(prefill::account::user_get_one_individual_contractor)
-                .post(prefill::account::user_post_one_individual_contractor),
+                post(prefill::account::user_post_one_individual_contractor),
         )
         .route(
             "/client/prefill/individual_contractor_bank_details",
-            get(prefill::bank::user_get_one_individual_contractor)
-                .post(prefill::bank::user_post_one_individual_contractor),
+            post(prefill::bank::user_post_one_individual_contractor),
         )
         .route(
             "/client-contractors/search",
@@ -191,6 +191,14 @@ async fn main() {
             "/users/notifications",
             get(notification::user_get_many).
             put(notification::user_put_one),
+        )
+        .route(
+            "/admin-pic/teams/contractors-not-in-this-team",
+            get(branch::teams::list_contrators_not_in_this_team),
+        )
+        .route(
+            "/admin-pic/teams/contractors-not-in-any-team",
+            get(branch::teams::list_contrators_not_in_any_team),
         )
         .route(
             "/admin-pic/teams/create-team",
@@ -223,6 +231,14 @@ async fn main() {
         .route(
             "/admin-pic/teams/list-team-contractors",
             get(branch::teams::list_team_contractors),
+        )
+        .route(
+            "/admin-pic/cost-center/contrators-not-in-this-cost-center",
+            get(branch::cost_center::list_contrators_not_in_this_cost_center),
+        )
+        .route(
+            "/admin-pic/cost-center/contrators-not-in-any-cost-center",
+            get(branch::cost_center::list_contrators_not_in_any_cost_center),
         )
         .route(
             "/admin-pic/cost-center/create-cost-center",
@@ -513,6 +529,59 @@ async fn main() {
                 .post(contractor_account_settings::eor_admin::individual::update_individual_contractor_payroll_information)
                 .delete(contractor_account_settings::eor_admin::individual::delete_individual_contractor_payroll_information)
         )
+        .route(
+            "/client-view/contractor-account-settings/contractor/entity/entity-contractor-account-settings",
+                get(contractor_account_settings::client_view::entity::get_entity_contractor_account_details)
+                .post(contractor_account_settings::client_view::entity::update_entity_contractor_account_details)
+                .delete(contractor_account_settings::client_view::entity::delete_entity_contractor_account_details)
+        )
+        .route(
+            "/client-view/contractor-account-settings/contractor/entity/entity-contractor-employment-information",
+                get(contractor_account_settings::client_view::entity::get_entity_contractor_employment_information)
+                .post(contractor_account_settings::client_view::entity::update_entity_contractor_employment_information)
+                .delete(contractor_account_settings::client_view::entity::delete_entity_contractor_employment_information)
+        )
+        .route(
+            "/client-view/contractor-account-settings/contractor/entity/entity-contractor-payroll-information",
+                get(contractor_account_settings::client_view::entity::get_entity_contractor_payroll_information)
+                .post(contractor_account_settings::client_view::entity::update_entity_contractor_payroll_information)
+                .delete(contractor_account_settings::client_view::entity::delete_entity_contractor_payroll_information)
+        )
+        .route(
+            "/client-view/contractor-account-settings/contractor/entity/entity-contractor-pic-details",
+                get(contractor_account_settings::client_view::entity::get_entity_contractor_pic_details)
+                .post(contractor_account_settings::client_view::entity::update_entity_contractor_pic_details)
+                .delete(contractor_account_settings::client_view::entity::delete_entity_contractor_pic_details)
+        ) .route(
+            "/client-view/contractor-account-settings/contractor/entity/entity-contractor-bank-details",
+                get(contractor_account_settings::client_view::entity::get_entity_contractor_bank_details)
+                .post(contractor_account_settings::client_view::entity::update_entity_contractor_bank_details)
+                .delete(contractor_account_settings::client_view::entity::delete_entity_contractor_bank_details)
+        )
+        .route(
+            "/client-view/contractor-account-settings/contractor/individual/individual-contractor-account-settings",
+                get(contractor_account_settings::client_view::individual::get_individual_contractor_account_details)
+                .post(contractor_account_settings::client_view::individual::update_individual_contractor_account_details)
+                .delete(contractor_account_settings::client_view::individual::delete_individual_contractor_account_details)
+        )
+        .route(
+            "/client-view/contractor-account-settings/contractor/individual/individual-contractor-bank-details",
+                get(contractor_account_settings::client_view::individual::get_individual_contractor_bank_details)
+                .post(contractor_account_settings::client_view::individual::update_individual_contractor_bank_details)
+                .delete(contractor_account_settings::client_view::individual::delete_individual_contractor_bank_details)
+        )
+         .route(
+            "/client-view/contractor-account-settings/contractor/individual/individual-contractor-employment-information",
+                get(contractor_account_settings::client_view::individual::get_individual_contractor_employment_information)
+                .post(contractor_account_settings::client_view::individual::update_individual_contractor_employment_information)
+                .delete(contractor_account_settings::client_view::individual::delete_individual_contractor_employment_information)
+        )
+        .route(
+            "/client-view/contractor-account-settings/contractor/individual/individual-contractor-payroll-information",
+                get(contractor_account_settings::client_view::individual::get_individual_contractor_payroll_information)
+                .post(contractor_account_settings::client_view::individual::update_individual_contractor_payroll_information)
+                .delete(contractor_account_settings::client_view::individual::delete_individual_contractor_payroll_information)
+        )
         // ========== ADMIN APIS ==========
         .route(
             "/eor-admin/onboard/:user_ulid/individual-details/client",
@@ -549,6 +618,14 @@ async fn main() {
             get(onboard::payment::admin_get_one_payment_details)
                 .post(onboard::payment::admin_post_one_payment_details),
         )
+         .route(
+            "/eor-admin/teams/contractors-not-in-this-team",
+            get(eor_admin::teams::list_contrators_not_in_this_team),
+        )
+         .route(
+            "/eor-admin/teams/contractors-not-in-any-team",
+            get(eor_admin::teams::list_contrators_not_in_any_team),
+        )
         .route(
             "/eor-admin/teams/create-team",
             post(eor_admin::teams::create_team),
@@ -580,6 +657,14 @@ async fn main() {
         .route(
             "/eor-admin/teams/list-team-contractors",
             get(eor_admin::teams::list_team_contractors),
+        )
+        .route(
+            "/eor-admin/cost-center/contrators-not-in-this-cost-center",
+            get(eor_admin::cost_center::list_contrators_not_in_this_cost_center),
+        )
+        .route(
+            "/eor-admin/cost-center/contrators-not-in-any-cost-center",
+            get(eor_admin::cost_center::list_contrators_not_in_any_cost_center),
         )
         .route(
             "/eor-admin/cost-center/create-cost-center",
@@ -667,6 +752,11 @@ async fn main() {
         )
         .route("/eor-admin/users", get(eor_admin::admin_get_many_user_index))
         .route(
+            "/eor-admin/client-contractor-pair",
+            get(client_contractor_pair::admin_get_many_client_contractor_pair_index)
+                .post(client_contractor_pair::admin_post_one_client_contractor_pair),
+        )
+        .route(
             "/eor-admin/users/individual/contractor_branch_pairs",
             get(eor_admin::individual_contractor_branch_pair::get_many)
                 .post(eor_admin::individual_contractor_branch_pair::post_one)
@@ -684,37 +774,36 @@ async fn main() {
         )
         .route(
             "/eor-admin/users/add_bulk_employees",
-            get(bulk_add::get_one).post(bulk_add::post_one),
+            post(bulk_add::post_one),
+        )
+        .route(
+            "/eor-admin/users/add-bulk-employees/download",
+            get(bulk_add::download),
         )
         .route(
             "/eor-admin/users/onboard/prefill_individual_contractor_account_details",
-            get(eor_admin::prefill::account::individual_contractor_get_one)
-                .post(eor_admin::prefill::account::individual_contractor_post_one),
+                post(prefill::account::admin_post_one_individual_contractor),
         )
         .route(
             "/eor-admin/users/onboard/prefill_individual_contractor_bank_details",
-            get(eor_admin::prefill::bank::individual_contractor_get_one)
-                .post(eor_admin::prefill::bank::individual_contractor_post_one),
+                post(prefill::bank::admin_post_one_individual_contractor),
         )
         .route(
             "/eor-admin/entities/onboard/prefill-entity-client",
-            get(eor_admin::prefill::account::entity_client_get_one)
-                .post(eor_admin::prefill::account::entity_client_post_one),
+                post(prefill::account::admin_post_one_entity_client),
         )
         .route(
             "/eor-admin/entities/onboard/prefill-entity-client/pic-details",
-            get(eor_admin::prefill::pic::entity_client_get_one)
-                .post(eor_admin::prefill::pic::entity_client_post_one),
+            post(prefill::pic::admin_post_one_entity_client),
         )
         .route(
             "/eor-admin/entities/onboard/prefill-entity-client/bank-details",
-            get(eor_admin::prefill::bank::entity_client_get_one)
-                .post(eor_admin::prefill::bank::entity_client_post_one),
+                post(prefill::bank::admin_post_one_entity_client),
         )
         .route(
             "/eor-admin/entities/onboard/prefill-entity-client/payment-details",
-            get(eor_admin::prefill::payment::entity_client_get_one)
-                .post(eor_admin::prefill::payment::entity_client_post_one),
+            get(prefill::payment::admin_post_one_entity_client)
+                .post(prefill::payment::admin_post_one_entity_client),
         )
         .route(
             "/eor-admin/department",

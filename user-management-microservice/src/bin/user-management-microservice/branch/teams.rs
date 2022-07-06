@@ -3,8 +3,8 @@
 use crate::database::{Database, SharedDatabase};
 use crate::eor_admin::teams::{
     AddContractorToTeamRequest, CreateTeamRequest, ListTeamContractorsRequest,
-    ListTeamContractorsResponse, ListTeamsClientUlidRequest, ListTeamsRequest, ListTeamsResponse,
-    UpdateTeamRequest,
+    ListTeamContractorsResponse, ListTeamFreeContractorsRequest, ListTeamFreeContractorsResponse,
+    ListTeamsClientUlidRequest, ListTeamsRequest, ListTeamsResponse, UpdateTeamRequest,
 };
 use axum::extract::{Extension, Json, Path, Query};
 use common_utils::error::GlobeliseError;
@@ -184,6 +184,30 @@ pub async fn list_team_contractors(
     Ok(Json(response))
 }
 
+pub async fn list_contrators_not_in_this_team(
+    _claims: Token<UserAccessToken>,
+    Query(request): Query<ListTeamContractorsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ListTeamContractorsResponse>>> {
+    let database = database.lock().await;
+
+    let response = database.list_contrators_not_in_this_team(request).await?;
+
+    Ok(Json(response))
+}
+
+pub async fn list_contrators_not_in_any_team(
+    _claims: Token<UserAccessToken>,
+    Query(request): Query<ListTeamFreeContractorsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ListTeamFreeContractorsResponse>>> {
+    let database = database.lock().await;
+
+    let response = database.list_contrators_not_in_any_team(request).await?;
+
+    Ok(Json(response))
+}
+
 impl Database {
     //check this pic is the owner of the team
     pub async fn branch_belongs_to_pic(
@@ -246,28 +270,6 @@ impl Database {
         .bind(team_ulid)
         .fetch_one(&self.0)
         .await?;
-
-        Ok(response)
-    }
-
-    pub async fn branch_belongs_to_contractor(
-        &self,
-        contractor_ulid: Uuid,
-        branch_ulid: Uuid,
-    ) -> GlobeliseResult<bool> {
-        let response = sqlx::query(
-            "SELECT
-                *
-            FROM
-                entity_contractor_branch_pairs 
-            WHERE contractor_ulid = $1
-            AND branch_ulid = $2",
-        )
-        .bind(contractor_ulid)
-        .bind(branch_ulid)
-        .fetch_optional(&self.0)
-        .await?
-        .is_some();
 
         Ok(response)
     }

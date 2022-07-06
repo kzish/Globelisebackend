@@ -107,7 +107,7 @@ pub async fn user_post_one_contractor_account_details(
     let database = database.lock().await;
 
     database
-        .insert_one_onboard_individual_contractor_account_details(ulid, body)
+        .insert_one_onboard_individual_contractor_account_details(ulid, &body)
         .await?;
 
     Ok(())
@@ -125,7 +125,7 @@ pub async fn admin_post_one_contractor_account_details(
     let database = database.lock().await;
 
     database
-        .insert_one_onboard_individual_contractor_account_details(user_ulid, body)
+        .insert_one_onboard_individual_contractor_account_details(user_ulid, &body)
         .await?;
 
     Ok(())

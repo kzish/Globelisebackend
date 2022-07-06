@@ -19,8 +19,6 @@ use tokio::sync::Mutex;
 use tonic::transport::Channel;
 use uuid::Uuid;
 
-use crate::database::Database;
-
 use super::{
     token::{
         one_time::{create_one_time_token, OneTimeTokenAudience},
@@ -58,21 +56,9 @@ impl State {
     /// Returns the refresh token for the session.
     pub async fn open_session(
         &mut self,
-        database: &Database,
         ulid: Uuid,
         user_type: UserType,
     ) -> GlobeliseResult<String> {
-        // Validate that the user and role are correct.
-        if database
-            .find_one_user(Some(ulid), None, Some(user_type))
-            .await?
-            .is_none()
-        {
-            return Err(GlobeliseError::unauthorized(
-                "Refused to open session: invalid user",
-            ));
-        }
-
         let mut sessions = Sessions::default();
         if let Some(existing_sessions) = self.sessions(ulid).await? {
             sessions = existing_sessions;
@@ -114,24 +100,12 @@ impl State {
     /// Opens a new one-time session for a user.
     pub async fn open_one_time_session<T>(
         &mut self,
-        database: &Database,
         ulid: Uuid,
         user_type: UserType,
     ) -> GlobeliseResult<String>
     where
         T: OneTimeTokenAudience,
     {
-        // Validate that the user and role are correct.
-        if database
-            .find_one_user(Some(ulid), None, Some(user_type))
-            .await?
-            .is_none()
-        {
-            return Err(GlobeliseError::unauthorized(
-                "Refused to open one-time session: invalid user",
-            ));
-        }
-
         let mut sessions = OneTimeSessions::default();
         let category = Self::one_time_session_category::<T>();
         if let Some(existing_sessions) = self

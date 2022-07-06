@@ -6,7 +6,7 @@ use crate::{custom_serde::UserType, database::Database, error::GlobeliseResult};
 
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct ContractorBankDetails {
+pub struct ContractorUserDetails {
     pub bank_name: String,
     pub bank_account_name: String,
     pub bank_account_number: String,
@@ -15,11 +15,11 @@ pub struct ContractorBankDetails {
 }
 
 impl Database {
-    pub async fn insert_one_contractor_bank_details(
+    pub async fn insert_one_onboard_user_bank_details(
         &self,
         ulid: Uuid,
         user_type: UserType,
-        details: ContractorBankDetails,
+        details: &ContractorUserDetails,
     ) -> GlobeliseResult<()> {
         let table = match user_type {
             UserType::Individual => "individual_contractor_bank_details",
@@ -39,22 +39,22 @@ impl Database {
             branch_code = $6",
         ))
         .bind(ulid)
-        .bind(details.bank_name)
-        .bind(details.bank_account_name)
-        .bind(details.bank_account_number)
-        .bind(details.bank_code)
-        .bind(details.branch_code)
+        .bind(&details.bank_name)
+        .bind(&details.bank_account_name)
+        .bind(&details.bank_account_number)
+        .bind(&details.bank_code)
+        .bind(&details.branch_code)
         .execute(&self.0)
         .await?;
 
         Ok(())
     }
 
-    pub async fn select_one_contractor_bank_detail(
+    pub async fn select_one_onboard_user_bank_detail(
         &self,
         ulid: Uuid,
         user_type: UserType,
-    ) -> GlobeliseResult<Option<ContractorBankDetails>> {
+    ) -> GlobeliseResult<Option<ContractorUserDetails>> {
         let table = match user_type {
             UserType::Individual => "individual_contractor_bank_details",
             UserType::Entity => "entity_contractor_bank_details",

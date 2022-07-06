@@ -21,15 +21,15 @@ pub struct EntityContractorAccountDetails {
     pub company_name: String,
     pub country: String,
     pub entity_type: String,
-    pub registration_number: String,
-    pub tax_id: String,
+    pub registration_number: Option<String>,
+    pub tax_id: Option<String>,
     pub company_address: String,
     pub city: String,
     pub postal_code: String,
     pub time_zone: String,
-    pub email_address: EmailWrapper,
-    pub added_related_pay_item_id: Uuid,
-    pub total_dependants: i64,
+    pub email_address: Option<EmailWrapper>,
+    pub added_related_pay_item_id: Option<Uuid>,
+    pub total_dependants: Option<i64>,
 
     #[serde_as(as = "Option<Base64>")]
     #[serde(default)]
@@ -63,7 +63,7 @@ pub struct EntityContractorBankDetails {
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 #[serde(rename_all = "kebab-case")]
 pub struct EntityContractorBankDetailsRequest {
-    pub branch_ulid: Uuid,
+    pub ulid: Uuid,
 }
 
 #[serde_as]
@@ -334,20 +334,12 @@ pub async fn delete_entity_contractor_pic_details(
 //EntityContractorBankDetails
 pub async fn get_entity_contractor_bank_details(
     claims: Token<UserAccessToken>,
-    Query(request): Query<EntityContractorBankDetailsRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<EntityContractorBankDetails>> {
     let database = database.lock().await;
 
-    if !database
-        .branch_belongs_to_contractor(claims.payload.ulid, request.branch_ulid)
-        .await?
-    {
-        return Err(GlobeliseError::Forbidden);
-    }
-
     let response = database
-        .get_entity_contractor_bank_details(request.branch_ulid)
+        .get_entity_contractor_bank_details(claims.payload.ulid)
         .await?;
 
     Ok(Json(response))
@@ -359,11 +351,7 @@ pub async fn update_entity_contractor_bank_details(
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
-
-    if !database
-        .branch_belongs_to_contractor(claims.payload.ulid, request.ulid)
-        .await?
-    {
+    if claims.payload.ulid != request.ulid {
         return Err(GlobeliseError::Forbidden);
     }
     database
@@ -375,19 +363,12 @@ pub async fn update_entity_contractor_bank_details(
 //EntityContractorBankDetails
 pub async fn delete_entity_contractor_bank_details(
     claims: Token<UserAccessToken>,
-    Json(request): Json<EntityContractorBankDetailsRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
 
-    if !database
-        .branch_belongs_to_contractor(claims.payload.ulid, request.branch_ulid)
-        .await?
-    {
-        return Err(GlobeliseError::Forbidden);
-    }
     database
-        .delete_entity_contractor_bank_details(request.branch_ulid)
+        .delete_entity_contractor_bank_details(claims.payload.ulid)
         .await?;
 
     Ok(())

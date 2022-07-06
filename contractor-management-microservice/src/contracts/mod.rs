@@ -3,32 +3,18 @@ use axum::{
     Json,
 };
 use common_utils::{
-    custom_serde::{Currency, OffsetDateWrapper, UserRole, UserType, FORM_DATA_LENGTH_LIMIT},
-    database::{user::OnboardedUserIndex, CommonDatabase},
+    custom_serde::{Currency, OffsetDateWrapper, UserRole, FORM_DATA_LENGTH_LIMIT},
+    database::{contract::ContractsIndex, user::OnboardedUserIndex, CommonDatabase},
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, FromInto, TryFromInto};
-use sqlx::FromRow;
+use serde::Deserialize;
+use serde_with::{serde_as, TryFromInto};
 use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
-use crate::{common::PaginatedQuery, database::SharedDatabase};
-
-mod database;
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct GetUserIndexQuery {
-    pub page: Option<u32>,
-    pub per_page: Option<u32>,
-    pub query: Option<String>,
-    pub user_type: Option<UserType>,
-    pub user_role: Option<UserRole>,
-}
+use crate::common::PaginatedQuery;
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
@@ -40,61 +26,24 @@ pub struct GetOneContractQuery {
     pub branch_ulid: Option<Uuid>,
 }
 
-/// Lists all the users plus some information about them.
-pub async fn admin_get_many_user_index(
-    _: Token<AdminAccessToken>,
-    Query(query): Query<GetUserIndexQuery>,
-    Extension(shared_database): Extension<CommonDatabase>,
-) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
-    let database = shared_database.lock().await;
-    let result = database
-        .select_many_onboarded_user_index(
-            query.page,
-            query.per_page,
-            query.query,
-            query.user_type,
-            query.user_role,
-            None,
-            None,
-        )
-        .await?;
-    Ok(Json(result))
-}
-
-pub async fn user_get_many_clients_for_contractors(
-    access_token: Token<UserAccessToken>,
-    Query(query): Query<PaginatedQuery>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ClientContractorPair>>> {
-    let database = database.lock().await;
-    let result = database
-        .select_many_client_contractor_pairs(
-            query.page,
-            query.per_page,
-            query.query,
-            query.contractor_ulid,
-            Some(access_token.payload.ulid),
-        )
-        .await?;
-    Ok(Json(result))
-}
-
-pub async fn user_get_many_contractors_for_clients(
-    access_token: Token<UserAccessToken>,
-    Query(query): Query<PaginatedQuery>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ClientContractorPair>>> {
-    let database = database.lock().await;
-    let result = database
-        .select_many_client_contractor_pairs(
-            query.page,
-            query.per_page,
-            query.query,
-            Some(access_token.payload.ulid),
-            query.client_ulid,
-        )
-        .await?;
-    Ok(Json(result))
+#[serde_as]
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PostOneContract {
+    client_ulid: Uuid,
+    contractor_ulid: Uuid,
+    branch_ulid: Option<Uuid>,
+    contract_name: String,
+    contract_status: String,
+    contract_type: String,
+    job_title: String,
+    contract_amount: sqlx::types::Decimal,
+    currency: Currency,
+    seniority: String,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    begin_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    end_at: sqlx::types::time::OffsetDateTime,
 }
 
 #[serde_as]
@@ -113,7 +62,7 @@ pub async fn user_get_many_contract_index(
     claims: Token<UserAccessToken>,
     Path(role): Path<UserRole>,
     Query(query): Query<GetManyContractsQuery>,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractsIndex>>> {
     let database = database.lock().await;
     let results = match role {
@@ -150,7 +99,7 @@ pub async fn user_get_one_contract_index(
     claims: Token<UserAccessToken>,
     Path((user_role, contract_ulid)): Path<(UserRole, Uuid)>,
     Query(query): Query<GetManyContractsQuery>,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<ContractsIndex>> {
     let database = database.lock().await;
     let result = match user_role {
@@ -182,7 +131,7 @@ pub async fn user_get_one_contract_index(
 pub async fn user_sign_one_contract(
     claims: Token<UserAccessToken>,
     Path((user_role, contract_ulid)): Path<(UserRole, Uuid)>,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
 
@@ -205,7 +154,7 @@ pub async fn user_sign_one_contract(
 pub async fn admin_get_many_contract_index(
     _: Token<AdminAccessToken>,
     Query(query): Query<GetManyContractsQuery>,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<Vec<ContractsIndex>>> {
     let database = database.lock().await;
     Ok(Json(
@@ -226,7 +175,7 @@ pub async fn admin_get_one_contract_index(
     _: Token<AdminAccessToken>,
     Path(contract_ulid): Path<Uuid>,
     Query(query): Query<GetOneContractQuery>,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<ContractsIndex>> {
     let database = database.lock().await;
     let result = database
@@ -248,11 +197,11 @@ pub async fn admin_post_one_contract(
         Json<PostOneContract>,
         FORM_DATA_LENGTH_LIMIT,
     >,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<String> {
     let database = database.lock().await;
 
-    let ulid = database
+    let contract_ulid = database
         .insert_one_contract(
             body.client_ulid,
             body.contractor_ulid,
@@ -269,70 +218,55 @@ pub async fn admin_post_one_contract(
         )
         .await?;
 
-    Ok(ulid.to_string())
+    database
+        .insert_one_client_contractor_pair(
+            body.client_ulid,
+            body.contractor_ulid,
+            Some(contract_ulid),
+        )
+        .await?;
+
+    Ok(contract_ulid.to_string())
 }
 
-#[serde_as]
-#[derive(Debug, FromRow, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ClientContractorPair {
-    client_ulid: Uuid,
-    client_name: String,
-    contractor_ulid: Uuid,
-    contractor_name: String,
+pub async fn user_get_many_clients_for_contractors(
+    access_token: Token<UserAccessToken>,
+    Query(query): Query<PaginatedQuery>,
+    Extension(database): Extension<CommonDatabase>,
+) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
+    let database = database.lock().await;
+    let result = database
+        .select_many_clients_index_for_contractors(
+            Some(access_token.payload.ulid),
+            query.page,
+            query.per_page,
+            query.query,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await?;
+    Ok(Json(result))
 }
 
-#[serde_as]
-#[derive(Debug, FromRow, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ContractorsIndex {
-    contractor_ulid: Uuid,
-    contractor_name: String,
-    contract_name: Option<String>,
-    contract_status: Option<String>,
-    job_title: Option<String>,
-    seniority: Option<String>,
-}
-
-#[serde_as]
-#[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct PostOneContract {
-    client_ulid: Uuid,
-    contractor_ulid: Uuid,
-    branch_ulid: Option<Uuid>,
-    contract_name: String,
-    contract_status: String,
-    contract_type: String,
-    job_title: String,
-    contract_amount: sqlx::types::Decimal,
-    currency: Currency,
-    seniority: String,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    begin_at: sqlx::types::time::OffsetDateTime,
-    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
-    end_at: sqlx::types::time::OffsetDateTime,
-}
-
-#[serde_as]
-#[derive(Debug, FromRow, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ContractsIndex {
-    contract_ulid: Uuid,
-    client_ulid: Uuid,
-    branch_ulid: Option<Uuid>,
-    client_name: Option<String>,
-    contractor_ulid: Uuid,
-    contractor_name: Option<String>,
-    contract_name: String,
-    contract_type: String,
-    contract_status: String,
-    contract_amount: sqlx::types::Decimal,
-    currency: Currency,
-    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
-    begin_at: sqlx::types::time::OffsetDateTime,
-    #[serde_as(as = "FromInto<OffsetDateWrapper>")]
-    end_at: sqlx::types::time::OffsetDateTime,
-    job_title: String,
-    seniority: String,
+pub async fn user_get_many_contractors_for_clients(
+    access_token: Token<UserAccessToken>,
+    Query(query): Query<PaginatedQuery>,
+    Extension(database): Extension<CommonDatabase>,
+) -> GlobeliseResult<Json<Vec<OnboardedUserIndex>>> {
+    let database = database.lock().await;
+    let result = database
+        .select_many_contractors_index_for_clients(
+            Some(access_token.payload.ulid),
+            query.page,
+            query.per_page,
+            query.query,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await?;
+    Ok(Json(result))
 }
