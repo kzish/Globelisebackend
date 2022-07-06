@@ -319,6 +319,45 @@ impl Database {
     }
 
     #[allow(clippy::too_many_arguments)]
+    pub async fn select_one_clients_index_for_contractors(
+        &self,
+        contractor_ulid: Option<Uuid>,
+        client_ulid: Option<Uuid>,
+        query: Option<String>,
+        user_type: Option<UserType>,
+        user_role: Option<UserRole>,
+        created_after: Option<sqlx::types::time::OffsetDateTime>,
+        created_before: Option<sqlx::types::time::OffsetDateTime>,
+    ) -> GlobeliseResult<Option<OnboardedUserIndex>> {
+        let result = sqlx::query_as(
+            "
+            SELECT 
+                *
+            FROM 
+                clients_index_for_contractors 
+            WHERE
+                ($1 IS NULL OR contractor_ulid = $1) AND
+                ($2 IS NULL OR ulid = $2) AND
+                ($3 IS NULL OR email ~* $3 OR name ~* $3) AND
+                ($4 IS NULL OR user_type = $4) AND
+                ($5 IS NULL OR user_role = $5) AND
+                ($6 IS NULL OR created_at > $6) AND
+                ($7 IS NULL OR created_at < $7)",
+        )
+        .bind(contractor_ulid)
+        .bind(client_ulid)
+        .bind(query)
+        .bind(user_type)
+        .bind(user_role)
+        .bind(created_after)
+        .bind(created_before)
+        .fetch_optional(&self.0)
+        .await?;
+
+        Ok(result)
+    }
+
+    #[allow(clippy::too_many_arguments)]
     pub async fn select_many_contractors_index_for_clients(
         &self,
         client_ulid: Option<Uuid>,
@@ -344,11 +383,7 @@ impl Database {
                 ($3 IS NULL OR user_type = $3) AND
                 ($4 IS NULL OR user_role = $4) AND
                 ($5 IS NULL OR created_at > $5) AND
-                ($6 IS NULL OR created_at < $6)
-            LIMIT
-                $7
-            OFFSET
-                $8",
+                ($6 IS NULL OR created_at < $6)",
         )
         .bind(client_ulid)
         .bind(query)
@@ -359,6 +394,45 @@ impl Database {
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.0)
+        .await?;
+
+        Ok(result)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn select_one_contractors_index_for_clients(
+        &self,
+        client_ulid: Option<Uuid>,
+        contractor_ulid: Option<Uuid>,
+        query: Option<String>,
+        user_type: Option<UserType>,
+        user_role: Option<UserRole>,
+        created_after: Option<sqlx::types::time::OffsetDateTime>,
+        created_before: Option<sqlx::types::time::OffsetDateTime>,
+    ) -> GlobeliseResult<Option<OnboardedUserIndex>> {
+        let result = sqlx::query_as(
+            "
+            SELECT 
+                *
+            FROM 
+                contractors_index_for_clients 
+            WHERE
+                ($1 IS NULL OR client_ulid = $1) AND
+                ($2 IS NULL OR ulid = $2) AND
+                ($3 IS NULL OR email ~* $3 OR name ~* $3) AND
+                ($4 IS NULL OR user_type = $4) AND
+                ($5 IS NULL OR user_role = $5) AND
+                ($6 IS NULL OR created_at > $6) AND
+                ($7 IS NULL OR created_at < $7)",
+        )
+        .bind(client_ulid)
+        .bind(contractor_ulid)
+        .bind(query)
+        .bind(user_type)
+        .bind(user_role)
+        .bind(created_after)
+        .bind(created_before)
+        .fetch_optional(&self.0)
         .await?;
 
         Ok(result)
