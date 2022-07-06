@@ -43,19 +43,25 @@ pub async fn user_post_one_individual_contractor(
         .ok_or_else(|| GlobeliseError::not_found("Cannot find a user with this email"))?
         .ulid;
 
-    database
-        .insert_one_onboard_user_bank_details(
-            ulid,
-            UserType::Individual,
-            &ContractorUserDetails {
-                bank_name: body.bank_name,
-                bank_account_name: body.bank_account_name,
-                bank_account_number: body.bank_account_number,
-                bank_code: body.bank_code,
-                branch_code: body.branch_code,
-            },
-        )
-        .await?;
+    if database
+        .select_one_onboard_user_bank_detail(ulid, UserType::Individual)
+        .await?
+        .is_none()
+    {
+        database
+            .insert_one_onboard_user_bank_details(
+                ulid,
+                UserType::Individual,
+                &ContractorUserDetails {
+                    bank_name: body.bank_name,
+                    bank_account_name: body.bank_account_name,
+                    bank_account_number: body.bank_account_number,
+                    bank_code: body.bank_code,
+                    branch_code: body.branch_code,
+                },
+            )
+            .await?;
+    }
 
     Ok(())
 }

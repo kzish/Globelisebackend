@@ -55,6 +55,10 @@ pub async fn add_individual_contractor(
         return Err(GlobeliseError::UnavailableEmail);
     };
 
+    database
+        .insert_one_user(&body.email, None, false, false, false, true, false, true)
+        .await?;
+
     // If  in debug mode, skip sending emails
     if let Some(true) = body.debug {
         return Ok(());

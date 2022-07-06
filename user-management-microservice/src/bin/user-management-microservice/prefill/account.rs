@@ -78,36 +78,42 @@ pub async fn user_post_one_individual_contractor(
         .insert_one_user(&body.email, None, false, false, false, true, false, true)
         .await?;
 
-    database
-        .insert_one_onboard_individual_contractor_account_details(
-            ulid,
-            &IndividualContractorAccountDetails {
-                first_name: body.first_name,
-                last_name: body.last_name,
-                dob: body.dob,
-                dial_code: body.dial_code,
-                phone_number: body.phone_number,
-                country: body.country,
-                city: body.city,
-                address: body.address,
-                postal_code: body.postal_code,
-                tax_id: body.tax_id,
-                time_zone: body.time_zone,
-                profile_picture: None,
-                cv: None,
-                gender: body.gender,
-                marital_status: body.marital_status,
-                nationality: body.nationality,
-                email_address: None,
-                national_id: body.national_id,
-                passport_number: body.passport_number,
-                passport_expiry_date: body.passport_expiry_date,
-                work_permit: body.work_permit,
-                added_related_pay_item_id: None,
-                total_dependants: body.total_dependants,
-            },
-        )
-        .await?;
+    if database
+        .select_one_onboard_individual_client_account_details(ulid)
+        .await?
+        .is_none()
+    {
+        database
+            .insert_one_onboard_individual_contractor_account_details(
+                ulid,
+                &IndividualContractorAccountDetails {
+                    first_name: body.first_name,
+                    last_name: body.last_name,
+                    dob: body.dob,
+                    dial_code: body.dial_code,
+                    phone_number: body.phone_number,
+                    country: body.country,
+                    city: body.city,
+                    address: body.address,
+                    postal_code: body.postal_code,
+                    tax_id: body.tax_id,
+                    time_zone: body.time_zone,
+                    profile_picture: None,
+                    cv: None,
+                    gender: body.gender,
+                    marital_status: body.marital_status,
+                    nationality: body.nationality,
+                    email_address: None,
+                    national_id: body.national_id,
+                    passport_number: body.passport_number,
+                    passport_expiry_date: body.passport_expiry_date,
+                    work_permit: body.work_permit,
+                    added_related_pay_item_id: None,
+                    total_dependants: body.total_dependants,
+                },
+            )
+            .await?;
+    }
 
     Ok(())
 }
@@ -226,50 +232,48 @@ pub async fn admin_post_one_individual_contractor(
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
 
-    if database
+    let ulid = database
         .find_one_user(None, Some(&body.email), None)
         .await?
-        .is_some()
+        .ok_or_else(|| GlobeliseError::not_found("Cannot find a user with this email"))?
+        .ulid;
+
+    if database
+        .select_one_onboard_individual_contractor_account_details(ulid)
+        .await?
+        .is_none()
     {
-        return Err(GlobeliseError::bad_request(
-            "There's already a user with this email",
-        ));
+        database
+            .insert_one_onboard_individual_contractor_account_details(
+                ulid,
+                &IndividualContractorAccountDetails {
+                    first_name: body.first_name,
+                    last_name: body.last_name,
+                    dob: body.dob,
+                    dial_code: body.dial_code,
+                    phone_number: body.phone_number,
+                    country: body.country,
+                    city: body.city,
+                    address: body.address,
+                    postal_code: body.postal_code,
+                    tax_id: body.tax_id,
+                    time_zone: body.time_zone,
+                    profile_picture: body.profile_picture,
+                    cv: body.cv,
+                    gender: body.gender,
+                    marital_status: body.marital_status,
+                    nationality: body.nationality,
+                    email_address: body.email_address,
+                    national_id: body.national_id,
+                    passport_number: body.passport_number,
+                    passport_expiry_date: body.passport_expiry_date,
+                    work_permit: body.work_permit,
+                    added_related_pay_item_id: body.added_related_pay_item_id,
+                    total_dependants: body.total_dependants,
+                },
+            )
+            .await?;
     }
-
-    let ulid = database
-        .insert_one_user(&body.email, None, false, false, false, true, false, true)
-        .await?;
-
-    database
-        .insert_one_onboard_individual_contractor_account_details(
-            ulid,
-            &IndividualContractorAccountDetails {
-                first_name: body.first_name,
-                last_name: body.last_name,
-                dob: body.dob,
-                dial_code: body.dial_code,
-                phone_number: body.phone_number,
-                country: body.country,
-                city: body.city,
-                address: body.address,
-                postal_code: body.postal_code,
-                tax_id: body.tax_id,
-                time_zone: body.time_zone,
-                profile_picture: body.profile_picture,
-                cv: body.cv,
-                gender: body.gender,
-                marital_status: body.marital_status,
-                nationality: body.nationality,
-                email_address: body.email_address,
-                national_id: body.national_id,
-                passport_number: body.passport_number,
-                passport_expiry_date: body.passport_expiry_date,
-                work_permit: body.work_permit,
-                added_related_pay_item_id: body.added_related_pay_item_id,
-                total_dependants: body.total_dependants,
-            },
-        )
-        .await?;
 
     Ok(())
 }
