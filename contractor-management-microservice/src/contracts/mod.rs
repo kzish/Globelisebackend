@@ -9,12 +9,88 @@ use common_utils::{
     token::Token,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
+use sqlx::FromRow;
 use user_management_microservice_sdk::token::UserAccessToken;
 use uuid::Uuid;
 
-use crate::common::PaginatedQuery;
+mod database;
+
+use common_utils::custom_serde::EmailWrapper;
+use lettre::{Message, SmtpTransport, Transport};
+
+use crate::{common::PaginatedQuery, database::SharedDatabase};
+
+use crate::env::{GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL};
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractsPreview {
+    ulid: Uuid,
+    contract_preview_text: String,
+    client_ulid: Uuid,
+    branch_ulid: Uuid,
+    team_ulid: Option<Uuid>,
+    contract_name: String,
+    job_title: String,
+    contract_type: String,
+    seniority_level: String,
+    job_scope: String,
+    currency: String,
+    contract_amount: f64,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    start_date: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    end_date: sqlx::types::time::OffsetDateTime,
+}
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractsPreviewCreateRequest {
+    contract_preview_text: Option<String>,
+    client_ulid: Uuid,
+    branch_ulid: Uuid,
+    team_ulid: Option<Uuid>,
+    contract_name: String,
+    job_title: String,
+    contract_type: String,
+    seniority_level: String,
+    job_scope: String,
+    currency: String,
+    contract_amount: f64,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    start_date: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    end_date: sqlx::types::time::OffsetDateTime,
+}
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractsPreviewDeleteRequest {
+    ulid: Uuid,
+}
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GenerateContractFromPreviewRequest {
+    contract_ulid: Uuid,
+    contractor_ulid: Uuid,
+}
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ListContractsPreviewRequest {
+    branch_ulid: Uuid,
+    contract_name: Option<String>,
+    page: Option<u32>,
+    per_page: Option<u32>,
+}
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
@@ -56,6 +132,67 @@ pub struct GetManyContractsQuery {
     pub contractor_ulid: Option<Uuid>,
     pub client_ulid: Option<Uuid>,
     pub branch_ulid: Option<Uuid>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct SignContractRequest {
+    pub contractor_ulid: Uuid,
+    pub client_ulid: Uuid,
+    pub contract_ulid: Uuid,
+    pub signature: String,
+    pub title: String,
+    pub message: String,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct RevokeSignContractRequest {
+    pub contractor_ulid: Uuid,
+    pub client_ulid: Uuid,
+    pub contract_ulid: Uuid,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractorViewContractsRequest {
+    pub contractor_ulid: Uuid,
+    pub contract_name: Option<String>,
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractorEmailDetails {
+    pub ulid: Uuid,
+    pub name: String,
+    pub email: EmailWrapper,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize, FromRow, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractDetails {
+    pub contract_ulid: Uuid,
+    pub client_ulid: Uuid,
+    pub branch_ulid: Uuid,
+    pub client_name: String,
+    pub contractor_ulid: Uuid,
+    pub contractor_name: String,
+    pub contract_name: String,
+    pub contract_type: String,
+    pub contract_status: String,
+    pub contract_amount: f64,
+    pub currency: String,
+    pub begin_at: String,
+    pub end_at: String,
+    pub job_title: String,
+    pub seniority: String,
 }
 
 pub async fn user_get_many_contract_index(
@@ -269,4 +406,270 @@ pub async fn user_get_many_contractors_for_clients(
         )
         .await?;
     Ok(Json(result))
+}
+
+pub async fn client_sign_contract(
+    claims: Token<UserAccessToken>,
+    Json(request): Json<SignContractRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    if claims.payload.ulid != request.client_ulid {
+        return Err(GlobeliseError::Forbidden);
+    }
+    let database = database.lock().await;
+    database.client_sign_contract(request).await?;
+    Ok(())
+}
+
+pub async fn contractor_sign_contract(
+    claims: Token<UserAccessToken>,
+    Json(request): Json<SignContractRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    if claims.payload.ulid != request.contractor_ulid {
+        return Err(GlobeliseError::Forbidden);
+    }
+    let database = database.lock().await;
+    database.contractor_sign_contract(request).await?;
+    Ok(())
+}
+
+pub async fn client_revoke_sign_contract(
+    claims: Token<UserAccessToken>,
+    Json(request): Json<RevokeSignContractRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    if claims.payload.ulid != request.client_ulid {
+        return Err(GlobeliseError::Forbidden);
+    }
+    let database = database.lock().await;
+    database.client_revoke_sign_contract(request).await?;
+    Ok(())
+}
+
+pub async fn contractor_revoke_sign_contract(
+    claims: Token<UserAccessToken>,
+    Json(request): Json<RevokeSignContractRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    if claims.payload.ulid != request.contractor_ulid {
+        return Err(GlobeliseError::Forbidden);
+    }
+    let database = database.lock().await;
+    database.contractor_revoke_sign_contract(request).await?;
+    Ok(())
+}
+
+//let contractor view his contracts
+pub async fn contractor_view_contracts(
+    claims: Token<UserAccessToken>,
+    Json(request): Json<ContractorViewContractsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ContractDetails>>> {
+    if claims.payload.ulid != request.contractor_ulid {
+        return Err(GlobeliseError::Forbidden);
+    }
+    let database = database.lock().await;
+    let response = database.contractor_view_contracts(request).await?;
+
+    Ok(Json(response))
+}
+
+pub async fn client_create_contract_preview(
+    claims: Token<UserAccessToken>,
+    Json(request): Json<ContractsPreviewCreateRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    if claims.payload.ulid != request.client_ulid {
+        return Err(GlobeliseError::Forbidden);
+    }
+    let database = database.lock().await;
+    database.client_create_contract_preview(request).await?;
+
+    Ok(())
+}
+
+pub async fn client_get_contract_preview(
+    claims: Token<UserAccessToken>,
+    Json(request): Json<ContractsPreviewDeleteRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<ContractsPreview>> {
+    let database = database.lock().await;
+    let response = database.client_get_contract_preview(request.ulid).await?;
+    if claims.payload.ulid != response.client_ulid {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    Ok(Json(response))
+}
+
+pub async fn client_update_contract_preview(
+    claims: Token<UserAccessToken>,
+    Json(request): Json<ContractsPreview>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    if claims.payload.ulid != request.client_ulid {
+        return Err(GlobeliseError::Forbidden);
+    }
+    let database = database.lock().await;
+    database.client_update_contract_preview(request).await?;
+
+    Ok(())
+}
+
+pub async fn client_delete_contract_preview(
+    claims: Token<UserAccessToken>,
+    Json(request): Json<ContractsPreviewDeleteRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    let database = database.lock().await;
+
+    let contract_preview = database.client_get_contract_preview(request.ulid).await?;
+    if claims.payload.ulid != contract_preview.client_ulid {
+        return Err(GlobeliseError::Forbidden);
+    }
+    database
+        .client_delete_contract_preview(request.ulid)
+        .await?;
+
+    Ok(())
+}
+
+pub async fn client_list_contracts_preview(
+    _claims: Token<UserAccessToken>,
+    Json(request): Json<ListContractsPreviewRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ContractsPreview>>> {
+    let database = database.lock().await;
+    let response = database.client_list_contracts_preview(request).await?;
+
+    Ok(Json(response))
+}
+
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GenerateContractDto {
+    ulid: Uuid,
+    client_ulid: Uuid,
+    contractor_ulid: Uuid,
+    contract_name: String,
+    contract_type: String,
+    contract_status: String,
+    contract_amount: f64,
+    currency: String,
+    job_title: String,
+    seniority: String,
+    branch_ulid: Uuid,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    begin_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    end_at: sqlx::types::time::OffsetDateTime,
+    contract_preview_text: String,
+    team_ulid: Option<Uuid>,
+    job_scope: String,
+}
+
+pub async fn client_generate_contract_from_preview(
+    claims: Token<UserAccessToken>,
+    Json(request): Json<GenerateContractFromPreviewRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    let database = database.lock().await;
+    let contract_preview = database
+        .client_get_contract_preview(request.contract_ulid)
+        .await?;
+
+    let generated_contract = GenerateContractDto {
+        ulid: Uuid::new_v4(),
+        client_ulid: claims.payload.ulid,
+        contractor_ulid: request.contractor_ulid,
+        contract_name: contract_preview.contract_name,
+        contract_type: contract_preview.contract_type,
+        contract_status: "CREATED".to_string(),
+        contract_amount: contract_preview.contract_amount,
+        currency: contract_preview.currency,
+        job_title: contract_preview.job_title,
+        seniority: contract_preview.seniority_level,
+        branch_ulid: contract_preview.branch_ulid,
+        begin_at: contract_preview.start_date,
+        end_at: contract_preview.end_date,
+        contract_preview_text: contract_preview.contract_preview_text,
+        team_ulid: contract_preview.team_ulid,
+        job_scope: contract_preview.job_scope,
+    };
+
+    database
+        .client_generate_contract_from_preview(generated_contract)
+        .await?;
+
+    Ok(())
+}
+
+//client invite contractor to sign contract
+//send email to contractor
+pub async fn client_invite_contractor(
+    claims: Token<UserAccessToken>,
+    Json(request): Json<SignContractRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<()> {
+    if claims.payload.ulid != request.client_ulid {
+        return Err(GlobeliseError::Forbidden);
+    }
+    let database = database.lock().await;
+    let contractor_details = database
+        .get_contractor_email_details(request.contractor_ulid)
+        .await?;
+    let contract_details = database
+        .get_contract_details(request.contractor_ulid)
+        .await?;
+
+    let receiver_email = contractor_details
+        .email
+        .0
+        // TODO: Get the name of the person associated to this email address
+        .to_display("")
+        .parse()
+        .map_err(GlobeliseError::bad_request)?;
+
+    let email = Message::builder()
+        .from(GLOBELISE_SENDER_EMAIL.clone())
+        .reply_to(GLOBELISE_SENDER_EMAIL.clone())
+        .to(receiver_email)
+        .subject("Contract Signing Request")
+        .header(lettre::message::header::ContentType::TEXT_HTML)
+        // TODO: Once designer have a template for this. Use a templating library to populate data.
+        .body(format!(
+            r##"
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>{}</title>
+            </head>
+            <body>
+                DEAR {},
+                {},<br>
+                {} is requesting you to sign {} contract <br/>
+                contract details are {:?}
+            </body>
+            </html>
+            "##,
+            request.title,
+            contractor_details.name,
+            request.message,
+            contract_details.client_name,
+            contract_details.job_title,
+            contract_details
+        ))
+        .map_err(GlobeliseError::internal)?;
+
+    // Open a remote connection to gmail
+    let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)
+        .map_err(GlobeliseError::internal)?
+        .credentials(SMTP_CREDENTIAL.clone())
+        .build();
+
+    mailer.send(&email).map_err(GlobeliseError::internal)?;
+
+    Ok(())
 }
