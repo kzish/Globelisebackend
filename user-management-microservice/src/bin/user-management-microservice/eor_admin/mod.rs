@@ -15,10 +15,7 @@ use lettre::{Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 
-use crate::env::{
-    GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
-    USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
-};
+use crate::env::{FRONTEND_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL};
 
 pub mod bank_transfer;
 pub mod cost_center;
@@ -87,13 +84,13 @@ pub async fn add_individual_contractor(
             </head>
             <body>
                 <p>
-               Click the <a href="{}">link</a> to sign up as a Globelise individual contractor.
+               Click the <a href="{}/signup?as=contractor&type=individual">link</a> to sign up as a Globelise individual contractor.
                 </p>
                 <p>If you did not expect to receive this email. Please ignore!</p>
             </body>
             </html>
             "##,
-            (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
+            (*FRONTEND_URL),
         ))?;
 
     // Open a remote connection to gmail
