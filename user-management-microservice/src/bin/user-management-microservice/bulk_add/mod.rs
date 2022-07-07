@@ -27,10 +27,7 @@ use sqlx::FromRow;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use crate::env::{
-    GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
-    USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
-};
+use crate::env::{FRONTEND_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL};
 
 #[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize)]
@@ -238,12 +235,15 @@ async fn process_row(
 
     let database = database.lock().await;
 
+    let mut user_created = false;
+
     let user_ulid = if let Some(user) = database
         .find_one_user(None, Some(&value.email), None)
         .await?
     {
         user.ulid
     } else {
+        user_created = true;
         database
             .insert_one_user(&value.email, None, false, false, false, true, false, true)
             .await?
@@ -312,16 +312,17 @@ async fn process_row(
 
     // Send email to the contractor
 
-    let email = Message::builder()
-        .from(GLOBELISE_SENDER_EMAIL.clone())
-        // TODO: Remove this because this is supposed to be a no-reply email?
-        .reply_to(GLOBELISE_SENDER_EMAIL.clone())
-        .to(receiver_email)
-        .subject("Invitation to Globelise")
-        .header(lettre::message::header::ContentType::TEXT_HTML)
-        // TODO: Once designer have a template for this. Use a templating library to populate data.
-        .body(format!(
-            r##"
+    if user_created {
+        let email = Message::builder()
+            .from(GLOBELISE_SENDER_EMAIL.clone())
+            // TODO: Remove this because this is supposed to be a no-reply email?
+            .reply_to(GLOBELISE_SENDER_EMAIL.clone())
+            .to(receiver_email)
+            .subject("Invitation to Globelise")
+            .header(lettre::message::header::ContentType::TEXT_HTML)
+            // TODO: Once designer have a template for this. Use a templating library to populate data.
+            .body(format!(
+                r##"
         <!DOCTYPE html>
         <html>
         <head>
@@ -329,22 +330,24 @@ async fn process_row(
         </head>
         <body>
             <p>
-           Click the <a href="{}">link</a> to sign up as a Globelise individual contractor.
+           Click the <a href="{}/signup?as=contractor&type=individual">link</a> to sign up as a Globelise individual contractor.
             </p>
             <p>If you did not expect to receive this email. Please ignore!</p>
         </body>
         </html>
         "##,
-            (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
-        ))?;
+                (*FRONTEND_URL),
+            ))?;
 
-    // Open a remote connection to gmail
-    let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)?
-        .credentials(SMTP_CREDENTIAL.clone())
-        .build();
+        // Open a remote connection to gmail
+        let mailer = SmtpTransport::relay(&GLOBELISE_SMTP_URL)?
+            .credentials(SMTP_CREDENTIAL.clone())
+            .build();
 
-    // Send the email
-    mailer.send(&email)?;
+        // Send the email
+        mailer.send(&email)?;
+    }
+
     Ok(())
 }
 
