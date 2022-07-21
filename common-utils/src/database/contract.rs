@@ -31,6 +31,9 @@ pub struct ContractsIndex {
     end_at: sqlx::types::time::OffsetDateTime,
     job_title: String,
     seniority: String,
+    contract_preview_text: Option<String>,
+    team_ulid: Option<Uuid>,
+    job_scope: String,
 }
 
 impl Database {

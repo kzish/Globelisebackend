@@ -623,6 +623,7 @@ dependencies = [
  "eor-admin-microservice",
  "itertools",
  "jsonwebtoken",
+ "lettre",
  "once_cell",
  "reqwest",
  "serde",

@@ -98,6 +98,48 @@ async fn main() {
             "/invoices/group/:role",
             get(invoice::user_invoice_group_index),
         )
+        .route(
+            "/contracts/client/sign",
+            post(contracts::client_sign_contract),
+        )
+        .route(
+            "/contracts/contractor/sign",
+            post(contracts::contractor_sign_contract),
+        )
+        .route(
+            "/contracts/client/revoke-sign",
+            post(contracts::client_revoke_sign_contract),
+        )
+        .route(
+            "/contracts/contractor/revoke-sign",
+            post(contracts::contractor_revoke_sign_contract),
+        )
+        .route(
+            "/contracts/client/invite-contractor",
+            post(contracts::client_invite_contractor),
+        )
+        .route(
+            "/contracts/contractor/view-contracts",
+            get(contracts::contractor_view_contracts),
+        )
+        .route(
+            "/contracts/client/create-contract-preview",
+            post(contracts::client_create_contract_preview),
+        )
+        .route(
+            "/contracts/client/contract-preview",
+            get(contracts::client_get_contract_preview)
+                .post(contracts::client_update_contract_preview)
+                .delete(contracts::client_delete_contract_preview),
+        )
+        .route(
+            "/contracts/client/list-contract-preview",
+            get(contracts::client_list_contracts_preview),
+        )
+        .route(
+            "/contracts/client/generate-contract-from-preview",
+            get(contracts::client_generate_contract_from_preview),
+        )
         // ========== ADMIN PAGES ==========
         .route(
             "/eor-admin/payslips",
