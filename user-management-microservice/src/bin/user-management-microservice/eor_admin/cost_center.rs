@@ -56,6 +56,7 @@ pub struct ListCostCentersContractorsRequest {
     pub per_page: Option<u32>,
     pub cost_center_ulid: Uuid,
     pub contractor_name: Option<String>,
+    pub branch_ulid: Option<Uuid>,
 }
 
 #[serde_as]
@@ -65,6 +66,7 @@ pub struct ListFreeCostCentersContractorsRequest {
     pub page: Option<u32>,
     pub per_page: Option<u32>,
     pub contractor_name: Option<String>,
+    pub branch_ulid: Option<Uuid>,
 }
 
 #[serde_as]
@@ -74,11 +76,11 @@ pub struct CostCenterContractorResponse {
     pub contractor_ulid: Uuid,
     pub contractor_name: String,
     pub branch_ulid: Uuid,
-    pub branch_name: String,
+    pub branch_name: Option<String>,
     pub cost_center_name: String,
     pub cost_center_ulid: Uuid,
-    pub country: String,
-    pub currency: String,
+    pub country: Option<String>,
+    pub currency: Option<String>,
 }
 
 #[serde_as]
@@ -86,9 +88,15 @@ pub struct CostCenterContractorResponse {
 #[serde(rename_all = "kebab-case")]
 pub struct FreeCostCenterContractorResponse {
     pub contractor_ulid: Uuid,
-    pub contractor_name: String,
-    pub email_address: String,
-    pub cost_center_count: i64,
+    pub contractor_name: Option<String>,
+    pub email_address: Option<String>,
+    pub cost_center_count: Option<i64>,
+
+    pub time_zone: Option<String>,
+    pub branch_ulid: Option<Uuid>,
+    pub branch_name: Option<String>,
+    pub job_description: Option<String>,
+    pub country: Option<String>,
 }
 
 #[serde_as]
@@ -332,8 +340,9 @@ impl Database {
             "SELECT * FROM 
                     cost_center_contractors_details 
                 WHERE
-                    cost_center_ulid NOT IN ($1)
+                    cost_center_ulid <> $1
                 AND ($4 IS NULL or contractor_name LIKE $4)
+                AND branch_ulid = $5
                 LIMIT $2
                 OFFSET $3",
         )
@@ -341,6 +350,7 @@ impl Database {
         .bind(limit)
         .bind(offset)
         .bind(format!("%{}%", request.contractor_name.unwrap_or_default()))
+        .bind(request.branch_ulid)
         .fetch_all(&self.0)
         .await?;
 
@@ -359,12 +369,15 @@ impl Database {
                     ($3 IS NULL or contractor_name LIKE $3)
                 AND
                     cost_center_count = 0
+                AND 
+                    branch_ulid = $4
                 LIMIT $1
                 OFFSET $2",
         )
         .bind(limit)
         .bind(offset)
         .bind(format!("%{}%", request.contractor_name.unwrap_or_default()))
+        .bind(request.branch_ulid)
         .fetch_all(&self.0)
         .await?;
 

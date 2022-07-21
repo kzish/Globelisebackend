@@ -156,6 +156,10 @@ pub async fn add_contractor_to_cost_center(
         )
         .await?
     {
+        println!("not your cost center");
+        println!("{}", request.cost_center_ulid);
+        println!("{}", claims.payload.ulid);
+
         return Err(GlobeliseError::Forbidden);
     }
 
@@ -163,6 +167,9 @@ pub async fn add_contractor_to_cost_center(
         .contractor_belongs_to_pic(claims.payload.ulid, request.contractor_ulid)
         .await?
     {
+        println!("not your contractor");
+        println!("{}", request.contractor_ulid);
+        println!("{}", claims.payload.ulid);
         return Err(GlobeliseError::Forbidden);
     }
 
