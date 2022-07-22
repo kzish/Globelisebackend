@@ -7,29 +7,25 @@ use axum::{
 };
 use common_utils::{
     custom_serde::{EmailWrapper, UserRole, UserType, FORM_DATA_LENGTH_LIMIT},
+    database::{user::User, CommonDatabase},
     error::{GlobeliseError, GlobeliseResult},
     token::{create_token, Token},
 };
 use once_cell::sync::Lazy;
 use rand::Rng;
 use serde::Deserialize;
+use token::RefreshToken;
 use unicode_normalization::UnicodeNormalization;
 use user_management_microservice_sdk::token::UserAccessToken;
 
-use crate::database::SharedDatabase;
-
 pub mod google;
 pub mod password;
-mod state;
+pub mod state;
 pub mod token;
-pub mod user;
 
-use token::RefreshToken;
-use user::User;
+use crate::benefits_market_place::users::{user_registration, UserProfile, UserSignupRequest};
 
-pub use state::{SharedState, State};
-
-use self::token::KEYS;
+use self::{state::SharedState, token::KEYS};
 
 /// Creates an account.
 pub async fn signup(
@@ -38,7 +34,7 @@ pub async fn signup(
         FORM_DATA_LENGTH_LIMIT,
     >,
     Path(user_type): Path<UserType>,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
     let password: String = body.password.nfc().collect();
@@ -60,40 +56,61 @@ pub async fn signup(
 
     let database = database.lock().await;
 
-    if database
+    let ulid = if let Some(user) = database
         .find_one_user(None, Some(&body.email), None)
         .await?
-        .is_some()
     {
-        return Err(GlobeliseError::bad_request(
-            "User with that email already exists. Did you forgot the password?",
-        ));
+        if user.password == None {
+            database
+                .update_one_user(user.ulid, Some(&password), user.is_google, user.is_outlook)
+                .await?;
+            Ok(user.ulid)
+        } else {
+            Err(GlobeliseError::bad_request(
+                "User with that email already exists. Did you forgot the password?",
+            ))
+        }
+    } else {
+        let ulid = database
+            .insert_one_user(
+                &body.email,
+                Some(&hash),
+                false,
+                false,
+                user_type == UserType::Entity,
+                user_type == UserType::Individual,
+                false,
+                false,
+            )
+            .await?;
+        Ok(ulid)
+    }?;
+
+    //register user for benefits marketplace
+    let email = &(body.email.0.clone()).to_string();
+    let benefits_user = UserSignupRequest {
+        username: email.to_string(),
+        password,
+        user_profile: UserProfile {
+            firstname: "Globelise".to_string(),
+            lastname: "User".to_string(),
+            email: email.to_string(),
+        },
+    };
+    let res = user_registration(benefits_user).await?;
+    if res.0 != "200" {
+        return Err(GlobeliseError::bad_request(res.1));
     }
 
-    let ulid = database
-        .create_user(
-            body.email,
-            Some(hash),
-            false,
-            false,
-            user_type == UserType::Entity,
-            user_type == UserType::Individual,
-            false,
-            false,
-        )
-        .await?;
-
     let mut shared_state = shared_state.lock().await;
-    let refresh_token = shared_state
-        .open_session(&database, ulid, user_type)
-        .await?;
+    let refresh_token = shared_state.open_session(ulid, user_type).await?;
     Ok(refresh_token)
 }
 
 /// Logs a user in.
 pub async fn login(
     ContentLengthLimit(Json(body)): ContentLengthLimit<Json<LoginRequest>, FORM_DATA_LENGTH_LIMIT>,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
     let password: String = body.password.nfc().collect();
@@ -112,9 +129,7 @@ pub async fn login(
 
                 let user_type = user.user_type()?;
 
-                let refresh_token = shared_state
-                    .open_session(&database, user.ulid, user_type)
-                    .await?;
+                let refresh_token = shared_state.open_session(user.ulid, user_type).await?;
                 Ok(refresh_token)
             } else {
                 Err(GlobeliseError::unauthorized(
@@ -136,7 +151,7 @@ pub async fn login(
 /// Gets a new access token.
 pub async fn access_token(
     claims: Token<RefreshToken>,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
     Extension(shared_state): Extension<SharedState>,
 ) -> GlobeliseResult<String> {
     let ulid = claims.payload.ulid;

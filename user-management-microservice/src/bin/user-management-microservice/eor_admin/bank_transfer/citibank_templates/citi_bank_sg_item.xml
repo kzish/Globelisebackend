@@ -41,7 +41,7 @@
 		<CdtrAgt>
 			<FinInstnId>
 				<ClrSysMmbId>
-				<MmbId>{{bank_code}}027</MmbId>
+				<MmbId>{{bank_code}}{{branch_code}}</MmbId>
 				</ClrSysMmbId>
 				<PstlAdr>
 				<Ctry>SG</Ctry>

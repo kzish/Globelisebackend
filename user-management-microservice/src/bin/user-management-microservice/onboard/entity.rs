@@ -1,4 +1,4 @@
-use axum::extract::{ContentLengthLimit, Extension, Json};
+use axum::extract::{ContentLengthLimit, Extension, Json, Path};
 use common_utils::{
     custom_serde::{UserType, FORM_DATA_LENGTH_LIMIT},
     database::{
@@ -8,20 +8,40 @@ use common_utils::{
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
 };
+use eor_admin_microservice_sdk::token::AdminAccessToken;
 use user_management_microservice_sdk::token::UserAccessToken;
+use uuid::Uuid;
 
-pub async fn get_onboard_entity_client_account_details(
+pub async fn user_get_one_client_account_details(
     claims: Token<UserAccessToken>,
     Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<EntityClientAccountDetails>> {
-    if !matches!(claims.payload.user_type, UserType::Entity) {
-        return Err(GlobeliseError::Forbidden);
-    }
+    if matches!(claims.payload.user_type, UserType::Entity) {
+        let database = database.lock().await;
 
+        let result = database
+            .select_one_onboard_entity_client_account_details(claims.payload.ulid)
+            .await?
+            .ok_or_else(|| {
+                GlobeliseError::not_found("Cannot find entity client account details for this user")
+            })?;
+
+        Ok(Json(result))
+        // TODO: PIC accessing this information
+    } else {
+        Err(GlobeliseError::Forbidden)
+    }
+}
+
+pub async fn admin_get_one_client_account_details(
+    _: Token<AdminAccessToken>,
+    Path(user_ulid): Path<Uuid>,
+    Extension(database): Extension<CommonDatabase>,
+) -> GlobeliseResult<Json<EntityClientAccountDetails>> {
     let database = database.lock().await;
 
     let result = database
-        .select_one_onboard_entity_client_account_details(claims.payload.ulid)
+        .select_one_onboard_entity_client_account_details(user_ulid)
         .await?
         .ok_or_else(|| {
             GlobeliseError::not_found("Cannot find entity client account details for this user")
@@ -30,7 +50,7 @@ pub async fn get_onboard_entity_client_account_details(
     Ok(Json(result))
 }
 
-pub async fn post_onboard_entity_client_account_details(
+pub async fn user_post_one_client_account_details(
     claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<EntityClientAccountDetails>,
@@ -45,13 +65,31 @@ pub async fn post_onboard_entity_client_account_details(
     let database = database.lock().await;
 
     database
-        .insert_one_onboard_entity_client_account_details(claims.payload.ulid, body)
+        .insert_one_onboard_entity_client_account_details(claims.payload.ulid, &body)
         .await?;
 
     Ok(())
 }
 
-pub async fn post_onboard_entity_contractor_account_details(
+pub async fn admin_post_one_client_account_details(
+    _: Token<AdminAccessToken>,
+    Path(user_ulid): Path<Uuid>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<EntityClientAccountDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<CommonDatabase>,
+) -> GlobeliseResult<()> {
+    let database = database.lock().await;
+
+    database
+        .insert_one_onboard_entity_client_account_details(user_ulid, &body)
+        .await?;
+
+    Ok(())
+}
+
+pub async fn user_post_one_contractor_account_details(
     claims: Token<UserAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
         Json<EntityContractorAccountDetails>,
@@ -64,8 +102,9 @@ pub async fn post_onboard_entity_contractor_account_details(
     }
 
     let database = database.lock().await;
+
     database
-        .insert_one_onboard_entity_contractor_account_details(claims.payload.ulid, body)
+        .insert_one_onboard_entity_contractor_account_details(claims.payload.ulid, &body)
         .await
         .map_err(|e| {
             GlobeliseError::internal(format!(
@@ -77,7 +116,31 @@ pub async fn post_onboard_entity_contractor_account_details(
     Ok(())
 }
 
-pub async fn get_onboard_entity_contractor_account_details(
+pub async fn admin_post_one_contractor_account_details(
+    _: Token<AdminAccessToken>,
+    Path(user_ulid): Path<Uuid>,
+    ContentLengthLimit(Json(body)): ContentLengthLimit<
+        Json<EntityContractorAccountDetails>,
+        FORM_DATA_LENGTH_LIMIT,
+    >,
+    Extension(database): Extension<CommonDatabase>,
+) -> GlobeliseResult<()> {
+    let database = database.lock().await;
+
+    database
+        .insert_one_onboard_entity_contractor_account_details(user_ulid, &body)
+        .await
+        .map_err(|e| {
+            GlobeliseError::internal(format!(
+                "Cannot insert entity client onboard data into the database because \n{:#?}",
+                e
+            ))
+        })?;
+
+    Ok(())
+}
+
+pub async fn user_get_one_contractor_account_details(
     claims: Token<UserAccessToken>,
     Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<Json<EntityContractorAccountDetails>> {
@@ -87,14 +150,29 @@ pub async fn get_onboard_entity_contractor_account_details(
 
     let database = database.lock().await;
 
-    Ok(Json(
-        database
-            .get_onboard_entity_contractor_account_details(claims.payload.ulid)
-            .await?
-            .ok_or_else(|| {
-                GlobeliseError::not_found(
-                    "Cannot find entity contractor account details for this user",
-                )
-            })?,
-    ))
+    let result = database
+        .get_onboard_entity_contractor_account_details(claims.payload.ulid)
+        .await?
+        .ok_or_else(|| {
+            GlobeliseError::not_found("Cannot find entity contractor account details for this user")
+        })?;
+
+    Ok(Json(result))
+}
+
+pub async fn admin_get_one_contractor_account_details(
+    _: Token<AdminAccessToken>,
+    Path(user_ulid): Path<Uuid>,
+    Extension(database): Extension<CommonDatabase>,
+) -> GlobeliseResult<Json<EntityContractorAccountDetails>> {
+    let database = database.lock().await;
+
+    let result = database
+        .get_onboard_entity_contractor_account_details(user_ulid)
+        .await?
+        .ok_or_else(|| {
+            GlobeliseError::not_found("Cannot find entity contractor account details for this user")
+        })?;
+
+    Ok(Json(result))
 }

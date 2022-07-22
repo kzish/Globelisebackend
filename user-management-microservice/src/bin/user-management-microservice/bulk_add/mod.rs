@@ -1,10 +1,19 @@
-use std::io::Cursor;
+use std::{io::Cursor, str::FromStr, sync::Arc};
 
-use axum::extract::{ContentLengthLimit, Extension, Json, Query};
+use axum::{
+    extract::{ContentLengthLimit, Extension, Json},
+    http::{header::CONTENT_TYPE, HeaderValue},
+    response::IntoResponse,
+};
 use calamine::Reader;
 use common_utils::{
     custom_serde::{
-        Currency, EmailWrapper, OffsetDateWrapper, OptionOffsetDateWrapper, FORM_DATA_LENGTH_LIMIT,
+        Country, Currency, EmailWrapper, OffsetDateWrapper, OptionOffsetDateWrapper, UserType,
+        FORM_DATA_LENGTH_LIMIT,
+    },
+    database::{
+        onboard::{bank::ContractorUserDetails, individual::IndividualContractorAccountDetails},
+        CommonDatabase, Database,
     },
     error::{GlobeliseError, GlobeliseResult},
     token::Token,
@@ -15,51 +24,23 @@ use lettre::{message::Mailbox, Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::FromRow;
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use crate::{
-    database::{Database, SharedDatabase},
-    env::{
-        GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
-        USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
-    },
-};
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct PostPrefillIndividualContractorDetailsForBulkUpload {
-    #[serde_as(as = "Base64")]
-    pub uploaded_file: Vec<u8>,
-    pub debug: Option<bool>,
-}
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct GetPrefillIndividualContractorDetailsForBulkUpload {
-    pub email: EmailWrapper,
-}
+use crate::env::{FRONTEND_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL};
 
 #[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PrefillIndividualContractorDetailsForBulkUpload {
-    #[serde(rename = "Client")]
-    pub client_ulid: Uuid,
-    #[serde(rename = "Sub Entity")]
-    pub branch_ulid: Uuid,
-    #[serde(rename = "Cost Centre")]
-    #[serde(default)]
-    pub department_ulid: Option<Uuid>,
     #[serde(rename = "First Name")]
     pub first_name: String,
     #[serde(rename = "Last Name")]
     pub last_name: String,
     #[serde(rename = "Gender")]
-    pub gender: Option<String>,
+    pub gender: String,
     #[serde(rename = "Marital Status")]
-    pub marital_status: Option<String>,
+    pub marital_status: String,
     #[serde(rename = "Nationality")]
     pub nationality: String,
     #[serde(rename = "Date of Birth")]
@@ -72,21 +53,19 @@ pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Email Address")]
     pub email: EmailWrapper,
     #[serde(rename = "Address")]
-    pub address: Option<String>,
+    pub address: String,
     #[serde(rename = "Country")]
-    pub country: Option<String>,
+    pub country: Country,
     #[serde(rename = "City")]
-    pub city: Option<String>,
+    pub city: String,
     #[serde(rename = "Postal Code")]
-    pub postal_code: Option<String>,
+    pub postal_code: String,
     #[serde(rename = "National ID")]
     pub national_id: Option<String>,
     #[serde(rename = "Passport Number")]
     pub passport_number: Option<String>,
     #[serde(rename = "Passport Expiry Date")]
-    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
-    #[serde(default)]
-    pub passport_expiry_date: Option<sqlx::types::time::OffsetDateTime>,
+    pub passport_expiry_date: Option<String>,
     #[serde(rename = "Work Permit")]
     pub work_permit: Option<String>,
     #[serde(rename = "Tax ID")]
@@ -98,7 +77,7 @@ pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Total Dependants")]
     pub total_dependants: Option<i64>,
     #[serde(rename = "Timezone")]
-    pub time_zone: Option<String>,
+    pub time_zone: String,
     #[serde(rename = "Employee ID")]
     pub employee_id: Option<String>,
     #[serde(rename = "Designation")]
@@ -114,15 +93,15 @@ pub struct PrefillIndividualContractorDetailsForBulkUpload {
     #[serde(rename = "Employment Status")]
     pub employment_status: Option<String>,
     #[serde(rename = "Bank Name")]
-    pub bank_name: Option<String>,
+    pub bank_name: String,
     #[serde(rename = "Bank Account Owner Name")]
-    pub bank_account_owner_name: Option<String>,
+    pub bank_account_name: String,
     #[serde(rename = "Bank Account Number")]
-    pub bank_account_number: Option<String>,
+    pub bank_account_number: String,
     #[serde(rename = "Bank Code")]
-    pub bank_code: Option<String>,
+    pub bank_code: String,
     #[serde(rename = "Branch Code")]
-    pub bank_branch_code: Option<String>,
+    pub bank_branch_code: String,
     #[serde(rename = "Currency")]
     pub currency: Currency,
     #[serde(rename = "Basic Salary")]
@@ -141,78 +120,199 @@ pub struct PrefillIndividualContractorDetailsForBulkUpload {
     pub other_pay_item_2: Option<String>,
 }
 
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PostOneAddBulkEmployee {
+    pub file_name: String,
+    #[serde_as(as = "Base64")]
+    pub file_data: Vec<u8>,
+    pub client_ulid: Uuid,
+    pub debug: Option<bool>,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GetPrefillIndividualContractorDetailsForBulkUpload {
+    pub email: EmailWrapper,
+}
+
 pub async fn post_one(
     // Only for validation
     _: Token<AdminAccessToken>,
     ContentLengthLimit(Json(body)): ContentLengthLimit<
-        Json<PostPrefillIndividualContractorDetailsForBulkUpload>,
+        Json<PostOneAddBulkEmployee>,
         FORM_DATA_LENGTH_LIMIT,
     >,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<()> {
     let mut rows_to_enter = vec![];
-    if let Ok(mut records) = ReaderBuilder::new()
-        .has_headers(false)
-        .from_reader(body.uploaded_file.as_slice())
-        .records()
-        .collect::<Result<Vec<StringRecord>, _>>()
-    {
-        if !records.is_empty() {
-            // Get/remove the first row because its the header.
-            let header = records.swap_remove(0);
-            for record in records {
-                let value = record
-                    .deserialize::<PrefillIndividualContractorDetailsForBulkUpload>(Some(&header))
-                    .map_err(|_| {
-                        GlobeliseError::bad_request(
-                            "Please provide a CSV file that follows the template",
-                        )
-                    })?;
-                rows_to_enter.push(value);
+
+    let file_name = std::path::PathBuf::from_str(&body.file_name)?;
+
+    enum FileType {
+        Csv,
+        Excel,
+    }
+
+    let file_extension = match file_name.extension().and_then(|s| s.to_str()) {
+        Some("xls") | Some("xlsx") | Some("xlsb") | Some("ods") => Ok(FileType::Excel),
+        Some("csv") => Ok(FileType::Csv),
+        _ => Err(GlobeliseError::bad_request(
+            "Cannot determine the file type from the file name",
+        )),
+    }?;
+
+    match file_extension {
+        FileType::Csv => {
+            let mut records = ReaderBuilder::new()
+                .has_headers(false)
+                .from_reader(body.file_data.as_slice())
+                .records()
+                .collect::<Result<Vec<StringRecord>, _>>()?;
+
+            if !records.is_empty() {
+                // Get/remove the first row because its the header.
+                let header = records.swap_remove(0);
+                for record in records {
+                    let value = record
+                        .deserialize::<PrefillIndividualContractorDetailsForBulkUpload>(Some(
+                            &header,
+                        ))
+                        .map_err(|_| {
+                            GlobeliseError::bad_request(
+                                "Please provide a CSV file that follows the template",
+                            )
+                        })?;
+                    rows_to_enter.push(value);
+                }
             }
         }
-    } else if let Ok(excel_sheet_des) =
-        calamine::open_workbook_auto_from_rs(Cursor::new(body.uploaded_file.as_slice()))?
-            .worksheets()
-            .get(0)
-            .ok_or_else(|| {
+        FileType::Excel => {
+            let excel_workbook =
+                calamine::open_workbook_auto_from_rs(Cursor::new(body.file_data.as_slice()))?
+                    .worksheets();
+
+            let first_worksheet = excel_workbook.first().ok_or_else(|| {
                 GlobeliseError::bad_request(
                     "Please provide an excel file with at least 1 worksheet",
                 )
-            })?
-            .1
-            .deserialize()
-    {
-        let rows = excel_sheet_des
-            .into_iter()
-            .collect::<Result<Vec<PrefillIndividualContractorDetailsForBulkUpload>, _>>()?;
-        rows_to_enter.extend(rows);
-    } else {
-        return Err(GlobeliseError::bad_request(
-            "Please provide either CSV or Excel files that follows the template",
-        ));
-    }
+            })?;
+
+            let row_deserializer = first_worksheet.1.deserialize()?;
+
+            let rows = row_deserializer
+                .into_iter()
+                .collect::<Result<Vec<PrefillIndividualContractorDetailsForBulkUpload>, _>>()?;
+
+            rows_to_enter.extend(rows);
+        }
+    };
+
+    let mut errors = vec![];
 
     for value in rows_to_enter {
-        let receiver_email = value
-            .email
-            // TODO: Get the name of the person associated to this email address
-            .0
-            .to_display("")
-            .parse::<Mailbox>()?;
-
-        let database = database.lock().await;
-
-        database
-            .post_prefilll_individual_contractor_details_for_bulk_upload(value)
-            .await?;
-
-        if let Some(true) = body.debug {
-            return Ok(());
+        if let Err(err) = process_row(value, database.clone(), body.debug).await {
+            errors.push(err);
         }
+    }
 
-        // Send email to the contractor
+    Ok(())
+}
 
+async fn process_row(
+    value: PrefillIndividualContractorDetailsForBulkUpload,
+    database: Arc<Mutex<Database>>,
+    debug: Option<bool>,
+) -> GlobeliseResult<()> {
+    let receiver_email = value
+        .email
+        // TODO: Get the name of the person associated to this email address
+        .0
+        .to_display("")
+        .parse::<Mailbox>()?;
+
+    let database = database.lock().await;
+
+    let mut user_created = false;
+
+    let user_ulid = if let Some(user) = database
+        .find_one_user(None, Some(&value.email), None)
+        .await?
+    {
+        user.ulid
+    } else {
+        user_created = true;
+        database
+            .insert_one_user(&value.email, None, false, false, false, true, false, true)
+            .await?
+    };
+
+    if database
+        .select_one_onboard_individual_contractor_account_details(user_ulid)
+        .await?
+        .is_none()
+    {
+        database
+            .insert_one_onboard_individual_contractor_account_details(
+                user_ulid,
+                &IndividualContractorAccountDetails {
+                    first_name: value.first_name,
+                    last_name: value.last_name,
+                    dob: value.dob,
+                    dial_code: value.dial_code,
+                    phone_number: value.phone_number,
+                    country: value.country,
+                    city: value.city,
+                    address: value.address,
+                    postal_code: value.postal_code,
+                    tax_id: value.tax_id,
+                    time_zone: value.time_zone,
+                    profile_picture: None,
+                    cv: None,
+                    gender: value.gender,
+                    marital_status: value.marital_status,
+                    nationality: Some(value.nationality),
+                    email_address: None,
+                    national_id: value.national_id,
+                    passport_number: value.passport_number,
+                    passport_expiry_date: value.passport_expiry_date,
+                    work_permit: value.work_permit,
+                    added_related_pay_item_id: None,
+                    total_dependants: value.total_dependants,
+                },
+            )
+            .await?;
+    }
+
+    if database
+        .select_one_onboard_user_bank_detail(user_ulid, UserType::Individual)
+        .await?
+        .is_none()
+    {
+        database
+            .insert_one_onboard_user_bank_details(
+                user_ulid,
+                UserType::Individual,
+                &ContractorUserDetails {
+                    bank_name: value.bank_name,
+                    bank_account_name: value.bank_account_name,
+                    bank_account_number: value.bank_account_number,
+                    bank_code: value.bank_code,
+                    branch_code: value.bank_branch_code,
+                },
+            )
+            .await?;
+    }
+
+    if let Some(true) = debug {
+        return Ok(());
+    }
+
+    // Send email to the contractor
+
+    if user_created {
         let email = Message::builder()
             .from(GLOBELISE_SENDER_EMAIL.clone())
             // TODO: Remove this because this is supposed to be a no-reply email?
@@ -223,20 +323,20 @@ pub async fn post_one(
             // TODO: Once designer have a template for this. Use a templating library to populate data.
             .body(format!(
                 r##"
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Globelise Invitation</title>
-                </head>
-                <body>
-                    <p>
-                   Click the <a href="{}">link</a> to sign up as a Globelise individual contractor.
-                    </p>
-                    <p>If you did not expect to receive this email. Please ignore!</p>
-                </body>
-                </html>
-                "##,
-                (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Globelise Invitation</title>
+        </head>
+        <body>
+            <p>
+           Click the <a href="{}/signup?as=contractor&type=individual">link</a> to sign up as a Globelise individual contractor.
+            </p>
+            <p>If you did not expect to receive this email. Please ignore!</p>
+        </body>
+        </html>
+        "##,
+                (*FRONTEND_URL),
             ))?;
 
         // Open a remote connection to gmail
@@ -251,126 +351,15 @@ pub async fn post_one(
     Ok(())
 }
 
-pub async fn get_one(
-    // Only for validation
-    _: Token<AdminAccessToken>,
-    Query(query): Query<GetPrefillIndividualContractorDetailsForBulkUpload>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<PrefillIndividualContractorDetailsForBulkUpload>> {
-    let database = database.lock().await;
-
-    let result = database
-        .get_prefilll_individual_contractor_details_for_bulk_upload(query.email)
-        .await?
-        .ok_or_else(|| {
-            GlobeliseError::not_found(
-                "Cannot find prefilled individual contractor details from the query",
-            )
-        })?;
-
-    Ok(Json(result))
-}
-
-impl Database {
-    pub async fn post_prefilll_individual_contractor_details_for_bulk_upload(
-        &self,
-        details: PrefillIndividualContractorDetailsForBulkUpload,
-    ) -> GlobeliseResult<()> {
-        let query = "
-            INSERT INTO prefilled_individual_contractor_details_for_bulk_upload (
-                client_ulid, branch_ulid, department_ulid, first_name, last_name, 
-                gender, marital_status, nationality, dob, dial_code,
-                phone_number, email, address, country, city, 
-                postal_code, national_id, passport_number, passport_expiry_date, work_permit, 
-                tax_id, contribution_id_1, contribution_id_2, total_dependants, time_zone,
-                employee_id, designation, start_date, end_date, employment_status, 
-                bank_name, bank_account_owner_name, bank_account_number, bank_code, bank_branch_code, 
-                currency, basic_salary, additional_item_1, additional_item_2, deduction_1, 
-                deduction_2, other_pay_item_1, other_pay_item_2
-            ) VALUES (
-                $1, $2, $3, $4, $5, 
-                $6, $7, $8, $9, $10,
-                $11, $12, $13, $14, $15,
-                $16, $17, $18, $19, $20,
-                $21, $22, $23, $24, $25,
-                $26, $27, $28, $29, $30,
-                $31, $32, $33, $34, $35,
-                $36, $37, $38, $39, $40,
-                $41, $42, $43
-            ) ON CONFLICT(email, client_ulid, branch_ulid) DO UPDATE SET 
-                client_ulid = $1, branch_ulid = $2, department_ulid = $3, first_name = $4, last_name = $5, 
-                gender = $6, marital_status = $7, nationality = $8, dob = $9, dial_code = $10,
-                phone_number = $11, email = $12, address = $13, country = $14, city = $15, 
-                postal_code = $16, national_id = $17, passport_number = $18, passport_expiry_date = $19, work_permit = $20, 
-                tax_id = $21, contribution_id_1 = $22, contribution_id_2 = $23, total_dependants = $24, time_zone = $25,
-                employee_id = $26, designation = $27, start_date = $28, end_date = $29, employment_status = $30, 
-                bank_name = $31, bank_account_owner_name = $32, bank_account_number = $33, bank_code = $34, bank_branch_code = $35, 
-                currency = $36, basic_salary = $37, additional_item_1 = $38, additional_item_2 = $39, deduction_1 = $40, 
-                deduction_2 = $41, other_pay_item_1 = $42, other_pay_item_2 = $43";
-        sqlx::query(query)
-            .bind(details.client_ulid)
-            .bind(details.branch_ulid)
-            .bind(details.department_ulid)
-            .bind(details.first_name)
-            .bind(details.last_name)
-            .bind(details.gender)
-            .bind(details.marital_status)
-            .bind(details.nationality)
-            .bind(details.dob)
-            .bind(details.dial_code)
-            .bind(details.phone_number)
-            .bind(details.email)
-            .bind(details.address)
-            .bind(details.country)
-            .bind(details.city)
-            .bind(details.postal_code)
-            .bind(details.national_id)
-            .bind(details.passport_number)
-            .bind(details.passport_expiry_date)
-            .bind(details.work_permit)
-            .bind(details.tax_id)
-            .bind(details.contribution_id_1)
-            .bind(details.contribution_id_2)
-            .bind(details.total_dependants)
-            .bind(details.time_zone)
-            .bind(details.employee_id)
-            .bind(details.designation)
-            .bind(details.start_date)
-            .bind(details.end_date)
-            .bind(details.employment_status)
-            .bind(details.bank_name)
-            .bind(details.bank_account_owner_name)
-            .bind(details.bank_account_number)
-            .bind(details.bank_code)
-            .bind(details.bank_branch_code)
-            .bind(details.currency)
-            .bind(details.basic_salary)
-            .bind(details.additional_item_1)
-            .bind(details.additional_item_2)
-            .bind(details.deduction_1)
-            .bind(details.deduction_2)
-            .bind(details.other_pay_item_1)
-            .bind(details.other_pay_item_2)
-            .execute(&self.0)
-            .await?;
-        Ok(())
-    }
-
-    pub async fn get_prefilll_individual_contractor_details_for_bulk_upload(
-        &self,
-        email: EmailWrapper,
-    ) -> GlobeliseResult<Option<PrefillIndividualContractorDetailsForBulkUpload>> {
-        let query = "
-            SELECT
-                *
-            FROM
-                prefilled_individual_contractor_details_for_bulk_upload
-            WHERE
-                email = $1";
-        let result = sqlx::query_as(query)
-            .bind(email)
-            .fetch_optional(&self.0)
-            .await?;
-        Ok(result)
-    }
+pub async fn download(_: Token<AdminAccessToken>) -> impl IntoResponse {
+    let bytes = include_bytes!("add_bulk_employees.xlsx").to_vec();
+    (
+        [(
+            CONTENT_TYPE,
+            HeaderValue::from_static(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ),
+        )],
+        bytes,
+    )
 }

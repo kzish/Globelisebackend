@@ -5,8 +5,9 @@ use common_utils::{
     token::Token,
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
+use sqlx::FromRow;
 
 use crate::database::SharedDatabase;
 
@@ -24,8 +25,20 @@ pub async fn account_details(
         .await
 }
 
+pub async fn get_account_details(
+    claims: Token<AdminAccessToken>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<IndividualDetails>> {
+    let database = database.lock().await;
+    let response = database
+        .get_onboard_admin_details(claims.payload.ulid)
+        .await?;
+
+    Ok(Json(response))
+}
+
 #[serde_as]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 #[serde(rename_all = "kebab-case")]
 pub struct IndividualDetails {
     pub first_name: String,

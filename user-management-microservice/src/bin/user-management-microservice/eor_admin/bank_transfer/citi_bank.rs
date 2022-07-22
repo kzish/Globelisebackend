@@ -1,16 +1,8 @@
-use std::{
-    fs::{self},
-    io::{prelude::*, Write},
-    net::TcpStream,
-    path::Path,
-    str,
-    sync::Arc,
-};
-
 use axum::extract::ContentLengthLimit;
 use axum::extract::{Extension, Json, Query};
 use calamine::{open_workbook, Reader, Xlsx};
 use chrono;
+use common_utils::custom_serde::OffsetDateWrapper;
 use common_utils::token::Token;
 use common_utils::{
     calc_limit_and_offset,
@@ -21,10 +13,20 @@ use eor_admin_microservice_sdk::token::AdminAccessToken;
 use reqwest::header::HeaderMap;
 use reqwest::header::{HeaderName, HeaderValue};
 use serde::{Deserialize, Serialize};
+use serde_with::TryFromInto;
 use serde_with::{base64::Base64, serde_as};
 use sqlx::FromRow;
 use ssh2::Session;
 use std::process::Command;
+use std::{
+    fmt::Write as FmtWrite,
+    fs::{self},
+    io::{prelude::*, Write},
+    net::TcpStream,
+    path::Path,
+    str,
+    sync::Arc,
+};
 use substring::Substring;
 use tokio::sync::Mutex;
 use umya_spreadsheet::*;
@@ -129,10 +131,36 @@ pub struct InitCitibankTransferRequest {
     pub file_ulid: Uuid,
     pub template_name: String, //eg. template.xml
 }
+
 #[serde_as]
 #[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct ListCitiBankTransferInitiationFiles {
+pub struct ListCitiBankTransferInitiationFilesResponse {
+    pub ulid: Uuid,
+    pub title_identifier: String,
+    pub client_ulid: Uuid,
+    pub status: String,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
+    pub entries: i64,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct ListCitiBankTransferInitiationFilesResponseNoEntries {
+    pub ulid: Uuid,
+    pub title_identifier: String,
+    pub client_ulid: Uuid,
+    pub status: String,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    pub created_at: sqlx::types::time::OffsetDateTime,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct ListCitiBankTransferInitiationFilesRequest {
     pub ulid: Uuid,
     pub title_identifier: String,
     pub client_ulid: Uuid,
@@ -151,6 +179,7 @@ pub struct CitiBankPayRollRecord {
     pub bank_name: String,
     pub bank_account_number: String,
     pub bank_code: String,
+    pub bank_branch_code: String,
     pub swift_code: String,
     pub amount: f64,
     pub file_ulid: Uuid,
@@ -281,8 +310,8 @@ pub async fn _update_transaction_status(db: Arc<Mutex<Database>>) -> GlobeliseRe
                 let mut reject_reason: String = "".to_string();
 
                 for reason in record.tx_inf_and_sts.sts_rsn_inf {
-                    for aditional_info in reason.addtl_inf {
-                        reject_reason.push_str(&format!("{}, ", &aditional_info));
+                    for additional_info in reason.addtl_inf {
+                        write!(reject_reason, "{}, ", &additional_info)?;
                     }
                 }
 
@@ -514,7 +543,7 @@ pub async fn list_available_templates(
 async fn generate_xml(
     template_name: String,
     local_file: String,
-    transaction_file: ListCitiBankTransferInitiationFiles,
+    transaction_file: ListCitiBankTransferInitiationFilesResponseNoEntries,
     records: Vec<CitiBankPayRollRecord>,
 ) {
     let base_path = std::env::var("CITIBANK_BASE_PATH").expect("base path not set");
@@ -562,9 +591,11 @@ async fn generate_xml(
         ); //max 15 chars
         item = str::replace(&item, "{{InstdAmt}}", &record.amount.to_string());
         item = str::replace(&item, "{{bank_code}}", &record.bank_code);
+        item = str::replace(&item, "{{branch_code}}", &record.bank_branch_code);
         item = str::replace(&item, "{{Cdtr_Nm}}", &record.employee_name);
         item = str::replace(&item, "{{CdtrAcct_Id}}", &record.bank_account_number);
         item = str::replace(&item, "{{RmtInf_Ustrd}}", "Globelise Salary Payment");
+        item = str::replace(&item, "{{bene_bank_name}}", &record.bank_name);
 
         control_sum_total += record.amount;
         number_of_transactions += 1;
@@ -627,10 +658,6 @@ pub async fn download_citibank_transfer_initiation_template(
         .set_value("Currency Code");
     book.get_sheet_by_name_mut("Sheet1")
         .unwrap()
-        .get_cell_mut("A1")
-        .set_value("Currency Code");
-    book.get_sheet_by_name_mut("Sheet1")
-        .unwrap()
         .get_cell_mut("B1")
         .set_value("Country Code");
     book.get_sheet_by_name_mut("Sheet1")
@@ -656,10 +683,14 @@ pub async fn download_citibank_transfer_initiation_template(
     book.get_sheet_by_name_mut("Sheet1")
         .unwrap()
         .get_cell_mut("H1")
-        .set_value("Swift code");
+        .set_value("Branch Code");
     book.get_sheet_by_name_mut("Sheet1")
         .unwrap()
         .get_cell_mut("I1")
+        .set_value("Swift code");
+    book.get_sheet_by_name_mut("Sheet1")
+        .unwrap()
+        .get_cell_mut("J1")
         .set_value("Amount");
 
     //set color
@@ -699,6 +730,10 @@ pub async fn download_citibank_transfer_initiation_template(
         .unwrap()
         .get_style_mut("I1")
         .set_background_color(Color::COLOR_YELLOW);
+    book.get_sheet_by_name_mut("Sheet1")
+        .unwrap()
+        .get_style_mut("J1")
+        .set_background_color(Color::COLOR_YELLOW);
 
     let mut row_index = 2; //start at 2 because of headers
     for contractor in contractors {
@@ -733,7 +768,11 @@ pub async fn download_citibank_transfer_initiation_template(
         book.get_sheet_by_name_mut("Sheet1")
             .unwrap()
             .get_cell_mut(&format!("H{}", row_index))
-            .set_value(&contractor.bank_code); //should be swift code
+            .set_value(&contractor.bank_branch_code);
+        book.get_sheet_by_name_mut("Sheet1")
+            .unwrap()
+            .get_cell_mut(&format!("I{}", row_index))
+            .set_value("HSBCSGS2".to_string()); //swift code
 
         row_index += 1;
     }
@@ -768,7 +807,7 @@ pub async fn upload_citibank_transfer_initiation_template(
 
         let database = database.lock().await;
         let file_ulid = Uuid::new_v4();
-        let record_file = ListCitiBankTransferInitiationFiles {
+        let record_file = ListCitiBankTransferInitiationFilesRequest {
             ulid: file_ulid,
             title_identifier: request.title_identifier,
             client_ulid: request.client_ulid,
@@ -803,13 +842,18 @@ pub async fn upload_citibank_transfer_initiation_template(
                         .unwrap_or(&row[6].get_float().unwrap_or_default().to_string())
                         .to_string()
                         .parse()?,
-                    swift_code: row[7]
+                    bank_branch_code: row[7]
                         .get_string()
                         .unwrap_or(&row[7].get_float().unwrap_or_default().to_string())
-                        .to_string(),
-                    amount: row[8]
+                        .to_string()
+                        .parse()?,
+                    swift_code: row[8]
                         .get_string()
                         .unwrap_or(&row[8].get_float().unwrap_or_default().to_string())
+                        .to_string(),
+                    amount: row[9]
+                        .get_string()
+                        .unwrap_or(&row[9].get_float().unwrap_or_default().to_string())
                         .to_string()
                         .parse()?,
                     file_ulid,
@@ -841,19 +885,15 @@ pub async fn init_citibank_transfer(
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
 
-    let uploaded_file = database
+    let transaction_file = database
         .get_uploaded_citibank_transfer_initiation_file(request.file_ulid)
         .await?;
 
-    if uploaded_file.status != "pending" {
+    if transaction_file.status != "pending" {
         return Err(GlobeliseError::bad_request(
             "This file is already pushed to city bank",
         ));
     }
-
-    let transaction_file = database
-        .get_uploaded_citibank_transfer_initiation_file(request.file_ulid)
-        .await?;
 
     let records = database
         .list_uploaded_citibank_transfer_initiation_files_records(request.file_ulid)
@@ -873,13 +913,14 @@ pub async fn init_citibank_transfer(
 
     let raw_data = std::fs::read_to_string(Path::new(&local_file)).expect("failed to read file");
     let enc_data = encrypt(raw_data).await?;
+    // std::fs::write(Path::new(&local_file), raw_data.as_bytes())?;
     std::fs::write(Path::new(&local_file), enc_data.as_bytes())?;
     let sftp_drop_dir = std::env::var("CITIBANK_SFTP_DROP_DIR").expect("path not set");
     let remote_file = format!("{}GRONEXT_PAYROLL_{}.xml", &sftp_drop_dir, &guid);
     sftp_upload(local_file.to_string(), remote_file).await?;
     //remove local_file after upload
     fs::remove_file(Path::new(&local_file))?;
-    //update status
+    // update status
     database
         .update_status_uploaded_citibank_transfer_initiation_file(
             request.file_ulid,
@@ -895,7 +936,7 @@ pub async fn list_all_uploaded_citibank_transfer_initiation_files_for_client(
     _: Token<AdminAccessToken>,
     Query(request): Query<PaginatedQuery>,
     Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<Json<Vec<ListCitiBankTransferInitiationFiles>>> {
+) -> GlobeliseResult<Json<Vec<ListCitiBankTransferInitiationFilesResponse>>> {
     let database = database.lock().await;
 
     let files = database
@@ -1036,7 +1077,7 @@ impl Database {
     pub async fn get_uploaded_citibank_transfer_initiation_file(
         &self,
         file_ulid: Uuid,
-    ) -> GlobeliseResult<ListCitiBankTransferInitiationFiles> {
+    ) -> GlobeliseResult<ListCitiBankTransferInitiationFilesResponseNoEntries> {
         let result = sqlx::query_as(
             "SELECT * FROM 
                             uploaded_citibank_transfer_initiation_files
@@ -1051,7 +1092,7 @@ impl Database {
 
     pub async fn create_uploaded_citibank_transfer_initiation_file(
         &self,
-        request: ListCitiBankTransferInitiationFiles,
+        request: ListCitiBankTransferInitiationFilesRequest,
     ) -> GlobeliseResult<()> {
         //remove old data with same title, cascades delete records
         sqlx::query(
@@ -1120,12 +1161,12 @@ impl Database {
     pub async fn list_all_uploaded_citibank_transfer_initiation_files_for_client(
         &self,
         request: PaginatedQuery,
-    ) -> GlobeliseResult<Vec<ListCitiBankTransferInitiationFiles>> {
+    ) -> GlobeliseResult<Vec<ListCitiBankTransferInitiationFilesResponse>> {
         let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
 
         let result = sqlx::query_as(
             "SELECT * FROM
-                        uploaded_citibank_transfer_initiation_files
+                        uploaded_citibank_transfer_initiation_files_index
                     WHERE client_ulid = $3
                     LIMIT $1 OFFSET $2",
         )
@@ -1148,8 +1189,8 @@ impl Database {
                 "INSERT INTO
                             uploaded_citibank_transfer_initiation_files_records
                     (ulid, currency_code, country_code, employee_id, employee_name, bank_name, bank_account_number, 
-                     bank_code, swift_code, amount, file_ulid, transaction_status, transaction_status_description)
-                    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);"
+                     bank_code, bank_branch_code, swift_code, amount, file_ulid, transaction_status, transaction_status_description)
+                    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14);"
             )
             .bind(&record.ulid)
             .bind(&record.currency_code)
@@ -1159,6 +1200,7 @@ impl Database {
             .bind(&record.bank_name)
             .bind(&record.bank_account_number)
             .bind(&record.bank_code)
+            .bind(&record.bank_branch_code)
             .bind(&record.swift_code)
             .bind(&record.amount)
             .bind(&record.file_ulid)
@@ -1185,11 +1227,12 @@ impl Database {
                         bank_name = $6, 
                         bank_account_number = $7, 
                         bank_code = $8, 
-                        swift_code = $9, 
-                        amount = $10, 
-                        file_ulid =  $11, 
-                        transaction_status = $12,
-                        transaction_status_description = $13
+                        bank_branch_code = $9, 
+                        swift_code = $10, 
+                        amount = $11, 
+                        file_ulid =  $12, 
+                        transaction_status = $13,
+                        transaction_status_description = $14
                    WHERE ulid = $1",
         )
         .bind(&record.ulid)
@@ -1200,6 +1243,7 @@ impl Database {
         .bind(&record.bank_name)
         .bind(&record.bank_account_number)
         .bind(&record.bank_code)
+        .bind(&record.bank_branch_code)
         .bind(&record.swift_code)
         .bind(&record.amount)
         .bind(&record.file_ulid)

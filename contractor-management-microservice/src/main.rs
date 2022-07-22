@@ -76,7 +76,11 @@ async fn main() {
         .route("/payslips/:role", get(payslips::user_find_many_payslips))
         .route(
             "/payslips/:role/:payslip_ulid",
-            get(payslips::user_get_one_payslip),
+            get(payslips::user_get_one_payslip_index).delete(payslips::user_delete_one_payslip),
+        )
+        .route(
+            "/payslips/:role/:payslip_ulid/file",
+            get(payslips::user_download_one_payslip_index),
         )
         .route(
             "/tax-reports/:role",
@@ -94,18 +98,60 @@ async fn main() {
             "/invoices/group/:role",
             get(invoice::user_invoice_group_index),
         )
-        // ========== ADMIN PAGES ==========
         .route(
-            "/eor-admin/users",
-            get(contracts::admin_get_many_user_index),
+            "/contracts/client/sign",
+            post(contracts::client_sign_contract),
         )
+        .route(
+            "/contracts/contractor/sign",
+            post(contracts::contractor_sign_contract),
+        )
+        .route(
+            "/contracts/client/revoke-sign",
+            post(contracts::client_revoke_sign_contract),
+        )
+        .route(
+            "/contracts/contractor/revoke-sign",
+            post(contracts::contractor_revoke_sign_contract),
+        )
+        .route(
+            "/contracts/client/invite-contractor",
+            post(contracts::client_invite_contractor),
+        )
+        .route(
+            "/contracts/contractor/view-contracts",
+            get(contracts::contractor_view_contracts),
+        )
+        .route(
+            "/contracts/client/create-contract-preview",
+            post(contracts::client_create_contract_preview),
+        )
+        .route(
+            "/contracts/client/contract-preview",
+            get(contracts::client_get_contract_preview)
+                .post(contracts::client_update_contract_preview)
+                .delete(contracts::client_delete_contract_preview),
+        )
+        .route(
+            "/contracts/client/list-contract-preview",
+            get(contracts::client_list_contracts_preview),
+        )
+        .route(
+            "/contracts/client/generate-contract-from-preview",
+            get(contracts::client_generate_contract_from_preview),
+        )
+        // ========== ADMIN PAGES ==========
         .route(
             "/eor-admin/payslips",
             get(payslips::admin_get_many_payslip_index).post(payslips::admin_post_one_payslip),
         )
         .route(
             "/eor-admin/payslips/:payslip_ulid",
-            get(payslips::admin_get_one_payslip_index),
+            get(payslips::admin_get_one_payslip_index).delete(payslips::admin_delete_one_payslip),
+        )
+        .route(
+            "/eor-admin/payslips/:payslip_ulid/file",
+            get(payslips::admin_download_one_payslip_index),
         )
         .route(
             "/eor-admin/tax-reports",
