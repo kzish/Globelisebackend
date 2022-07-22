@@ -17,6 +17,7 @@ pub struct GetCostCenterResponse {
     pub cost_center_name: String,
     pub member: i64,
     pub currency: String,
+    pub client_ulid: Uuid,
 }
 
 #[serde_as]
@@ -41,11 +42,31 @@ pub struct ListCostCentersRequest {
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 #[serde(rename_all = "kebab-case")]
+pub struct ListCostCentersClientUlidRequest {
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+    pub client_ulid: Uuid,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
 pub struct ListCostCentersContractorsRequest {
     pub page: Option<u32>,
     pub per_page: Option<u32>,
     pub cost_center_ulid: Uuid,
     pub contractor_name: Option<String>,
+    pub branch_ulid: Option<Uuid>,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
+pub struct ListFreeCostCentersContractorsRequest {
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+    pub contractor_name: Option<String>,
+    pub branch_ulid: Option<Uuid>,
 }
 
 #[serde_as]
@@ -55,11 +76,27 @@ pub struct CostCenterContractorResponse {
     pub contractor_ulid: Uuid,
     pub contractor_name: String,
     pub branch_ulid: Uuid,
-    pub branch_name: String,
+    pub branch_name: Option<String>,
     pub cost_center_name: String,
     pub cost_center_ulid: Uuid,
-    pub country: String,
-    pub currency: String,
+    pub country: Option<String>,
+    pub currency: Option<String>,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
+pub struct FreeCostCenterContractorResponse {
+    pub contractor_ulid: Uuid,
+    pub contractor_name: Option<String>,
+    pub email_address: Option<String>,
+    pub cost_center_count: Option<i64>,
+
+    pub time_zone: Option<String>,
+    pub branch_ulid: Option<Uuid>,
+    pub branch_name: Option<String>,
+    pub job_description: Option<String>,
+    pub country: Option<String>,
 }
 
 #[serde_as]
@@ -104,6 +141,19 @@ pub async fn list_cost_centers(
     Ok(Json(result))
 }
 
+//list the cost centers for a client
+pub async fn list_cost_centers_by_client_ulid(
+    _: Token<AdminAccessToken>,
+    Query(request): Query<ListCostCentersClientUlidRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<GetCostCenterResponse>>> {
+    let database = database.lock().await;
+
+    let result = database.list_cost_centers_by_client_ulid(request).await?;
+
+    Ok(Json(result))
+}
+
 pub async fn list_cost_center_contractors(
     _: Token<AdminAccessToken>,
     Query(request): Query<ListCostCentersContractorsRequest>,
@@ -112,6 +162,34 @@ pub async fn list_cost_center_contractors(
     let database = database.lock().await;
 
     let result = database.list_cost_center_contractors(request).await?;
+
+    Ok(Json(result))
+}
+
+pub async fn list_contrators_not_in_this_cost_center(
+    _: Token<AdminAccessToken>,
+    Query(request): Query<ListCostCentersContractorsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<FreeCostCenterContractorResponse>>> {
+    let database = database.lock().await;
+
+    let result = database
+        .list_contrators_not_in_this_cost_center(request)
+        .await?;
+
+    Ok(Json(result))
+}
+
+pub async fn list_contrators_not_in_any_cost_center(
+    _: Token<AdminAccessToken>,
+    Query(request): Query<ListFreeCostCentersContractorsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<FreeCostCenterContractorResponse>>> {
+    let database = database.lock().await;
+
+    let result = database
+        .list_contrators_not_in_any_cost_center(request)
+        .await?;
 
     Ok(Json(result))
 }
@@ -206,6 +284,29 @@ impl Database {
         Ok(response)
     }
 
+    pub async fn list_cost_centers_by_client_ulid(
+        &self,
+        request: ListCostCentersClientUlidRequest,
+    ) -> GlobeliseResult<Vec<GetCostCenterResponse>> {
+        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+
+        let response = sqlx::query_as(
+            "SELECT * FROM 
+                    cost_center_index 
+                WHERE
+                    client_ulid = $1
+                LIMIT $2
+                OFFSET $3",
+        )
+        .bind(request.client_ulid)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(response)
+    }
+
     pub async fn list_cost_center_contractors(
         &self,
         request: ListCostCentersContractorsRequest,
@@ -224,6 +325,59 @@ impl Database {
         .bind(limit)
         .bind(offset)
         .bind(format!("%{}%", request.contractor_name.unwrap_or_default()))
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(response)
+    }
+
+    pub async fn list_contrators_not_in_this_cost_center(
+        &self,
+        request: ListCostCentersContractorsRequest,
+    ) -> GlobeliseResult<Vec<FreeCostCenterContractorResponse>> {
+        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+        let response = sqlx::query_as(
+            "SELECT * FROM 
+                    cost_center_contractors_details 
+                WHERE
+                    cost_center_ulid <> $1
+                AND ($4 IS NULL or contractor_name LIKE $4)
+                AND branch_ulid = $5
+                LIMIT $2
+                OFFSET $3",
+        )
+        .bind(request.cost_center_ulid)
+        .bind(limit)
+        .bind(offset)
+        .bind(format!("%{}%", request.contractor_name.unwrap_or_default()))
+        .bind(request.branch_ulid)
+        .fetch_all(&self.0)
+        .await?;
+
+        Ok(response)
+    }
+
+    pub async fn list_contrators_not_in_any_cost_center(
+        &self,
+        request: ListFreeCostCentersContractorsRequest,
+    ) -> GlobeliseResult<Vec<FreeCostCenterContractorResponse>> {
+        let (limit, offset) = calc_limit_and_offset(request.per_page, request.page);
+        let response = sqlx::query_as(
+            "SELECT * FROM 
+                    contractors_not_in_any_cost_center_details 
+                WHERE
+                    ($3 IS NULL or contractor_name LIKE $3)
+                AND
+                    cost_center_count = 0
+                AND 
+                    branch_ulid = $4
+                LIMIT $1
+                OFFSET $2",
+        )
+        .bind(limit)
+        .bind(offset)
+        .bind(format!("%{}%", request.contractor_name.unwrap_or_default()))
+        .bind(request.branch_ulid)
         .fetch_all(&self.0)
         .await?;
 

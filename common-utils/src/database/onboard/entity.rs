@@ -33,7 +33,7 @@ impl Database {
     pub async fn insert_one_onboard_entity_client_account_details(
         &self,
         ulid: Uuid,
-        details: EntityClientAccountDetails,
+        details: &EntityClientAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO entity_client_account_details (
@@ -50,17 +50,17 @@ impl Database {
                 logo = $11";
 
         sqlx::query(query)
-            .bind(ulid)
-            .bind(details.company_name)
-            .bind(details.country)
-            .bind(details.entity_type)
-            .bind(details.registration_number)
-            .bind(details.tax_id)
-            .bind(details.company_address)
-            .bind(details.city)
-            .bind(details.postal_code)
-            .bind(details.time_zone)
-            .bind(details.logo.map(|b| b.as_ref().to_owned()))
+            .bind(&ulid)
+            .bind(&details.company_name)
+            .bind(&details.country)
+            .bind(&details.entity_type)
+            .bind(&details.registration_number)
+            .bind(&details.tax_id)
+            .bind(&details.company_address)
+            .bind(&details.city)
+            .bind(&details.postal_code)
+            .bind(&details.time_zone)
+            .bind(&details.logo.as_ref().map(|b| b.as_ref().to_owned()))
             .execute(&self.0)
             .await?;
 
@@ -115,7 +115,7 @@ impl Database {
     pub async fn insert_one_onboard_entity_contractor_account_details(
         &self,
         ulid: Uuid,
-        details: EntityContractorAccountDetails,
+        details: &EntityContractorAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO entity_contractor_account_details (
@@ -131,18 +131,18 @@ impl Database {
                 tax_id = $6, company_address = $7, city = $8, postal_code = $9, time_zone = $10,
                 logo = $11, company_profile = $12";
         sqlx::query(query)
-            .bind(ulid)
-            .bind(details.company_name)
-            .bind(details.country)
-            .bind(details.entity_type)
-            .bind(details.registration_number)
-            .bind(details.tax_id)
-            .bind(details.company_address)
-            .bind(details.city)
-            .bind(details.postal_code)
-            .bind(details.time_zone)
-            .bind(details.logo.map(|b| b.as_ref().to_owned()))
-            .bind(details.company_profile)
+            .bind(&ulid)
+            .bind(&details.company_name)
+            .bind(&details.country)
+            .bind(&details.entity_type)
+            .bind(&details.registration_number)
+            .bind(&details.tax_id)
+            .bind(&details.company_address)
+            .bind(&details.city)
+            .bind(&details.postal_code)
+            .bind(&details.time_zone)
+            .bind(&details.logo.as_ref().map(|b| b.to_owned()))
+            .bind(&details.company_profile.as_ref())
             .execute(&self.0)
             .await?;
 

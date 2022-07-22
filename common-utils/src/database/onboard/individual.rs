@@ -4,7 +4,7 @@ use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::{
-    custom_serde::{EmailWrapper, ImageData, OffsetDateWrapper},
+    custom_serde::{Country, EmailWrapper, ImageData, OffsetDateWrapper},
     database::Database,
     error::GlobeliseResult,
 };
@@ -19,7 +19,7 @@ pub struct IndividualClientAccountDetails {
     pub dob: sqlx::types::time::OffsetDateTime,
     pub dial_code: String,
     pub phone_number: String,
-    pub country: String,
+    pub country: Country,
     pub city: String,
     pub address: String,
     pub postal_code: String,
@@ -101,7 +101,7 @@ pub struct IndividualContractorAccountDetails {
     pub dob: sqlx::types::time::OffsetDateTime,
     pub dial_code: String,
     pub phone_number: String,
-    pub country: String,
+    pub country: Country,
     pub city: String,
     pub address: String,
     pub postal_code: String,
@@ -121,7 +121,7 @@ pub struct IndividualContractorAccountDetails {
     pub national_id: Option<String>,
     pub passport_number: Option<String>,
     pub passport_expiry_date: Option<String>,
-    pub work_permit: Option<bool>,
+    pub work_permit: Option<String>,
     pub added_related_pay_item_id: Option<Uuid>,
     pub total_dependants: Option<i64>,
 }
@@ -130,7 +130,7 @@ impl Database {
     pub async fn insert_one_onboard_individual_contractor_account_details(
         &self,
         ulid: Uuid,
-        details: IndividualContractorAccountDetails,
+        details: &IndividualContractorAccountDetails,
     ) -> GlobeliseResult<()> {
         let query = "
             INSERT INTO individual_contractor_account_details (
@@ -154,27 +154,27 @@ impl Database {
 
         sqlx::query(query)
             .bind(ulid)
-            .bind(details.first_name)
-            .bind(details.last_name)
+            .bind(&details.first_name)
+            .bind(&details.last_name)
             .bind(details.dob)
-            .bind(details.dial_code)
-            .bind(details.phone_number)
-            .bind(details.country)
-            .bind(details.city)
-            .bind(details.address)
-            .bind(details.postal_code)
-            .bind(details.tax_id)
-            .bind(details.time_zone)
-            .bind(details.profile_picture.map(|b| b.as_ref().to_owned()))
-            .bind(details.cv)
-            .bind(details.gender)
-            .bind(details.marital_status)
-            .bind(details.nationality)
-            .bind(details.email_address)
-            .bind(details.national_id)
-            .bind(details.passport_number)
-            .bind(details.passport_expiry_date)
-            .bind(details.work_permit)
+            .bind(&details.dial_code)
+            .bind(&details.phone_number)
+            .bind(&details.country)
+            .bind(&details.city)
+            .bind(&details.address)
+            .bind(&details.postal_code)
+            .bind(&details.tax_id)
+            .bind(&details.time_zone)
+            .bind(details.profile_picture.as_ref().map(|b| b.to_owned()))
+            .bind(&details.cv)
+            .bind(&details.gender)
+            .bind(&details.marital_status)
+            .bind(&details.nationality)
+            .bind(&details.email_address)
+            .bind(&details.national_id)
+            .bind(&details.passport_number)
+            .bind(&details.passport_expiry_date)
+            .bind(&details.work_permit)
             .bind(details.added_related_pay_item_id)
             .bind(details.total_dependants)
             .execute(&self.0)

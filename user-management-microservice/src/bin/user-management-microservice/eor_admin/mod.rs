@@ -15,20 +15,13 @@ use lettre::{Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
 
-use crate::{
-    database::SharedDatabase,
-    env::{
-        GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL,
-        USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL,
-    },
-};
+use crate::env::{FRONTEND_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL};
 
 pub mod bank_transfer;
 pub mod cost_center;
 pub mod entity_contractor_branch_pair;
 pub mod individual_contractor_branch_pair;
 pub mod pay_items;
-pub mod prefill;
 pub mod sap;
 pub mod search_employee_contractors;
 pub mod teams;
@@ -47,7 +40,7 @@ pub async fn add_individual_contractor(
         Json<AddUserRequest>,
         FORM_DATA_LENGTH_LIMIT,
     >,
-    Extension(database): Extension<SharedDatabase>,
+    Extension(database): Extension<CommonDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
 
@@ -58,6 +51,10 @@ pub async fn add_individual_contractor(
     {
         return Err(GlobeliseError::UnavailableEmail);
     };
+
+    database
+        .insert_one_user(&body.email, None, false, false, false, true, false, true)
+        .await?;
 
     // If  in debug mode, skip sending emails
     if let Some(true) = body.debug {
@@ -87,13 +84,13 @@ pub async fn add_individual_contractor(
             </head>
             <body>
                 <p>
-               Click the <a href="{}">link</a> to sign up as a Globelise individual contractor.
+               Click the <a href="{}/signup?as=contractor&type=individual">link</a> to sign up as a Globelise individual contractor.
                 </p>
                 <p>If you did not expect to receive this email. Please ignore!</p>
             </body>
             </html>
             "##,
-            (*USER_MANAGEMENT_MICROSERVICE_DOMAIN_URL),
+            (*FRONTEND_URL),
         ))?;
 
     // Open a remote connection to gmail
