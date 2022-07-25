@@ -67,7 +67,7 @@ async fn main() {
         )
         .route(
             "/contracts/:role/:contract_ulid",
-            get(contracts::user_get_one_contract_index),
+            get(contracts::user_get_one_contract_index).delete(contracts::user_delete_one_contract),
         )
         .route(
             "/:role/contracts/:contract_ulid/sign",
@@ -133,12 +133,16 @@ async fn main() {
                 .delete(contracts::client_delete_contract_preview),
         )
         .route(
+            "/contracts/client/contract-previews",
+            get(contracts::client_get_contract_previews),
+        )
+        .route(
             "/contracts/client/list-contract-preview",
             get(contracts::client_list_contracts_preview),
         )
         .route(
             "/contracts/client/generate-contract-from-preview",
-            get(contracts::client_generate_contract_from_preview),
+            post(contracts::client_generate_contract_from_preview),
         )
         // ========== ADMIN PAGES ==========
         .route(
