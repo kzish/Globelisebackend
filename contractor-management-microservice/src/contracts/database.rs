@@ -2,9 +2,10 @@ use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
 use uuid::Uuid;
 
 use super::{
-    ContractDetails, ContractorEmailDetails, ContractorViewContractsRequest, ContractsPreview,
-    ContractsPreviewCreateRequest, GenerateContractDto, ListContractsPreviewRequest,
-    RevokeSignContractRequest, SignContractRequest,
+    ContractDetails, ContractPreviewsRequest, ContractorEmailDetails,
+    ContractorViewContractsRequest, ContractsPreview, ContractsPreviewCreateRequest,
+    GenerateContractDto, ListContractsPreviewRequest, RevokeSignContractRequest,
+    SignContractRequest,
 };
 use crate::database::Database;
 impl Database {
@@ -213,9 +214,12 @@ impl Database {
                         seniority_level,
                         job_scope,
                         start_date,
-                        end_date
+                        end_date,
+                        contract_type,
+                        contract_amount,
+                        currency
                     )
-                values ($1, $2, $3 $4, $5, $6, $7, $8, $9, $10, $11)",
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)",
         )
         .bind(ulid)
         .bind(request.contract_preview_text)
@@ -228,6 +232,9 @@ impl Database {
         .bind(request.job_scope)
         .bind(request.start_date)
         .bind(request.end_date)
+        .bind(request.contract_type)
+        .bind(request.contract_amount)
+        .bind(request.currency)
         .execute(&self.0)
         .await?;
 
@@ -253,7 +260,9 @@ impl Database {
                     job_scope = $9,
                     start_date = $10,
                     end_date = $11,
-                    )
+                    contract_type = $12,
+                    contract_amount = $13,
+                    currency = $14
             WHERE
                 ulid = $1",
         )
@@ -268,6 +277,9 @@ impl Database {
         .bind(request.job_scope)
         .bind(request.start_date)
         .bind(request.end_date)
+        .bind(request.contract_type)
+        .bind(request.contract_amount)
+        .bind(request.currency)
         .execute(&self.0)
         .await?;
 
@@ -280,13 +292,34 @@ impl Database {
     ) -> GlobeliseResult<ContractsPreview> {
         let response = sqlx::query_as(
             "
-            SELCT * FROM 
+            SELECT * FROM 
                  contract_preview 
             WHERE
                 ulid = $1",
         )
         .bind(ulid)
         .fetch_one(&self.0)
+        .await?;
+
+        Ok(response)
+    }
+
+    pub async fn client_get_contract_previews(
+        &self,
+        request: ContractPreviewsRequest,
+    ) -> GlobeliseResult<Vec<ContractsPreview>> {
+        let response = sqlx::query_as(
+            "
+            SELECT * FROM 
+                 contract_preview 
+            WHERE
+                branch_ulid = $1
+            AND
+                ($2 is NULL OR job_title LIKE $2)",
+        )
+        .bind(request.branch_ulid)
+        .bind(format!("%{}%", request.job_title.unwrap_or_default()))
+        .fetch_all(&self.0)
         .await?;
 
         Ok(response)

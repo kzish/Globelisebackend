@@ -78,7 +78,7 @@ pub struct ContractsPreviewDeleteRequest {
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GenerateContractFromPreviewRequest {
-    contract_ulid: Uuid,
+    preview_ulid: Uuid,
     contractor_ulid: Uuid,
 }
 
@@ -142,6 +142,15 @@ pub struct SignContractRequest {
     pub client_ulid: Uuid,
     pub contract_ulid: Uuid,
     pub signature: String,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct SignContractInviteRequest {
+    pub contractor_ulid: Uuid,
+    pub client_ulid: Uuid,
+    pub contract_ulid: Uuid,
     pub title: String,
     pub message: String,
 }
@@ -175,6 +184,21 @@ pub struct ContractorEmailDetails {
 }
 
 #[serde_as]
+#[derive(Debug, Deserialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractPreviewRequest {
+    pub preview_ulid: Uuid,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractPreviewsRequest {
+    pub branch_ulid: Uuid,
+    pub job_title: Option<String>,
+}
+
+#[serde_as]
 #[derive(Debug, Deserialize, FromRow, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ContractDetails {
@@ -189,10 +213,14 @@ pub struct ContractDetails {
     pub contract_status: String,
     pub contract_amount: f64,
     pub currency: String,
-    pub begin_at: String,
-    pub end_at: String,
+    // pub begin_at: String,
+    // pub end_at: String,
     pub job_title: String,
     pub seniority: String,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    begin_at: sqlx::types::time::OffsetDateTime,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    end_at: sqlx::types::time::OffsetDateTime,
 }
 
 pub async fn user_get_many_contract_index(
@@ -230,6 +258,31 @@ pub async fn user_get_many_contract_index(
     };
 
     Ok(Json(results))
+}
+
+pub async fn user_delete_one_contract(
+    claims: Token<UserAccessToken>,
+    Path((_user_role, contract_ulid)): Path<(UserRole, Uuid)>,
+    Query(query): Query<GetManyContractsQuery>,
+    Extension(database): Extension<CommonDatabase>,
+) -> GlobeliseResult<()> {
+    let database = database.lock().await;
+
+    let contract = database
+        .select_one_contract(
+            Some(contract_ulid),
+            query.contractor_ulid,
+            Some(claims.payload.ulid),
+            query.query,
+            query.branch_ulid,
+        )
+        .await?;
+    if Some(contract).is_none() {
+        return Err(GlobeliseError::Forbidden);
+    }
+    database.user_delete_one_contract(contract_ulid).await?;
+
+    Ok(())
 }
 
 pub async fn user_get_one_contract_index(
@@ -491,14 +544,27 @@ pub async fn client_create_contract_preview(
 
 pub async fn client_get_contract_preview(
     claims: Token<UserAccessToken>,
-    Json(request): Json<ContractsPreviewDeleteRequest>,
+    Query(request): Query<ContractPreviewRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<Json<ContractsPreview>> {
     let database = database.lock().await;
-    let response = database.client_get_contract_preview(request.ulid).await?;
+    let response = database
+        .client_get_contract_preview(request.preview_ulid)
+        .await?;
     if claims.payload.ulid != response.client_ulid {
         return Err(GlobeliseError::Forbidden);
     }
+
+    Ok(Json(response))
+}
+
+pub async fn client_get_contract_previews(
+    _claims: Token<UserAccessToken>,
+    Query(request): Query<ContractPreviewsRequest>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<Vec<ContractsPreview>>> {
+    let database = database.lock().await;
+    let response = database.client_get_contract_previews(request).await?;
 
     Ok(Json(response))
 }
@@ -577,7 +643,7 @@ pub async fn client_generate_contract_from_preview(
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
     let contract_preview = database
-        .client_get_contract_preview(request.contract_ulid)
+        .client_get_contract_preview(request.preview_ulid)
         .await?;
 
     let generated_contract = GenerateContractDto {
@@ -610,7 +676,7 @@ pub async fn client_generate_contract_from_preview(
 //send email to contractor
 pub async fn client_invite_contractor(
     claims: Token<UserAccessToken>,
-    Json(request): Json<SignContractRequest>,
+    Json(request): Json<SignContractInviteRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     if claims.payload.ulid != request.client_ulid {
@@ -620,9 +686,8 @@ pub async fn client_invite_contractor(
     let contractor_details = database
         .get_contractor_email_details(request.contractor_ulid)
         .await?;
-    let contract_details = database
-        .get_contract_details(request.contractor_ulid)
-        .await?;
+
+    let contract_details = database.get_contract_details(request.contract_ulid).await?;
 
     let receiver_email = contractor_details
         .email
