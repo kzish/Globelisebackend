@@ -45,7 +45,7 @@ pub struct ContractsIndex {
 }
 
 impl Database {
-    pub async fn select_many_contracts(
+    pub async fn _select_many_contracts(
         &self,
         page: Option<u32>,
         per_page: Option<u32>,
@@ -85,7 +85,7 @@ impl Database {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub async fn insert_one_contract(
+    pub async fn _insert_one_contract(
         &self,
         client_ulid: Uuid,
         contractor_ulid: Uuid,
@@ -132,7 +132,7 @@ impl Database {
         Ok(ulid)
     }
 
-    pub async fn select_one_contract(
+    pub async fn _select_one_contract(
         &self,
         contract_ulid: Option<Uuid>,
         contractor_ulid: Option<Uuid>,
@@ -164,7 +164,7 @@ impl Database {
         Ok(result)
     }
 
-    pub async fn user_delete_one_contract(&self, contract_ulid: Uuid) -> GlobeliseResult<()> {
+    pub async fn _user_delete_one_contract(&self, contract_ulid: Uuid) -> GlobeliseResult<()> {
         sqlx::query(
             "
         DELETE FROM 
@@ -179,7 +179,7 @@ impl Database {
         Ok(())
     }
 
-    pub async fn sign_one_contract(
+    pub async fn _sign_one_contract(
         &self,
         contract_ulid: Uuid,
         contractor_ulid: Uuid,
