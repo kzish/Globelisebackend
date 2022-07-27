@@ -1,7 +1,7 @@
 -- Add migration script here
 
 
-    drop table contract_preview
+    drop table contract_preview;
 
     ALTER TABLE IF EXISTS public.contracts
     ADD COLUMN country_of_contractors_tax_residence text NOT NULL DEFAULT 'SG';
