@@ -115,6 +115,9 @@ pub struct ContractsIndexResponse {
     pub due_date: Option<sqlx::types::time::OffsetDateTime>,
     pub contractor_name: Option<String>,
     pub client_name: Option<String>,
+    pub tax_settings: Option<String>,
+    pub statutory_fund_settings: Option<String>,
+    pub payment_calculation_settings: Option<String>,
 }
 
 #[serde_as]
@@ -154,6 +157,9 @@ pub struct SingleContractsIndexResponse {
     pub due_date: Option<sqlx::types::time::OffsetDateTime>,
     pub contractor_name: Option<String>,
     pub client_name: Option<String>,
+    pub tax_settings: Option<String>,
+    pub statutory_fund_settings: Option<String>,
+    pub payment_calculation_settings: Option<String>,
     //:TODO Add claim items
     pub pay_items: Vec<ContractsPayItemsResponse>,
     pub additional_documents: Vec<ContractsAdditionalDocumentsResponse>,
@@ -197,6 +203,9 @@ pub struct ContractsRequest {
     pub additional_documents: Vec<ContractsAdditionalDocumentsPostRequest>,
     pub claim_items: Vec<ContractsClaimItemsPostRequest>,
     pub pay_items: Vec<ContractsPayItemsPostRequest>,
+    pub tax_settings: Option<String>,
+    pub statutory_fund_settings: Option<String>,
+    pub payment_calculation_settings: Option<String>,
 }
 
 #[serde_as]
@@ -326,6 +335,9 @@ pub async fn get_combine_single_contract_index(
         client_name: contract_index.client_name,
         pay_items: contract_index_pay_items,
         additional_documents: contract_index_additional_documents,
+        tax_settings: contract_index.tax_settings,
+        statutory_fund_settings: contract_index.statutory_fund_settings,
+        payment_calculation_settings: contract_index.payment_calculation_settings,
     };
 
     Ok(combined_contract_index)

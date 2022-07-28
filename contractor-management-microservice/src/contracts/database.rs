@@ -203,8 +203,11 @@ impl Database {
                     special_clause,
                     cut_off,
                     pay_day,
-                    due_date
-                ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+                    due_date,
+                    tax_settings,
+                    statutory_fund_settings,
+                    payment_calculation_settings
+                ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
                 ON CONFLICT (ulid) DO UPDATE
                 SET
                     client_ulid = $2,
@@ -231,7 +234,10 @@ impl Database {
                     special_clause = $23,
                     cut_off = $24,
                     pay_day = $25,
-                    due_date = $26
+                    due_date = $26,
+                    tax_settings = $27,
+                    statutory_fund_settings = $28,
+                    payment_calculation_settings = $29
                 ",
         )
         .bind(request.ulid)
@@ -260,6 +266,9 @@ impl Database {
         .bind(request.cut_off)
         .bind(request.pay_day)
         .bind(request.due_date)
+        .bind(request.tax_settings)
+        .bind(request.statutory_fund_settings)
+        .bind(request.payment_calculation_settings)
         .execute(&self.0)
         .await?;
 
