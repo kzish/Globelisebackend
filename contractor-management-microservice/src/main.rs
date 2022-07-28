@@ -105,16 +105,10 @@ async fn main() {
         )
         //contracts-clients
         .route(
-            "/contracts/client-get-contracts",
-            get(contracts::client_list_contracts),
-        )
-        .route(
-            "/contracts/client-post-update-contracts",
-            post(contracts::client_post_update_contract),
-        )
-        .route(
-            "/contracts/client-delete-contract",
-            post(contracts::client_delete_contract),
+            "/contracts/client",
+            get(contracts::client_list_contracts)
+                .post(contracts::client_post_update_contract)
+                .delete(contracts::client_delete_contract),
         )
         .route(
             "/contracts/client/get-combine-single-contract-index",
