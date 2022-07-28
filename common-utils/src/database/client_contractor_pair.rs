@@ -53,18 +53,16 @@ impl Database {
         &self,
         client_ulid: Uuid,
         contractor_ulid: Uuid,
-        contract_ulid: Option<Uuid>,
+        _contract_ulid: Option<Uuid>,
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "
-            INSERT INTO client_contractor_pairs (
-                client_ulid, contractor_ulid, contract_ulid
-            ) VALUES (
-                $1, $2, $3)",
+            INSERT INTO client_contractor_pairs (client_ulid, contractor_ulid) VALUES ($1, $2)
+            ON CONFLICT (client_ulid, contractor_ulid) DO NOTHING
+            ",
         )
         .bind(client_ulid)
         .bind(contractor_ulid)
-        .bind(contract_ulid)
         .execute(&self.0)
         .await?;
 
