@@ -1,9 +1,10 @@
-use common_utils::{calc_limit_and_offset, error::GlobeliseResult};
+use common_utils::{calc_limit_and_offset, custom_serde::EmailWrapper, error::GlobeliseResult};
 use uuid::Uuid;
 
 use super::{
-    ContractsAdditionalDocumentsResponse, ContractsIndexResponse, ContractsPayItemsResponse,
-    ContractsRequest, GetContractsRequest, RevokeSignContractRequest, SignContractRequest,
+    ActivateContractRequest, ContractorsIndexResponse, ContractsAdditionalDocumentsResponse,
+    ContractsIndexResponse, ContractsPayItemsResponse, ContractsRequest, GetContractsRequest,
+    PermanantlyCancelContractRequest, RevokeSignContractRequest, SignContractRequest,
 };
 use crate::database::Database;
 
@@ -173,7 +174,7 @@ impl Database {
     pub async fn client_post_update_contract(
         &self,
         request: ContractsRequest,
-    ) -> GlobeliseResult<()> {
+    ) -> GlobeliseResult<String> {
         sqlx::query(
             "
             INSERT INTO
@@ -272,6 +273,16 @@ impl Database {
         .execute(&self.0)
         .await?;
 
+        //update table client_contractor_pairs
+        if request.contractor_ulid.is_some() && request.client_ulid.is_some() {
+            Self::update_client_contractor_pairs(
+                self,
+                request.client_ulid.unwrap(),
+                request.contractor_ulid.unwrap(),
+            )
+            .await?;
+        }
+
         //remove existing additional documents
         sqlx::query(
             "
@@ -363,6 +374,73 @@ impl Database {
             .await?;
         }
 
+        Ok(request.ulid.unwrap().to_string())
+    }
+
+    pub async fn update_client_contractor_pairs(
+        &self,
+        client_ulid: Uuid,
+        contractor_ulid: Uuid,
+    ) -> GlobeliseResult<()> {
+        sqlx::query(
+            "
+                INSERT INTO 
+                        client_contractor_pairs(client_ulid, contractor_ulid)
+                VALUES ($1, $2)
+                    ON CONFLICT (client_ulid, contractor_ulid) DO NOTHING
+                ",
+        )
+        .bind(client_ulid)
+        .bind(contractor_ulid)
+        .execute(&self.0)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_contractor_branch_pairs(
+        &self,
+        branch_ulid: Uuid,
+        contractor_ulid: Uuid,
+    ) -> GlobeliseResult<()> {
+        sqlx::query(
+            "
+                INSERT INTO 
+                        entity_contractor_branch_pairs(branch_ulid, contractor_ulid)
+                VALUES ($1, $2)
+                    ON CONFLICT (branch_ulid, contractor_ulid) DO NOTHING
+                ",
+        )
+        .bind(branch_ulid)
+        .bind(contractor_ulid)
+        .execute(&self.0)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_contract_add_contractor_ulid_to_contract(
+        &self,
+        client_ulid: Uuid,
+        contractor_ulid: Uuid,
+        contract_ulid: Uuid,
+    ) -> GlobeliseResult<()> {
+        sqlx::query(
+            "
+                UPDATE contracts SET
+                    contractor_ulid = $3 
+                WHERE
+                    client_ulid = $1
+                AND 
+                    ulid = $2
+                ",
+        )
+        .bind(client_ulid)
+        .bind(contract_ulid)
+        .bind(contractor_ulid)
+        .execute(&self.0)
+        .await?;
+
         Ok(())
     }
 
@@ -375,7 +453,7 @@ impl Database {
             SET
                 client_signature = $1,
                 client_date_signed = $2,
-                contract_status = 'CLIENT SIGNED'
+                contract_status = 'CONTRACTOR_SIGNATURE'
             WHERE 
                 ulid = $3 
             AND 
@@ -436,7 +514,8 @@ impl Database {
             SET
                 client_signature = null,
                 client_date_signed = null,
-                contract_status = 'CANCELLED'
+                contract_status = 'REJECTED',
+                client_rejected_reason = $4
             WHERE 
                 ulid = $1 
             AND 
@@ -447,6 +526,7 @@ impl Database {
         .bind(request.contract_ulid)
         .bind(request.contractor_ulid)
         .bind(request.client_ulid)
+        .bind(request.reason)
         .execute(&self.0)
         .await?;
 
@@ -464,7 +544,8 @@ impl Database {
             SET
                 contractor_signature = null,
                 contractor_date_signed = null,
-                contract_status = 'CANCELLED'
+                contract_status = 'REJECTED',
+                contractor_rejected_reason = $4
             WHERE 
                 ulid = $1 
             AND 
@@ -475,6 +556,103 @@ impl Database {
         .bind(request.contract_ulid)
         .bind(request.contractor_ulid)
         .bind(request.client_ulid)
+        .bind(request.reason)
+        .execute(&self.0)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn get_contractor_by_email(
+        &self,
+        email: EmailWrapper,
+    ) -> GlobeliseResult<Option<ContractorsIndexResponse>> {
+        let response = sqlx::query_as(
+            "
+            SELECT * FROM
+                contractors_index_for_clients
+            WHERE 
+                email = $1
+            ",
+        )
+        .bind(email)
+        .fetch_optional(&self.0)
+        .await?;
+
+        Ok(response)
+    }
+
+    pub async fn get_contract_by_ulid(
+        &self,
+        contract_ulid: Uuid,
+    ) -> GlobeliseResult<ContractsIndexResponse> {
+        let response = sqlx::query_as(
+            "
+                SELECT * FROM
+                    contracts_index
+                WHERE 
+                    ulid = $1
+                ",
+        )
+        .bind(contract_ulid)
+        .fetch_one(&self.0)
+        .await?;
+
+        Ok(response)
+    }
+
+    //only client and admin
+    pub async fn activate_contract_to_draft(
+        &self,
+        request: ActivateContractRequest,
+    ) -> GlobeliseResult<()> {
+        sqlx::query(
+            "
+            UPDATE
+                contracts
+            SET
+                contract_status = 'DRAFT',
+                activate_to_draft_reason = $4
+            WHERE 
+                ulid = $1 
+            AND 
+                contractor_ulid = $2
+            AND
+                client_ulid = $3",
+        )
+        .bind(request.contract_ulid)
+        .bind(request.contractor_ulid)
+        .bind(request.client_ulid)
+        .bind(request.reason)
+        .execute(&self.0)
+        .await?;
+
+        Ok(())
+    }
+
+    //only client and admin
+    pub async fn permanantly_cancel_contract(
+        &self,
+        request: PermanantlyCancelContractRequest,
+    ) -> GlobeliseResult<()> {
+        sqlx::query(
+            "
+            UPDATE
+                contracts
+            SET
+                contract_status = 'CANCELLED',
+                cancelled_reason = $4
+            WHERE 
+                ulid = $1 
+            AND 
+                contractor_ulid = $2
+            AND
+                client_ulid = $3",
+        )
+        .bind(request.contract_ulid)
+        .bind(request.contractor_ulid)
+        .bind(request.client_ulid)
+        .bind(request.reason)
         .execute(&self.0)
         .await?;
 

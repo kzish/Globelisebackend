@@ -126,6 +126,22 @@ async fn main() {
             "/contracts/client/invite-contractor",
             post(contracts::client_invite_contractor),
         )
+        .route(
+            "/contracts/eor-admin/activate-contract",
+            post(contracts::admin_activate_contract_to_draft),
+        )
+        .route(
+            "/contracts/client/activate-contract",
+            post(contracts::client_activate_contract_to_draft),
+        )
+        .route(
+            "/contracts/eor-admin/cancel-contract",
+            post(contracts::admin_permanantly_cancel_contract),
+        )
+        .route(
+            "/contracts/client/cancel-contract",
+            post(contracts::client_permanantly_cancel_contract),
+        )
         // ========== ADMIN PAGES ==========
         .route(
             "/eor-admin/payslips",
