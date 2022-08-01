@@ -56,6 +56,12 @@ impl AsRef<EmailWrapper> for EmailWrapper {
     }
 }
 
+impl Clone for EmailWrapper {
+    fn clone(&self) -> EmailWrapper {
+        self.to_owned()
+    }
+}
+
 impl sqlx::Type<sqlx::Postgres> for EmailWrapper {
     fn type_info() -> sqlx::postgres::PgTypeInfo {
         sqlx::postgres::PgTypeInfo::with_name("text")
