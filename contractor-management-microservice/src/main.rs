@@ -61,18 +61,6 @@ async fn main() {
             "/contractors",
             get(contracts::user_get_many_contractors_for_clients),
         )
-        .route(
-            "/contracts/:role",
-            get(contracts::user_get_many_contract_index),
-        )
-        .route(
-            "/contracts/:role/:contract_ulid",
-            get(contracts::user_get_one_contract_index),
-        )
-        .route(
-            "/:role/contracts/:contract_ulid/sign",
-            post(contracts::user_sign_one_contract),
-        )
         .route("/payslips/:role", get(payslips::user_find_many_payslips))
         .route(
             "/payslips/:role/:payslip_ulid",
@@ -98,47 +86,61 @@ async fn main() {
             "/invoices/group/:role",
             get(invoice::user_invoice_group_index),
         )
+        //contracts-contractors
         .route(
-            "/contracts/client/sign",
-            post(contracts::client_sign_contract),
+            "/contracts/contractor",
+            get(contracts::contractor_list_contracts),
         )
         .route(
             "/contracts/contractor/sign",
             post(contracts::contractor_sign_contract),
         )
         .route(
-            "/contracts/client/revoke-sign",
-            post(contracts::client_revoke_sign_contract),
-        )
-        .route(
             "/contracts/contractor/revoke-sign",
             post(contracts::contractor_revoke_sign_contract),
+        )
+        .route(
+            "/contracts/contractor/get-combine-single-contract-index",
+            get(contracts::contractor_get_combine_single_contract_index),
+        )
+        //contracts-clients
+        .route(
+            "/contracts/client",
+            get(contracts::client_list_contracts)
+                .post(contracts::client_post_update_contract)
+                .delete(contracts::client_delete_contract),
+        )
+        .route(
+            "/contracts/client/get-combine-single-contract-index",
+            get(contracts::client_get_combine_single_contract_index),
+        )
+        .route(
+            "/contracts/client/sign",
+            post(contracts::client_sign_contract),
+        )
+        .route(
+            "/contracts/client/revoke-sign",
+            post(contracts::client_revoke_sign_contract),
         )
         .route(
             "/contracts/client/invite-contractor",
             post(contracts::client_invite_contractor),
         )
         .route(
-            "/contracts/contractor/view-contracts",
-            get(contracts::contractor_view_contracts),
+            "/contracts/eor-admin/activate-contract",
+            post(contracts::admin_activate_contract_to_draft),
         )
         .route(
-            "/contracts/client/create-contract-preview",
-            post(contracts::client_create_contract_preview),
+            "/contracts/client/activate-contract",
+            post(contracts::client_activate_contract_to_draft),
         )
         .route(
-            "/contracts/client/contract-preview",
-            get(contracts::client_get_contract_preview)
-                .post(contracts::client_update_contract_preview)
-                .delete(contracts::client_delete_contract_preview),
+            "/contracts/eor-admin/cancel-contract",
+            post(contracts::admin_permanantly_cancel_contract),
         )
         .route(
-            "/contracts/client/list-contract-preview",
-            get(contracts::client_list_contracts_preview),
-        )
-        .route(
-            "/contracts/client/generate-contract-from-preview",
-            get(contracts::client_generate_contract_from_preview),
+            "/contracts/client/cancel-contract",
+            post(contracts::client_permanantly_cancel_contract),
         )
         // ========== ADMIN PAGES ==========
         .route(
@@ -161,14 +163,6 @@ async fn main() {
         .route(
             "/eor-admin/tax-reports/:tax_report_ulid",
             get(tax_report::admin_get_one_tax_report_index),
-        )
-        .route(
-            "/eor-admin/contracts",
-            get(contracts::admin_get_many_contract_index).post(contracts::admin_post_one_contract),
-        )
-        .route(
-            "/eor-admin/contracts/:contract_ulid",
-            get(contracts::admin_get_one_contract_index),
         )
         .route(
             "/eor-admin/invoices/individual",
