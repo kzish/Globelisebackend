@@ -25,8 +25,6 @@ TABLESPACE pg_default;
 ALTER TABLE IF EXISTS public.client_contractor_pairs
     OWNER to postgres;
 
-TABLESPACE pg_default;
-
 ALTER TABLE IF EXISTS public.client_contractor_pairs
     OWNER to postgres;
 
