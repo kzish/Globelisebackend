@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     calc_limit_and_offset,
-    custom_serde::{Currency, OffsetDateWrapper},
+    custom_serde::{Currency, OffsetDateWrapper, OptionOffsetDateWrapper},
     database::Database,
     error::GlobeliseResult,
 };
@@ -16,28 +16,36 @@ use crate::{
 pub struct ContractsIndex {
     contract_ulid: Uuid,
     client_ulid: Uuid,
-    branch_ulid: Option<Uuid>,
-    client_name: Option<String>,
     contractor_ulid: Uuid,
-    contractor_name: Option<String>,
     contract_name: String,
     contract_type: String,
     contract_status: String,
-    contract_amount: sqlx::types::Decimal,
-    currency: Currency,
+    contract_amount: f64,
+    currency: String,
+    job_title: String,
+    seniority: String,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     begin_at: sqlx::types::time::OffsetDateTime,
     #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
     end_at: sqlx::types::time::OffsetDateTime,
-    job_title: String,
-    seniority: String,
+    branch_ulid: Uuid,
+    #[serde_as(as = "TryFromInto<OffsetDateWrapper>")]
+    created_at: sqlx::types::time::OffsetDateTime,
+    client_signature: Option<String>,
+    contractor_signature: Option<String>,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    client_date_signed: Option<sqlx::types::time::OffsetDateTime>,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    contractor_date_signed: Option<sqlx::types::time::OffsetDateTime>,
     contract_preview_text: Option<String>,
-    team_ulid: Option<Uuid>,
+    team_ulid: Uuid,
     job_scope: String,
+    contractor_name: String,
+    client_name: String,
 }
 
 impl Database {
-    pub async fn select_many_contracts(
+    pub async fn _select_many_contracts(
         &self,
         page: Option<u32>,
         per_page: Option<u32>,
@@ -57,7 +65,7 @@ impl Database {
             WHERE
                 ($1 IS NULL OR client_ulid = $1) AND
                 ($2 IS NULL OR contractor_ulid = $2) AND
-                ($3 IS NULL OR (contract_name ~* $3 OR client_name ~* $3))AND
+                ($3 IS NULL OR (job_title ~* $3 OR client_name ~* $3 OR contractor_name ~* $3)) AND
                 ($4 IS NULL OR branch_ulid = $4)
             LIMIT
                 $5
@@ -77,7 +85,7 @@ impl Database {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub async fn insert_one_contract(
+    pub async fn _insert_one_contract(
         &self,
         client_ulid: Uuid,
         contractor_ulid: Uuid,
@@ -124,7 +132,7 @@ impl Database {
         Ok(ulid)
     }
 
-    pub async fn select_one_contract(
+    pub async fn _select_one_contract(
         &self,
         contract_ulid: Option<Uuid>,
         contractor_ulid: Option<Uuid>,
@@ -156,7 +164,22 @@ impl Database {
         Ok(result)
     }
 
-    pub async fn sign_one_contract(
+    pub async fn _user_delete_one_contract(&self, contract_ulid: Uuid) -> GlobeliseResult<()> {
+        sqlx::query(
+            "
+        DELETE FROM 
+            contracts
+        WHERE
+            ulid = $1",
+        )
+        .bind(contract_ulid)
+        .execute(&self.0)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn _sign_one_contract(
         &self,
         contract_ulid: Uuid,
         contractor_ulid: Uuid,

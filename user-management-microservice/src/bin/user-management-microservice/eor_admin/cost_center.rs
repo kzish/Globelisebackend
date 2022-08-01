@@ -428,8 +428,8 @@ impl Database {
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "INSERT INTO
-                cost_center_contractors (cost_center_ulid, contractor_ulid)
-             VALUES ($1, $2)",
+                cost_center_contractor_pairs (cost_center_ulid, contractor_ulid)
+             VALUES ($1, $2) ON CONFLICT(cost_center_ulid, contractor_ulid) DO NOTHING",
         )
         .bind(request.cost_center_ulid)
         .bind(request.contractor_ulid)
@@ -445,7 +445,7 @@ impl Database {
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "DELETE FROM
-                cost_center_contractors 
+                cost_center_contractor_pairs 
              WHERE
                 contractor_ulid = $1
              AND

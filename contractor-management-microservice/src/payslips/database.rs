@@ -122,7 +122,7 @@ impl Database {
             ulid, client_ulid, contractor_ulid, contract_ulid, payslip_title,
             payment_date, begin_period, end_period, payslip_file_name, payslip_file
         ) VALUES (
-            $1, $2, $3, $4, $5, 
+            $1, $2, $3, $4, $5,
             $6, $7, $8, $9, $10)";
 
         sqlx::query(query)
@@ -151,7 +151,7 @@ impl Database {
         let query = "
         DELETE FROM
             payslips
-        WHERE 
+        WHERE
             (ulid = $1) AND
             ($2 IS NULL OR client_ulid = $2) AND
             ($3 IS NULL OR contractor_ulid = $3)";

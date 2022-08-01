@@ -26,6 +26,7 @@ mod client_account_settings;
 mod client_contractor_pair;
 mod constant;
 mod contractor_account_settings;
+mod contractors;
 mod custom_field;
 mod database;
 mod department;
@@ -883,6 +884,16 @@ async fn main() {
         .route(
             "/eor-admin/admin-notifications",
             get(notification::admin_get_many)
+        )
+        //client fetch all my contractors
+        .route(
+            "/client/contractors",
+            get(contractors::client_get_contractors)
+        )
+        //eor-admin fetch all contractors
+        .route(
+            "/eor-admin/contractors",
+            get(contractors::eor_admin_get_contractors)
         )
         // ========== CONSTANT PAGES ========
         .route("/constant/country_code",get(constant::country_code::get_many).post(constant::country_code::post_one).delete(constant::country_code::delete_one))
