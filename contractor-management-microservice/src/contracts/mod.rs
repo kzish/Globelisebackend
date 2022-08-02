@@ -106,7 +106,7 @@ pub struct SignContractInviteRequest {
 pub struct ContractsIndexResponse {
     pub ulid: Uuid,
     pub client_ulid: Uuid,
-    pub contractor_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
     pub contract_name: Option<String>,
     pub contract_type: Option<String>,
     pub contract_status: Option<String>,
@@ -153,7 +153,7 @@ pub struct ContractsIndexResponse {
 pub struct SingleContractsIndexResponse {
     pub ulid: Uuid,
     pub client_ulid: Uuid,
-    pub contractor_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
     pub contract_name: Option<String>,
     pub contract_type: Option<String>,
     pub contract_status: Option<String>,
@@ -376,7 +376,11 @@ pub async fn contractor_get_combine_single_contract_index(
     let response =
         get_combine_single_contract_index(request.contract_ulid.unwrap(), database).await?;
 
-    if claims.payload.ulid != response.contractor_ulid {
+    if response.contractor_ulid.is_none() {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    if claims.payload.ulid != response.contractor_ulid.unwrap() {
         return Err(GlobeliseError::Forbidden);
     }
 
