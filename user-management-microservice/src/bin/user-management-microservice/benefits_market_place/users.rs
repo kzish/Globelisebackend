@@ -20,11 +20,11 @@ pub struct UserProfile {
 }
 
 //dummy method
-pub async fn _user_registration(_request: UserSignupRequest) -> GlobeliseResult<(String, String)> {
+pub async fn user_registration(_request: UserSignupRequest) -> GlobeliseResult<(String, String)> {
     Ok(("200".to_string(), "".to_string()))
 }
 //for production
-pub async fn user_registration(request: UserSignupRequest) -> GlobeliseResult<(String, String)> {
+pub async fn _user_registration(request: UserSignupRequest) -> GlobeliseResult<(String, String)> {
     let client = Client::builder().build().unwrap();
 
     let base_url = std::env::var("BENEFITS_MARKET_PLACE_BASE_URL")
