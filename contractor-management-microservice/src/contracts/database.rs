@@ -3,8 +3,9 @@ use uuid::Uuid;
 
 use super::{
     ActivateContractRequest, ContractorsIndexResponse, ContractsAdditionalDocumentsResponse,
-    ContractsIndexResponse, ContractsPayItemsResponse, ContractsRequest, GetContractsRequest,
-    PermanantlyCancelContractRequest, RevokeSignContractRequest, SignContractRequest,
+    ContractsIndexResponse, ContractsPayItemsResponse, ContractsRequest, ContractsResponse,
+    GetContractsRequest, PermanantlyCancelContractRequest, RevokeSignContractRequest,
+    SignContractRequest,
 };
 use crate::database::Database;
 
@@ -585,11 +586,11 @@ impl Database {
     pub async fn get_contract_by_ulid(
         &self,
         contract_ulid: Uuid,
-    ) -> GlobeliseResult<ContractsIndexResponse> {
+    ) -> GlobeliseResult<ContractsResponse> {
         let response = sqlx::query_as(
             "
                 SELECT * FROM
-                    contracts_index
+                    contracts
                 WHERE 
                     ulid = $1
                 ",

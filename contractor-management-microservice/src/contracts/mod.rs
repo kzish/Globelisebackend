@@ -200,6 +200,52 @@ pub struct SingleContractsIndexResponse {
 #[serde_as]
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 #[serde(rename_all = "kebab-case")]
+pub struct ContractsResponse {
+    pub ulid: Uuid,
+    pub client_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
+    pub contract_name: String,
+    pub contract_type: String,
+    pub contract_status: String,
+    pub currency: String,
+    pub job_title: String,
+    pub seniority: String,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    pub begin_at: Option<sqlx::types::time::OffsetDateTime>,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    pub end_at: Option<sqlx::types::time::OffsetDateTime>,
+    pub branch_ulid: Uuid,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    pub created_at: Option<sqlx::types::time::OffsetDateTime>,
+    pub client_signature: Option<String>,
+    pub contractor_signature: Option<String>,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    pub client_date_signed: Option<sqlx::types::time::OffsetDateTime>,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    pub contractor_date_signed: Option<sqlx::types::time::OffsetDateTime>,
+    pub team_ulid: Option<Uuid>,
+    pub job_scope: Option<String>,
+    pub contract_amount: f64,
+    pub country_of_contractors_tax_residence: String,
+    pub notice_period: i32,
+    pub offer_stock_option: bool,
+    pub special_clause: Option<String>,
+    pub cut_off: i32,
+    pub pay_day: i32,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    pub due_date: Option<sqlx::types::time::OffsetDateTime>,
+    pub payment_calculation_settings: Option<String>,
+    pub statutory_fund_settings: Option<String>,
+    pub tax_settings: Option<String>,
+    pub client_rejected_reason: Option<String>,
+    pub contractor_rejected_reason: Option<String>,
+    pub cancelled_reason: Option<String>,
+    pub activate_to_draft_reason: Option<String>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
 pub struct ContractsRequest {
     pub ulid: Option<Uuid>, //no ulid will create a new contract, with ulid will update existig contract
     pub client_ulid: Option<Uuid>,
@@ -580,7 +626,7 @@ pub async fn client_invite_contractor(
         .await?;
     //update table contractor_branch_pairs
     database
-        .update_contractor_branch_pairs(contract.branch_ulid.unwrap(), contractor_ulid)
+        .update_contractor_branch_pairs(contract.branch_ulid, contractor_ulid)
         .await?;
     //update contract to set the contractor ulid
     database
