@@ -339,6 +339,13 @@ pub struct ContractsPayItemsResponse {
 #[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
+pub struct UserResponse {
+    pub ulid: Uuid,
+    pub email: Option<EmailWrapper>,
+}
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct ContractorsIndexResponse {
     pub ulid: Uuid,        //contractor ulid
     pub client_ulid: Uuid, //client ulid - client associated with this contractor
@@ -616,14 +623,14 @@ pub async fn client_invite_contractor(
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
-    let contractor_option = database.get_contractor_by_email(request.email).await?;
-    if contractor_option.is_none() {
+    let contractor_user_option = database.get_user_by_email(request.email).await?;
+    if contractor_user_option.is_none() {
         return Err(GlobeliseError::NotFound("Email not found".to_string()));
     }
     let contract = database.get_contract_by_ulid(request.contract_ulid).await?;
-    let contractor = contractor_option.unwrap();
-    let contractor_email = contractor.email.unwrap();
-    let contractor_ulid = contractor.ulid;
+    let contractor_user = contractor_user_option.unwrap();
+    let contractor_email = contractor_user.email.unwrap();
+    let contractor_ulid = contractor_user.ulid;
     //update table client_contractor_pairs
     database
         .update_client_contractor_pairs(claims.payload.ulid, contractor_ulid)

@@ -2,10 +2,9 @@ use common_utils::{calc_limit_and_offset, custom_serde::EmailWrapper, error::Glo
 use uuid::Uuid;
 
 use super::{
-    ActivateContractRequest, ContractorsIndexResponse, ContractsAdditionalDocumentsResponse,
-    ContractsIndexResponse, ContractsPayItemsResponse, ContractsRequest, ContractsResponse,
-    GetContractsRequest, PermanantlyCancelContractRequest, RevokeSignContractRequest,
-    SignContractRequest,
+    ActivateContractRequest, ContractsAdditionalDocumentsResponse, ContractsIndexResponse,
+    ContractsPayItemsResponse, ContractsRequest, ContractsResponse, GetContractsRequest,
+    PermanantlyCancelContractRequest, RevokeSignContractRequest, SignContractRequest, UserResponse,
 };
 use crate::database::Database;
 
@@ -561,14 +560,14 @@ impl Database {
         Ok(())
     }
 
-    pub async fn get_contractor_by_email(
+    pub async fn get_user_by_email(
         &self,
         email: EmailWrapper,
-    ) -> GlobeliseResult<Option<ContractorsIndexResponse>> {
+    ) -> GlobeliseResult<Option<UserResponse>> {
         let response = sqlx::query_as(
             "
             SELECT * FROM
-                contractors_index_for_clients
+                users
             WHERE 
                 email = $1
             ",
