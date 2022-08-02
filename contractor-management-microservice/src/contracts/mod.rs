@@ -56,7 +56,7 @@ pub struct GetContractsRequest {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct SignContractRequest {
-    pub contractor_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
     pub client_ulid: Uuid,
     pub contract_ulid: Uuid,
     pub signature: String,
@@ -588,7 +588,7 @@ pub async fn contractor_sign_contract(
     Json(request): Json<SignContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.contractor_ulid {
+    if claims.payload.ulid != request.contractor_ulid.unwrap() {
         return Err(GlobeliseError::Forbidden);
     }
     let database = database.lock().await;

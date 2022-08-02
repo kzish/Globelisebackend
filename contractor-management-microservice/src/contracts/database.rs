@@ -457,15 +457,12 @@ impl Database {
                 contract_status = 'CONTRACTOR_SIGNATURE'
             WHERE 
                 ulid = $3 
-            AND 
-                contractor_ulid = $4 
             AND
-                client_ulid = $5",
+                client_ulid = $4",
         )
         .bind(request.signature)
         .bind(now)
         .bind(request.contract_ulid)
-        .bind(request.contractor_ulid)
         .bind(request.client_ulid)
         .execute(&self.0)
         .await?;
