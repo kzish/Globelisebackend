@@ -57,7 +57,7 @@ pub struct GetContractsRequest {
 #[serde(rename_all = "kebab-case")]
 pub struct SignContractRequest {
     pub contractor_ulid: Option<Uuid>,
-    pub client_ulid: Uuid,
+    pub client_ulid: Option<Uuid>,
     pub contract_ulid: Uuid,
     pub signature: String,
 }
@@ -66,8 +66,8 @@ pub struct SignContractRequest {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct RevokeSignContractRequest {
-    pub contractor_ulid: Uuid,
-    pub client_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
+    pub client_ulid: Option<Uuid>,
     pub contract_ulid: Uuid,
     pub reason: String,
 }
@@ -76,8 +76,8 @@ pub struct RevokeSignContractRequest {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ActivateContractRequest {
-    pub contractor_ulid: Uuid,
-    pub client_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
+    pub client_ulid: Option<Uuid>,
     pub contract_ulid: Uuid,
     pub reason: String,
 }
@@ -86,8 +86,8 @@ pub struct ActivateContractRequest {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PermanantlyCancelContractRequest {
-    pub contractor_ulid: Uuid,
-    pub client_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
+    pub client_ulid: Option<Uuid>,
     pub contract_ulid: Uuid,
     pub reason: String,
 }
@@ -484,9 +484,7 @@ pub async fn client_post_update_contract(
 ) -> GlobeliseResult<String> {
     let database = database.lock().await;
 
-    if claims.payload.ulid != request.client_ulid.unwrap() {
-        return Err(GlobeliseError::Forbidden);
-    }
+    request.client_ulid = Some(claims.payload.ulid);
 
     if request.ulid.is_none() {
         //becomes a new contract
@@ -530,26 +528,22 @@ pub async fn admin_activate_contract_to_draft(
 
 pub async fn client_activate_contract_to_draft(
     claims: Token<UserAccessToken>,
-    Json(request): Json<ActivateContractRequest>,
+    Json(mut request): Json<ActivateContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.client_ulid {
-        return Err(GlobeliseError::Forbidden);
-    }
     let database = database.lock().await;
+    request.client_ulid = Some(claims.payload.ulid);
     database.activate_contract_to_draft(request).await?;
     Ok(())
 }
 
 pub async fn client_permanantly_cancel_contract(
     claims: Token<UserAccessToken>,
-    Json(request): Json<PermanantlyCancelContractRequest>,
+    Json(mut request): Json<PermanantlyCancelContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.client_ulid {
-        return Err(GlobeliseError::Forbidden);
-    }
     let database = database.lock().await;
+    request.client_ulid = Some(claims.payload.ulid);
     database.permanantly_cancel_contract(request).await?;
     Ok(())
 }
@@ -566,25 +560,21 @@ pub async fn admin_permanantly_cancel_contract(
 
 pub async fn client_sign_contract(
     claims: Token<UserAccessToken>,
-    Json(request): Json<SignContractRequest>,
+    Json(mut request): Json<SignContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.client_ulid {
-        return Err(GlobeliseError::Forbidden);
-    }
     let database = database.lock().await;
+    request.client_ulid = Some(claims.payload.ulid);
     database.client_sign_contract(request).await?;
     Ok(())
 }
 
 pub async fn client_revoke_sign_contract(
     claims: Token<UserAccessToken>,
-    Json(request): Json<RevokeSignContractRequest>,
+    Json(mut request): Json<RevokeSignContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.client_ulid {
-        return Err(GlobeliseError::Forbidden);
-    }
+    request.client_ulid = Some(claims.payload.ulid);
     let database = database.lock().await;
     database.client_revoke_sign_contract(request).await?;
     Ok(())
@@ -592,12 +582,10 @@ pub async fn client_revoke_sign_contract(
 
 pub async fn contractor_sign_contract(
     claims: Token<UserAccessToken>,
-    Json(request): Json<SignContractRequest>,
+    Json(mut request): Json<SignContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.contractor_ulid.unwrap() {
-        return Err(GlobeliseError::Forbidden);
-    }
+    request.contractor_ulid = Some(claims.payload.ulid);
     let database = database.lock().await;
     database.contractor_sign_contract(request).await?;
     Ok(())
@@ -605,13 +593,11 @@ pub async fn contractor_sign_contract(
 
 pub async fn contractor_revoke_sign_contract(
     claims: Token<UserAccessToken>,
-    Json(request): Json<RevokeSignContractRequest>,
+    Json(mut request): Json<RevokeSignContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.contractor_ulid {
-        return Err(GlobeliseError::Forbidden);
-    }
     let database = database.lock().await;
+    request.contractor_ulid = Some(claims.payload.ulid);
     database.contractor_revoke_sign_contract(request).await?;
     Ok(())
 }

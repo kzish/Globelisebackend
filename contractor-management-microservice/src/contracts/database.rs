@@ -486,14 +486,12 @@ impl Database {
                 ulid = $3 
             AND 
                 contractor_ulid = $4
-            AND
-                client_ulid = $5",
+            ",
         )
         .bind(request.signature)
         .bind(now)
         .bind(request.contract_ulid)
         .bind(request.contractor_ulid)
-        .bind(request.client_ulid)
         .execute(&self.0)
         .await?;
 
@@ -512,16 +510,13 @@ impl Database {
                 client_signature = null,
                 client_date_signed = null,
                 contract_status = 'REJECTED',
-                client_rejected_reason = $4
+                client_rejected_reason = $3
             WHERE 
                 ulid = $1 
-            AND 
-                contractor_ulid = $2
             AND
-                client_ulid = $3",
+                client_ulid = $2",
         )
         .bind(request.contract_ulid)
-        .bind(request.contractor_ulid)
         .bind(request.client_ulid)
         .bind(request.reason)
         .execute(&self.0)
@@ -542,17 +537,15 @@ impl Database {
                 contractor_signature = null,
                 contractor_date_signed = null,
                 contract_status = 'REJECTED',
-                contractor_rejected_reason = $4
+                contractor_rejected_reason = $3
             WHERE 
                 ulid = $1 
             AND 
                 contractor_ulid = $2
-            AND
-                client_ulid = $3",
+            ",
         )
         .bind(request.contract_ulid)
         .bind(request.contractor_ulid)
-        .bind(request.client_ulid)
         .bind(request.reason)
         .execute(&self.0)
         .await?;
@@ -609,16 +602,13 @@ impl Database {
                 contracts
             SET
                 contract_status = 'DRAFT',
-                activate_to_draft_reason = $4
+                activate_to_draft_reason = $3
             WHERE 
                 ulid = $1 
-            AND 
-                contractor_ulid = $2
             AND
-                client_ulid = $3",
+                ($2 IS NULL OR client_ulid = $2)",
         )
         .bind(request.contract_ulid)
-        .bind(request.contractor_ulid)
         .bind(request.client_ulid)
         .bind(request.reason)
         .execute(&self.0)
@@ -638,16 +628,13 @@ impl Database {
                 contracts
             SET
                 contract_status = 'CANCELLED',
-                cancelled_reason = $4
+                cancelled_reason = $3
             WHERE 
                 ulid = $1 
-            AND 
-                contractor_ulid = $2
             AND
-                client_ulid = $3",
+                ($2 IS NULL OR client_ulid = $2)",
         )
         .bind(request.contract_ulid)
-        .bind(request.contractor_ulid)
         .bind(request.client_ulid)
         .bind(request.reason)
         .execute(&self.0)
