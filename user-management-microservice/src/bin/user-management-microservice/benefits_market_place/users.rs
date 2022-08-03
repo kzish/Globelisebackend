@@ -38,6 +38,6 @@ pub async fn user_registration(request: UserSignupRequest) -> GlobeliseResult<(S
         .await?;
     let status = res.status().as_str().to_string();
     let res_string = res.text().await?;
-
+    println!("{:?}", (&status, &res_string));
     Ok((status, res_string))
 }

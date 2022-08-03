@@ -560,7 +560,7 @@ impl Database {
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "INSERT INTO
-                teams_contractors (team_ulid, contractor_ulid)
+                team_contractor_pairs (team_ulid, contractor_ulid)
             VALUES ($1, $2)",
         )
         .bind(request.team_ulid)
@@ -577,7 +577,7 @@ impl Database {
     ) -> GlobeliseResult<()> {
         sqlx::query(
             "DELETE FROM
-                    teams_contractors 
+                    team_contractor_pairs
                 WHERE
                     team_ulid = $1
                 AND
