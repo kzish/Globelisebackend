@@ -2,9 +2,9 @@ use common_utils::{calc_limit_and_offset, custom_serde::EmailWrapper, error::Glo
 use uuid::Uuid;
 
 use super::{
-    ActivateContractRequest, ContractorsIndexResponse, ContractsAdditionalDocumentsResponse,
-    ContractsIndexResponse, ContractsPayItemsResponse, ContractsRequest, GetContractsRequest,
-    PermanantlyCancelContractRequest, RevokeSignContractRequest, SignContractRequest,
+    ActivateContractRequest, ContractsAdditionalDocumentsResponse, ContractsIndexResponse,
+    ContractsPayItemsResponse, ContractsRequest, ContractsResponse, GetContractsRequest,
+    PermanantlyCancelContractRequest, RevokeSignContractRequest, SignContractRequest, UserResponse,
 };
 use crate::database::Database;
 
@@ -456,15 +456,12 @@ impl Database {
                 contract_status = 'CONTRACTOR_SIGNATURE'
             WHERE 
                 ulid = $3 
-            AND 
-                contractor_ulid = $4 
             AND
-                client_ulid = $5",
+                client_ulid = $4",
         )
         .bind(request.signature)
         .bind(now)
         .bind(request.contract_ulid)
-        .bind(request.contractor_ulid)
         .bind(request.client_ulid)
         .execute(&self.0)
         .await?;
@@ -489,14 +486,12 @@ impl Database {
                 ulid = $3 
             AND 
                 contractor_ulid = $4
-            AND
-                client_ulid = $5",
+            ",
         )
         .bind(request.signature)
         .bind(now)
         .bind(request.contract_ulid)
         .bind(request.contractor_ulid)
-        .bind(request.client_ulid)
         .execute(&self.0)
         .await?;
 
@@ -515,16 +510,13 @@ impl Database {
                 client_signature = null,
                 client_date_signed = null,
                 contract_status = 'REJECTED',
-                client_rejected_reason = $4
+                client_rejected_reason = $3
             WHERE 
                 ulid = $1 
-            AND 
-                contractor_ulid = $2
             AND
-                client_ulid = $3",
+                client_ulid = $2",
         )
         .bind(request.contract_ulid)
-        .bind(request.contractor_ulid)
         .bind(request.client_ulid)
         .bind(request.reason)
         .execute(&self.0)
@@ -545,17 +537,15 @@ impl Database {
                 contractor_signature = null,
                 contractor_date_signed = null,
                 contract_status = 'REJECTED',
-                contractor_rejected_reason = $4
+                contractor_rejected_reason = $3
             WHERE 
                 ulid = $1 
             AND 
                 contractor_ulid = $2
-            AND
-                client_ulid = $3",
+            ",
         )
         .bind(request.contract_ulid)
         .bind(request.contractor_ulid)
-        .bind(request.client_ulid)
         .bind(request.reason)
         .execute(&self.0)
         .await?;
@@ -563,14 +553,14 @@ impl Database {
         Ok(())
     }
 
-    pub async fn get_contractor_by_email(
+    pub async fn get_user_by_email(
         &self,
         email: EmailWrapper,
-    ) -> GlobeliseResult<Option<ContractorsIndexResponse>> {
+    ) -> GlobeliseResult<Option<UserResponse>> {
         let response = sqlx::query_as(
             "
             SELECT * FROM
-                contractors_index_for_clients
+                users
             WHERE 
                 email = $1
             ",
@@ -585,11 +575,11 @@ impl Database {
     pub async fn get_contract_by_ulid(
         &self,
         contract_ulid: Uuid,
-    ) -> GlobeliseResult<ContractsIndexResponse> {
+    ) -> GlobeliseResult<ContractsResponse> {
         let response = sqlx::query_as(
             "
                 SELECT * FROM
-                    contracts_index
+                    contracts
                 WHERE 
                     ulid = $1
                 ",
@@ -612,16 +602,13 @@ impl Database {
                 contracts
             SET
                 contract_status = 'DRAFT',
-                activate_to_draft_reason = $4
+                activate_to_draft_reason = $3
             WHERE 
                 ulid = $1 
-            AND 
-                contractor_ulid = $2
             AND
-                client_ulid = $3",
+                ($2 IS NULL OR client_ulid = $2)",
         )
         .bind(request.contract_ulid)
-        .bind(request.contractor_ulid)
         .bind(request.client_ulid)
         .bind(request.reason)
         .execute(&self.0)
@@ -641,16 +628,13 @@ impl Database {
                 contracts
             SET
                 contract_status = 'CANCELLED',
-                cancelled_reason = $4
+                cancelled_reason = $3
             WHERE 
                 ulid = $1 
-            AND 
-                contractor_ulid = $2
             AND
-                client_ulid = $3",
+                ($2 IS NULL OR client_ulid = $2)",
         )
         .bind(request.contract_ulid)
-        .bind(request.contractor_ulid)
         .bind(request.client_ulid)
         .bind(request.reason)
         .execute(&self.0)

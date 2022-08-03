@@ -67,7 +67,7 @@ pub async fn signup(
             Ok(user.ulid)
         } else {
             Err(GlobeliseError::bad_request(
-                "User with that email already exists. Did you forgot the password?",
+                "User with that email already exists. Did you forget the password?",
             ))
         }
     } else {

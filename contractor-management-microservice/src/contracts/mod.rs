@@ -56,8 +56,8 @@ pub struct GetContractsRequest {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct SignContractRequest {
-    pub contractor_ulid: Uuid,
-    pub client_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
+    pub client_ulid: Option<Uuid>,
     pub contract_ulid: Uuid,
     pub signature: String,
 }
@@ -66,8 +66,8 @@ pub struct SignContractRequest {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct RevokeSignContractRequest {
-    pub contractor_ulid: Uuid,
-    pub client_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
+    pub client_ulid: Option<Uuid>,
     pub contract_ulid: Uuid,
     pub reason: String,
 }
@@ -76,8 +76,8 @@ pub struct RevokeSignContractRequest {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ActivateContractRequest {
-    pub contractor_ulid: Uuid,
-    pub client_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
+    pub client_ulid: Option<Uuid>,
     pub contract_ulid: Uuid,
     pub reason: String,
 }
@@ -86,8 +86,8 @@ pub struct ActivateContractRequest {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PermanantlyCancelContractRequest {
-    pub contractor_ulid: Uuid,
-    pub client_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
+    pub client_ulid: Option<Uuid>,
     pub contract_ulid: Uuid,
     pub reason: String,
 }
@@ -106,7 +106,7 @@ pub struct SignContractInviteRequest {
 pub struct ContractsIndexResponse {
     pub ulid: Uuid,
     pub client_ulid: Uuid,
-    pub contractor_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
     pub contract_name: Option<String>,
     pub contract_type: Option<String>,
     pub contract_status: Option<String>,
@@ -153,7 +153,7 @@ pub struct ContractsIndexResponse {
 pub struct SingleContractsIndexResponse {
     pub ulid: Uuid,
     pub client_ulid: Uuid,
-    pub contractor_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
     pub contract_name: Option<String>,
     pub contract_type: Option<String>,
     pub contract_status: Option<String>,
@@ -191,6 +191,52 @@ pub struct SingleContractsIndexResponse {
     pub pay_items: Vec<ContractsPayItemsResponse>,
     pub additional_documents: Vec<ContractsAdditionalDocumentsResponse>,
 
+    pub client_rejected_reason: Option<String>,
+    pub contractor_rejected_reason: Option<String>,
+    pub cancelled_reason: Option<String>,
+    pub activate_to_draft_reason: Option<String>,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
+#[serde(rename_all = "kebab-case")]
+pub struct ContractsResponse {
+    pub ulid: Uuid,
+    pub client_ulid: Uuid,
+    pub contractor_ulid: Option<Uuid>,
+    pub contract_name: String,
+    pub contract_type: String,
+    pub contract_status: String,
+    pub currency: String,
+    pub job_title: String,
+    pub seniority: String,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    pub begin_at: Option<sqlx::types::time::OffsetDateTime>,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    pub end_at: Option<sqlx::types::time::OffsetDateTime>,
+    pub branch_ulid: Uuid,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    pub created_at: Option<sqlx::types::time::OffsetDateTime>,
+    pub client_signature: Option<String>,
+    pub contractor_signature: Option<String>,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    pub client_date_signed: Option<sqlx::types::time::OffsetDateTime>,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    pub contractor_date_signed: Option<sqlx::types::time::OffsetDateTime>,
+    pub team_ulid: Option<Uuid>,
+    pub job_scope: Option<String>,
+    pub contract_amount: f64,
+    pub country_of_contractors_tax_residence: String,
+    pub notice_period: i32,
+    pub offer_stock_option: bool,
+    pub special_clause: Option<String>,
+    pub cut_off: i32,
+    pub pay_day: i32,
+    #[serde_as(as = "TryFromInto<OptionOffsetDateWrapper>")]
+    pub due_date: Option<sqlx::types::time::OffsetDateTime>,
+    pub payment_calculation_settings: Option<String>,
+    pub statutory_fund_settings: Option<String>,
+    pub tax_settings: Option<String>,
     pub client_rejected_reason: Option<String>,
     pub contractor_rejected_reason: Option<String>,
     pub cancelled_reason: Option<String>,
@@ -293,6 +339,13 @@ pub struct ContractsPayItemsResponse {
 #[serde_as]
 #[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
+pub struct UserResponse {
+    pub ulid: Uuid,
+    pub email: Option<EmailWrapper>,
+}
+#[serde_as]
+#[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct ContractorsIndexResponse {
     pub ulid: Uuid,        //contractor ulid
     pub client_ulid: Uuid, //client ulid - client associated with this contractor
@@ -330,7 +383,11 @@ pub async fn contractor_get_combine_single_contract_index(
     let response =
         get_combine_single_contract_index(request.contract_ulid.unwrap(), database).await?;
 
-    if claims.payload.ulid != response.contractor_ulid {
+    if response.contractor_ulid.is_none() {
+        return Err(GlobeliseError::Forbidden);
+    }
+
+    if claims.payload.ulid != response.contractor_ulid.unwrap() {
         return Err(GlobeliseError::Forbidden);
     }
 
@@ -427,9 +484,7 @@ pub async fn client_post_update_contract(
 ) -> GlobeliseResult<String> {
     let database = database.lock().await;
 
-    if claims.payload.ulid != request.client_ulid.unwrap() {
-        return Err(GlobeliseError::Forbidden);
-    }
+    request.client_ulid = Some(claims.payload.ulid);
 
     if request.ulid.is_none() {
         //becomes a new contract
@@ -473,26 +528,22 @@ pub async fn admin_activate_contract_to_draft(
 
 pub async fn client_activate_contract_to_draft(
     claims: Token<UserAccessToken>,
-    Json(request): Json<ActivateContractRequest>,
+    Json(mut request): Json<ActivateContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.client_ulid {
-        return Err(GlobeliseError::Forbidden);
-    }
     let database = database.lock().await;
+    request.client_ulid = Some(claims.payload.ulid);
     database.activate_contract_to_draft(request).await?;
     Ok(())
 }
 
 pub async fn client_permanantly_cancel_contract(
     claims: Token<UserAccessToken>,
-    Json(request): Json<PermanantlyCancelContractRequest>,
+    Json(mut request): Json<PermanantlyCancelContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.client_ulid {
-        return Err(GlobeliseError::Forbidden);
-    }
     let database = database.lock().await;
+    request.client_ulid = Some(claims.payload.ulid);
     database.permanantly_cancel_contract(request).await?;
     Ok(())
 }
@@ -509,25 +560,21 @@ pub async fn admin_permanantly_cancel_contract(
 
 pub async fn client_sign_contract(
     claims: Token<UserAccessToken>,
-    Json(request): Json<SignContractRequest>,
+    Json(mut request): Json<SignContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.client_ulid {
-        return Err(GlobeliseError::Forbidden);
-    }
     let database = database.lock().await;
+    request.client_ulid = Some(claims.payload.ulid);
     database.client_sign_contract(request).await?;
     Ok(())
 }
 
 pub async fn client_revoke_sign_contract(
     claims: Token<UserAccessToken>,
-    Json(request): Json<RevokeSignContractRequest>,
+    Json(mut request): Json<RevokeSignContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.client_ulid {
-        return Err(GlobeliseError::Forbidden);
-    }
+    request.client_ulid = Some(claims.payload.ulid);
     let database = database.lock().await;
     database.client_revoke_sign_contract(request).await?;
     Ok(())
@@ -535,12 +582,10 @@ pub async fn client_revoke_sign_contract(
 
 pub async fn contractor_sign_contract(
     claims: Token<UserAccessToken>,
-    Json(request): Json<SignContractRequest>,
+    Json(mut request): Json<SignContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.contractor_ulid {
-        return Err(GlobeliseError::Forbidden);
-    }
+    request.contractor_ulid = Some(claims.payload.ulid);
     let database = database.lock().await;
     database.contractor_sign_contract(request).await?;
     Ok(())
@@ -548,13 +593,11 @@ pub async fn contractor_sign_contract(
 
 pub async fn contractor_revoke_sign_contract(
     claims: Token<UserAccessToken>,
-    Json(request): Json<RevokeSignContractRequest>,
+    Json(mut request): Json<RevokeSignContractRequest>,
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
-    if claims.payload.ulid != request.contractor_ulid {
-        return Err(GlobeliseError::Forbidden);
-    }
     let database = database.lock().await;
+    request.contractor_ulid = Some(claims.payload.ulid);
     database.contractor_revoke_sign_contract(request).await?;
     Ok(())
 }
@@ -566,21 +609,21 @@ pub async fn client_invite_contractor(
     Extension(database): Extension<SharedDatabase>,
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
-    let contractor_option = database.get_contractor_by_email(request.email).await?;
-    if contractor_option.is_none() {
+    let contractor_user_option = database.get_user_by_email(request.email).await?;
+    if contractor_user_option.is_none() {
         return Err(GlobeliseError::NotFound("Email not found".to_string()));
     }
     let contract = database.get_contract_by_ulid(request.contract_ulid).await?;
-    let contractor = contractor_option.unwrap();
-    let contractor_email = contractor.email.unwrap();
-    let contractor_ulid = contractor.ulid;
+    let contractor_user = contractor_user_option.unwrap();
+    let contractor_email = contractor_user.email.unwrap();
+    let contractor_ulid = contractor_user.ulid;
     //update table client_contractor_pairs
     database
         .update_client_contractor_pairs(claims.payload.ulid, contractor_ulid)
         .await?;
     //update table contractor_branch_pairs
     database
-        .update_contractor_branch_pairs(contract.branch_ulid.unwrap(), contractor_ulid)
+        .update_contractor_branch_pairs(contract.branch_ulid, contractor_ulid)
         .await?;
     //update contract to set the contractor ulid
     database
