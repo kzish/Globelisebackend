@@ -1,5 +1,5 @@
-use std::{io::Cursor, str::FromStr, sync::Arc};
-
+use argon2::hash_encoded;
+use argon2::{self, Config};
 use axum::{
     extract::{ContentLengthLimit, Extension, Json},
     http::{header::CONTENT_TYPE, HeaderValue},
@@ -21,9 +21,12 @@ use common_utils::{
 use csv::{ReaderBuilder, StringRecord};
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use lettre::{message::Mailbox, Message, SmtpTransport, Transport};
+use once_cell::sync::Lazy;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as, TryFromInto};
 use sqlx::FromRow;
+use std::{io::Cursor, str::FromStr, sync::Arc};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
@@ -213,7 +216,7 @@ pub async fn post_one(
     let mut errors = vec![];
 
     for value in rows_to_enter {
-        if let Err(err) = process_row(value, database.clone(), body.debug).await {
+        if let Err(err) = process_row(value, database.clone(), body.debug, body.client_ulid).await {
             errors.push(err);
         }
     }
@@ -225,6 +228,7 @@ async fn process_row(
     value: PrefillIndividualContractorDetailsForBulkUpload,
     database: Arc<Mutex<Database>>,
     debug: Option<bool>,
+    client_ulid: Uuid,
 ) -> GlobeliseResult<()> {
     let receiver_email = value
         .email
@@ -244,8 +248,24 @@ async fn process_row(
         user.ulid
     } else {
         user_created = true;
+        //TODO add default password and create also a benefits user
+        let default_password_string =
+            std::env::var("DEFAULT_USER_PASSWORD").expect("default password not set");
+        let salt: [u8; 16] = rand::thread_rng().gen();
+        let default_password_hash =
+            hash_encoded(default_password_string.as_bytes(), &salt, &HASH_CONFIG)
+                .map_err(GlobeliseError::internal)?;
         database
-            .insert_one_user(&value.email, None, false, false, false, true, false, true)
+            .insert_one_user(
+                &value.email,
+                Some(&default_password_hash),
+                false,
+                false,
+                false,
+                true,
+                false,
+                true,
+            )
             .await?
     };
 
@@ -274,7 +294,7 @@ async fn process_row(
                     gender: value.gender,
                     marital_status: value.marital_status,
                     nationality: Some(value.nationality),
-                    email_address: None,
+                    email_address: Some(value.email),
                     national_id: value.national_id,
                     passport_number: value.passport_number,
                     passport_expiry_date: value.passport_expiry_date,
@@ -305,6 +325,10 @@ async fn process_row(
             )
             .await?;
     }
+    //link this contractor to this client
+    database
+        .create_client_contractor_pair(client_ulid, user_ulid)
+        .await?;
 
     if let Some(true) = debug {
         return Ok(());
@@ -363,3 +387,10 @@ pub async fn download(_: Token<AdminAccessToken>) -> impl IntoResponse {
         bytes,
     )
 }
+
+/// The parameters used for hashing.
+// TODO: Calibrate hash parameters for production server.
+pub static HASH_CONFIG: Lazy<Config> = Lazy::new(|| Config {
+    variant: argon2::Variant::Argon2id,
+    ..Default::default()
+});
