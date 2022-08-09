@@ -895,6 +895,10 @@ async fn main() {
             "/eor-admin/contractors",
             get(contractors::eor_admin_get_contractors)
         )
+        .route(
+            "/benefits-market-place/users/verify-auth-token",
+            get(benefits_market_place::users::check_token_is_valid)
+        )
         // ========== CONSTANT PAGES ========
         .route("/constant/country_code",get(constant::country_code::get_many).post(constant::country_code::post_one).delete(constant::country_code::delete_one))
         .route("/constant/currency_code",get(constant::currency_code::get_many).post(constant::currency_code::post_one).delete(constant::currency_code::delete_one))
