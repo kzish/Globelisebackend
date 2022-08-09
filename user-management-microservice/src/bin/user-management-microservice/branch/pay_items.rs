@@ -435,10 +435,10 @@ impl sqlx::encode::Encode<'_, sqlx::Postgres> for PayItemMethod {
 #[serde(rename_all = "kebab-case")]
 pub struct CreatePayItem {
     pub branch_ulid: Uuid,
-    pub pay_item_type: PayItemType,
+    pub pay_item_type: String,
     pub pay_item_custom_name: String,
     pub use_pay_item_type_name: bool,
-    pub pay_item_method: PayItemMethod,
+    pub pay_item_method: String,
     pub employers_contribution: String,
     pub require_employee_id: bool,
 }
@@ -449,10 +449,10 @@ pub struct CreatePayItem {
 pub struct PayItem {
     pub ulid: Uuid,
     pub branch_ulid: Uuid,
-    pub pay_item_type: PayItemType,
+    pub pay_item_type: String,
     pub pay_item_custom_name: String,
     pub use_pay_item_type_name: bool,
-    pub pay_item_method: PayItemMethod,
+    pub pay_item_method: String,
     pub employers_contribution: String,
     pub require_employee_id: bool,
 }
