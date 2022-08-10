@@ -40,7 +40,7 @@ pub async fn get_pay_items(
     Ok(Json(pay_items))
 }
 
-pub async fn create_pay_item(
+pub async fn create_update_pay_item(
     claims: Token<UserAccessToken>,
     Json(pay_item): Json<CreatePayItem>,
     Extension(database): Extension<SharedDatabase>,
@@ -57,29 +57,8 @@ pub async fn create_pay_item(
     {
         return Err(GlobeliseError::Forbidden);
     }
-    database.create_pay_item(pay_item).await?;
 
-    Ok(())
-}
-
-pub async fn update_pay_item(
-    claims: Token<UserAccessToken>,
-    Json(pay_item): Json<PayItem>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<()> {
-    if !matches!(claims.payload.user_type, UserType::Entity) {
-        return Err(GlobeliseError::Forbidden);
-    }
-
-    let database = database.lock().await;
-
-    if !database
-        .client_owns_branch(claims.payload.ulid, pay_item.branch_ulid)
-        .await?
-    {
-        return Err(GlobeliseError::Forbidden);
-    }
-    database.update_pay_item(pay_item).await?;
+    database.create_update_pay_item(pay_item).await?;
 
     Ok(())
 }
@@ -172,9 +151,13 @@ impl Database {
         Ok(res)
     }
 
-    pub async fn create_pay_item(&self, pay_item: CreatePayItem) -> GlobeliseResult<Uuid> {
-        let ulid = Uuid::new_v4();
-
+    pub async fn create_update_pay_item(
+        &self,
+        mut pay_item: CreatePayItem,
+    ) -> GlobeliseResult<Uuid> {
+        if pay_item.ulid.is_none() {
+            pay_item.ulid = Some(Uuid::new_v4());
+        }
         let query = "
             INSERT INTO entity_client_branch_pay_items (
                 ulid, branch_ulid, pay_item_type, pay_item_custom_name, use_pay_item_type_name,
@@ -182,9 +165,18 @@ impl Database {
             ) VALUES (
                 $1, $2, $3, $4, $5, 
                 $6, $7, $8
-            )";
+            ) ON CONFLICT(ulid) DO UPDATE
+            SET 
+            branch_ulid = $2, 
+            pay_item_type = $3, 
+            pay_item_custom_name = $4, 
+            use_pay_item_type_name = $5,
+            pay_item_method = $6, 
+            employers_contribution = $7, 
+            require_employee_id = $8
+                ";
         sqlx::query(query)
-            .bind(ulid)
+            .bind(pay_item.ulid)
             .bind(pay_item.branch_ulid)
             .bind(pay_item.pay_item_type)
             .bind(pay_item.pay_item_custom_name)
@@ -195,35 +187,7 @@ impl Database {
             .execute(&self.0)
             .await?;
 
-        Ok(ulid)
-    }
-
-    pub async fn update_pay_item(&self, pay_item: PayItem) -> GlobeliseResult<()> {
-        let query = "
-            UPDATE 
-                entity_client_branch_pay_items 
-            SET
-                pay_item_type = $2,
-                pay_item_custom_name = $3,
-                use_pay_item_type_name = $4,
-                pay_item_method = $5,
-                employers_contribution = $6,
-                require_employee_id = $7
-            WHERE 
-                ulid = $1
-            ";
-        sqlx::query(query)
-            .bind(pay_item.ulid)
-            .bind(pay_item.pay_item_type)
-            .bind(pay_item.pay_item_custom_name)
-            .bind(pay_item.use_pay_item_type_name)
-            .bind(pay_item.pay_item_method)
-            .bind(pay_item.employers_contribution)
-            .bind(pay_item.require_employee_id)
-            .execute(&self.0)
-            .await?;
-
-        Ok(())
+        Ok(pay_item.ulid.unwrap())
     }
 
     pub async fn delete_pay_item(&self, ulid: Uuid) -> GlobeliseResult<()> {
@@ -434,11 +398,12 @@ impl sqlx::encode::Encode<'_, sqlx::Postgres> for PayItemMethod {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct CreatePayItem {
+    pub ulid: Option<Uuid>,
     pub branch_ulid: Uuid,
-    pub pay_item_type: PayItemType,
+    pub pay_item_type: String,
     pub pay_item_custom_name: String,
     pub use_pay_item_type_name: bool,
-    pub pay_item_method: PayItemMethod,
+    pub pay_item_method: String,
     pub employers_contribution: String,
     pub require_employee_id: bool,
 }
@@ -449,10 +414,10 @@ pub struct CreatePayItem {
 pub struct PayItem {
     pub ulid: Uuid,
     pub branch_ulid: Uuid,
-    pub pay_item_type: PayItemType,
+    pub pay_item_type: String,
     pub pay_item_custom_name: String,
     pub use_pay_item_type_name: bool,
-    pub pay_item_method: PayItemMethod,
+    pub pay_item_method: String,
     pub employers_contribution: String,
     pub require_employee_id: bool,
 }

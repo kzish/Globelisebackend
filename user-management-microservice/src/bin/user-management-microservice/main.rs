@@ -169,8 +169,7 @@ async fn main() {
         .route(
             "/client/branch/pay-items",
             get(branch::pay_items::get_pay_items)
-                .post(branch::pay_items::create_pay_item)
-                .put(branch::pay_items::update_pay_item),
+                .post(branch::pay_items::create_update_pay_item)
         )
         .route(
             "/client/branch/pay-items/:pay_item_ulid",
@@ -825,8 +824,7 @@ async fn main() {
         .route(
             "/eor-admin/client/branch/pay-items",
             get(eor_admin::pay_items::get_pay_items)
-                .post(eor_admin::pay_items::create_pay_item)
-                .put(eor_admin::pay_items::update_pay_item),
+                .post(eor_admin::pay_items::create_update_pay_item)
         )
         .route(
             "/eor-admin/client/branch/pay-items/:pay_item_ulid",
@@ -894,6 +892,10 @@ async fn main() {
         .route(
             "/eor-admin/contractors",
             get(contractors::eor_admin_get_contractors)
+        )
+        .route(
+            "/benefits-market-place/users/verify-auth-token",
+            get(benefits_market_place::users::check_token_is_valid)
         )
         // ========== CONSTANT PAGES ========
         .route("/constant/country_code",get(constant::country_code::get_many).post(constant::country_code::post_one).delete(constant::country_code::delete_one))

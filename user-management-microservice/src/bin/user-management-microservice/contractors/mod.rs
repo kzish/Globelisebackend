@@ -27,13 +27,13 @@ pub struct ContractorsQuery {
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ContractorsResponse {
-    pub ulid: Uuid,        //contractor ulid
-    pub client_ulid: Uuid, //client ulid - client associated with this contractor
-    pub name: String,      //contractor name
+    pub ulid: Uuid,           //contractor ulid
+    pub client_ulid: Uuid,    //client ulid - client associated with this contractor
+    pub name: Option<String>, //contractor name
     pub email: Option<EmailWrapper>,
     pub user_role: Option<String>,
     pub user_type: Option<String>,
-    pub contract_count: i64,
+    pub contract_count: Option<i64>,
     pub branch_name: Option<String>,
     pub branch_ulid: Option<Uuid>,
     pub cost_center_name: Option<String>,

@@ -1,3 +1,4 @@
+use argon2::{hash_encoded, Config};
 use axum::extract::{ContentLengthLimit, Extension, Json, Query};
 use common_utils::{
     custom_serde::{
@@ -12,8 +13,10 @@ use common_utils::{
 };
 use eor_admin_microservice_sdk::token::AdminAccessToken;
 use lettre::{Message, SmtpTransport, Transport};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, TryFromInto};
+use uuid::Uuid;
 
 use crate::env::{FRONTEND_URL, GLOBELISE_SENDER_EMAIL, GLOBELISE_SMTP_URL, SMTP_CREDENTIAL};
 
@@ -25,11 +28,13 @@ pub mod pay_items;
 pub mod sap;
 pub mod search_employee_contractors;
 pub mod teams;
+use once_cell::sync::Lazy;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct AddUserRequest {
     pub email: EmailWrapper,
+    pub client_ulid: Uuid,
     pub debug: Option<bool>,
 }
 
@@ -51,15 +56,35 @@ pub async fn add_individual_contractor(
     {
         return Err(GlobeliseError::UnavailableEmail);
     };
+    let default_password_raw =
+        std::env::var("DEFAULT_USER_PASSWORD").expect("default password not set");
+    let salt: [u8; 16] = rand::thread_rng().gen();
 
-    database
-        .insert_one_user(&body.email, None, false, false, false, true, false, true)
+    let default_password_hash = hash_encoded(default_password_raw.as_bytes(), &salt, &HASH_CONFIG)
+        .map_err(GlobeliseError::internal)?;
+
+    let contractor_ulid = database
+        .insert_one_user(
+            &body.email,
+            Some(&default_password_hash),
+            false,
+            false,
+            false,
+            true,
+            false,
+            true,
+        )
         .await?;
 
     // If  in debug mode, skip sending emails
     if let Some(true) = body.debug {
         return Ok(());
     }
+
+    //create client contractor pair
+    database
+        .create_client_contractor_pair(body.client_ulid, contractor_ulid)
+        .await?;
 
     let receiver_email = body
         .email
@@ -86,11 +111,13 @@ pub async fn add_individual_contractor(
                 <p>
                Click the <a href="{}/signup?as=contractor&type=individual">link</a> to sign up as a Globelise individual contractor.
                 </p>
+                <br/> your password is {}. Please change your password immediatly.
                 <p>If you did not expect to receive this email. Please ignore!</p>
             </body>
             </html>
             "##,
             (*FRONTEND_URL),
+            (default_password_raw),
         ))?;
 
     // Open a remote connection to gmail
@@ -177,3 +204,10 @@ pub async fn admin_get_many_onboarded_user_index(
         .await?;
     Ok(Json(result))
 }
+
+/// The parameters used for hashing.
+// TODO: Calibrate hash parameters for production server.
+pub static HASH_CONFIG: Lazy<Config> = Lazy::new(|| Config {
+    variant: argon2::Variant::Argon2id,
+    ..Default::default()
+});

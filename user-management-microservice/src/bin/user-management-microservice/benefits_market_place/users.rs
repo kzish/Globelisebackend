@@ -1,7 +1,12 @@
-use common_utils::error::GlobeliseResult;
+use axum::{Extension, Json};
+use common_utils::{error::GlobeliseResult, token::Token};
 use reqwest::{header::CONTENT_TYPE, Client};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
+use sqlx::FromRow;
+use user_management_microservice_sdk::token::UserAccessToken;
+
+use crate::database::SharedDatabase;
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserSignupRequest {
@@ -16,6 +21,12 @@ pub struct UserSignupRequest {
 pub struct UserProfile {
     pub firstname: String,
     pub lastname: String,
+    pub email: String,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+pub struct GlobeliseUser {
     pub email: String,
 }
 
@@ -40,4 +51,16 @@ pub async fn user_registration(request: UserSignupRequest) -> GlobeliseResult<(S
     let res_string = res.text().await?;
     println!("{:?}", (&status, &res_string));
     Ok((status, res_string))
+}
+
+//check if user token is valid
+pub async fn check_token_is_valid(
+    claims: Token<UserAccessToken>,
+    Extension(database): Extension<SharedDatabase>,
+) -> GlobeliseResult<Json<GlobeliseUser>> {
+    let database = database.lock().await;
+
+    let response = database.get_globelise_user(claims.payload.ulid).await?;
+
+    Ok(Json(response))
 }

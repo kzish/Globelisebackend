@@ -108,6 +108,27 @@ pub struct UserIndex {
 }
 
 impl Database {
+    pub async fn create_client_contractor_pair(
+        &self,
+        client_ulid: Uuid,
+        contractor_ulid: Uuid,
+    ) -> GlobeliseResult<()> {
+        sqlx::query(&format!(
+            "
+        INSERT INTO 
+            client_contractor_pairs (client_ulid, contractor_ulid)
+        VALUES($1, $2)
+            ON CONFLICT(client_ulid, contractor_ulid) DO NOTHING
+        "
+        ))
+        .bind(client_ulid)
+        .bind(contractor_ulid)
+        .execute(&self.0)
+        .await?;
+
+        Ok(())
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub async fn insert_one_user(
         &self,
