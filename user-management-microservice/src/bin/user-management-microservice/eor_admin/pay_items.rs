@@ -22,7 +22,7 @@ pub async fn get_pay_items(
     Ok(Json(pay_items))
 }
 
-pub async fn create_pay_item(
+pub async fn create_update_pay_item(
     // Only for validation
     _: Token<AdminAccessToken>,
     Json(pay_item): Json<CreatePayItem>,
@@ -30,20 +30,7 @@ pub async fn create_pay_item(
 ) -> GlobeliseResult<()> {
     let database = database.lock().await;
 
-    database.create_pay_item(pay_item).await?;
-
-    Ok(())
-}
-
-pub async fn update_pay_item(
-    // Only for validation
-    _: Token<AdminAccessToken>,
-    Json(pay_item): Json<PayItem>,
-    Extension(database): Extension<SharedDatabase>,
-) -> GlobeliseResult<()> {
-    let database = database.lock().await;
-
-    database.update_pay_item(pay_item).await?;
+    database.create_update_pay_item(pay_item).await?;
 
     Ok(())
 }

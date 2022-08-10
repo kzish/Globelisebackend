@@ -169,8 +169,7 @@ async fn main() {
         .route(
             "/client/branch/pay-items",
             get(branch::pay_items::get_pay_items)
-                .post(branch::pay_items::create_pay_item)
-                .put(branch::pay_items::update_pay_item),
+                .post(branch::pay_items::create_update_pay_item)
         )
         .route(
             "/client/branch/pay-items/:pay_item_ulid",
@@ -825,8 +824,7 @@ async fn main() {
         .route(
             "/eor-admin/client/branch/pay-items",
             get(eor_admin::pay_items::get_pay_items)
-                .post(eor_admin::pay_items::create_pay_item)
-                .put(eor_admin::pay_items::update_pay_item),
+                .post(eor_admin::pay_items::create_update_pay_item)
         )
         .route(
             "/eor-admin/client/branch/pay-items/:pay_item_ulid",
